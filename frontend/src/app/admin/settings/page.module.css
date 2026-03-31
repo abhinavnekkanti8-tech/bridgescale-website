@@ -1,0 +1,33 @@
+.page { max-width: 900px; display: flex; flex-direction: column; gap: var(--space-8); }
+.header { display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-6); border-bottom: 1px solid var(--color-border); }
+.title { font-size: clamp(1.5rem, 3vw, 2.25rem); line-height: 1.2; }
+.subtitle { font-size: 0.9375rem; color: var(--color-text-secondary); }
+
+.layout { display: flex; flex-direction: column; gap: var(--space-10); }
+
+.section { display: flex; flex-direction: column; gap: var(--space-5); }
+.sectionHeader h2 { font-size: 1.25rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px; }
+.sectionDesc { font-size: 0.9375rem; color: var(--color-text-secondary); line-height: 1.5; }
+
+.configForm { display: flex; flex-direction: column; gap: var(--space-6); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-6); }
+.fieldGrid { display: grid; grid-template-columns: 1fr; gap: var(--space-5); }
+@media(min-width: 600px) { .fieldGrid { grid-template-columns: 1fr 1fr; } }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); text-transform: uppercase; letter-spacing: 0.05em; }
+.field input { padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-background); font-family: 'Plus Jakarta Sans', monospace; font-size: 1rem; color: var(--color-text-primary); width: 100px; transition: border-color 0.2s; }
+.field input:focus { border-color: var(--color-accent-blue); outline: none; }
+
+.actions { display: flex; justify-content: flex-end; gap: var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
+
+.togglesList { display: flex; flex-direction: column; gap: 0; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; }
+.toggleRow { display: flex; justify-content: space-between; align-items: center; padding: var(--space-5); border-bottom: 1px solid var(--color-border); cursor: pointer; transition: background 0.15s; }
+.toggleRow:last-child { border-bottom: none; }
+.toggleRow:hover { background: rgba(0,0,0,0.01); }
+.toggleRow div { display: flex; flex-direction: column; gap: 4px; }
+.toggleRow strong { font-size: 0.9375rem; color: var(--color-text-primary); }
+.toggleRow p { font-size: 0.875rem; color: var(--color-text-secondary); margin: 0; }
+.toggleRow input[type="checkbox"] { width: 44px; height: 24px; appearance: none; background: var(--color-border); border-radius: 12px; position: relative; cursor: pointer; transition: background 0.3s; }
+.toggleRow input[type="checkbox"]:checked { background: var(--color-accent-blue); }
+.toggleRow input[type="checkbox"]::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: transform 0.3s; }
+.toggleRow input[type="checkbox"]:checked::after { transform: translateX(20px); }

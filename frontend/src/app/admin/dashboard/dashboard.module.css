@@ -1,0 +1,17 @@
+/* Import from shared module */
+.page { composes: page from '../../startup/dashboard/dashboard.module.css'; }
+.header { composes: header from '../../startup/dashboard/dashboard.module.css'; }
+.title { composes: title from '../../startup/dashboard/dashboard.module.css'; }
+.subtitle { composes: subtitle from '../../startup/dashboard/dashboard.module.css'; }
+.statGrid { composes: statGrid from '../../startup/dashboard/dashboard.module.css'; }
+.statLabel { composes: statLabel from '../../startup/dashboard/dashboard.module.css'; }
+.statValue { composes: statValue from '../../startup/dashboard/dashboard.module.css'; }
+.statNote { composes: statNote from '../../startup/dashboard/dashboard.module.css'; }
+.section { composes: section from '../../startup/dashboard/dashboard.module.css'; }
+.sectionTitle { composes: sectionTitle from '../../startup/dashboard/dashboard.module.css'; }
+.actionList { composes: actionList from '../../startup/dashboard/dashboard.module.css'; }
+.actionCard { composes: actionCard from '../../startup/dashboard/dashboard.module.css'; }
+.actionIcon { composes: actionIcon from '../../startup/dashboard/dashboard.module.css'; }
+.actionBody { composes: actionBody from '../../startup/dashboard/dashboard.module.css'; }
+.actionLabel { composes: actionLabel from '../../startup/dashboard/dashboard.module.css'; }
+.actionArrow { composes: actionArrow from '../../startup/dashboard/dashboard.module.css'; }

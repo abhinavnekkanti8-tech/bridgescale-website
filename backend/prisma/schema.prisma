@@ -1,0 +1,885 @@
+// This file is the entry point for prisma/schema.prisma.
+// Core entity models will be progressively added in Artifact 2.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum OrgType {
+  STARTUP
+  OPERATOR_ENTITY
+  PLATFORM
+}
+
+enum MembershipRole {
+  STARTUP_ADMIN
+  STARTUP_MEMBER
+  OPERATOR
+  PLATFORM_ADMIN
+  DEAL_DESK
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+}
+
+// ─────────────────────────────────────────────
+// CORE IDENTITY MODELS (Artifact 2)
+// ─────────────────────────────────────────────
+
+model User {
+  id           String       @id @default(cuid())
+  name         String
+  email        String       @unique
+  passwordHash String
+  status       UserStatus   @default(ACTIVE)
+  lastLoginAt  DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  memberships     Membership[]
+  notes           WorkspaceNote[]
+  activityLogs    ActivityLog[]
+  nudges          SystemNudge[]
+  escalations     EscalationCase[]
+  ratingsGiven    EngagementRating[] @relation("RatingReviewer")
+  ratingsReceived EngagementRating[] @relation("RatingReviewee")
+
+  @@index([email])
+  @@map("users")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  orgType   OrgType
+  name      String
+  country   String?
+  website   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships      Membership[]
+  startupProfile   StartupProfile?
+  operatorProfile  OperatorProfile?
+
+  @@map("organizations")
+}
+
+model Membership {
+  id             String           @id @default(cuid())
+  userId         String
+  orgId          String
+  membershipRole MembershipRole
+  status         MembershipStatus @default(PENDING)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@index([userId])
+  @@index([orgId])
+  @@map("memberships")
+}
+
+// ─────────────────────────────────────────────
+// STARTUP INTAKE MODELS (Artifact 3)
+// ─────────────────────────────────────────────
+
+enum StartupStage {
+  PRE_SEED
+  SEED
+  SERIES_A
+  SERIES_B_PLUS
+  BOOTSTRAPPED
+}
+
+enum SalesMotion {
+  OUTBOUND
+  INBOUND
+  PARTNER_LED
+  PRODUCT_LED
+  BLENDED
+}
+
+enum BudgetBand {
+  UNDER_2K
+  TWO_TO_5K
+  FIVE_TO_10K
+  ABOVE_10K
+}
+
+enum TargetMarket {
+  EU
+  US
+  AU
+  REST_OF_WORLD
+}
+
+enum ProfileStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum Eligibility {
+  INELIGIBLE
+  SPRINT_ONLY
+  SPRINT_AND_RETAINER
+}
+
+model StartupProfile {
+  id                   String        @id @default(cuid())
+  startupId            String        @unique
+  industry             String
+  stage                StartupStage
+  targetMarkets        TargetMarket[]
+  salesMotion          SalesMotion
+  budgetBand           BudgetBand
+  executionOwner       String?
+  hasProductDemo       Boolean       @default(false)
+  hasDeck              Boolean       @default(false)
+  toolingReady         Boolean       @default(false)
+  responsivenessCommit Boolean       @default(false)
+  additionalContext    String?
+  status               ProfileStatus @default(DRAFT)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  startup        Organization         @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  scores         DemandReadinessScore[]
+  discoveryCalls DiscoveryCall[]
+  shortlists     MatchShortlist[]
+  engagements    Engagement[]
+
+  @@map("startup_profiles")
+}
+
+model DemandReadinessScore {
+  id             String      @id @default(cuid())
+  profileId      String
+  scoreTotal     Int
+  scoreBreakdown Json
+  blockers       String[]
+  recommendation String?
+  eligibility    Eligibility
+  generatedBy    String      @default("AI")
+  promptVersion  String?
+  modelName      String?
+  temperature    Float?
+  adminOverride  Boolean     @default(false)
+  overrideReason String?
+  createdAt      DateTime    @default(now())
+
+  profile StartupProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("demand_readiness_scores")
+}
+
+// ─────────────────────────────────────────────
+// OPERATOR & INVITE MODELS (Artifact 4)
+// ─────────────────────────────────────────────
+
+enum OperatorLane {
+  PIPELINE_SPRINT
+  BD_SPRINT
+  FRACTIONAL_RETAINER
+}
+
+enum OperatorTier {
+  TIER_A
+  TIER_B
+  TIER_C
+  UNVERIFIED
+}
+
+enum OperatorVerification {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum InviteStatus {
+  SENT
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+model InviteToken {
+  id          String       @id @default(cuid())
+  email       String
+  token       String       @unique
+  role        MembershipRole
+  orgName     String?
+  status      InviteStatus @default(SENT)
+  expiresAt   DateTime
+  createdAt   DateTime     @default(now())
+
+  @@index([token])
+  @@index([email])
+  @@map("invite_tokens")
+}
+
+model OperatorProfile {
+  id                String              @id @default(cuid())
+  operatorId        String              @unique
+  lanes             OperatorLane[]
+  regions           TargetMarket[]
+  functions         String[]
+  experienceTags    String[]
+  yearsExperience   Int?
+  linkedIn          String?
+  references        Json?
+  availability      String?
+  bio               String?
+  verification      OperatorVerification @default(PENDING)
+  tier              OperatorTier         @default(UNVERIFIED)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  operator Organization           @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+  scores   SupplyQualityScore[]
+  candidates MatchCandidate[]
+  engagements Engagement[]
+
+  @@map("operator_profiles")
+}
+
+model SupplyQualityScore {
+  id             String       @id @default(cuid())
+  profileId      String
+  scoreTotal     Int
+  scoreBreakdown Json
+  blockers       String[]
+  recommendation String?
+  tier           OperatorTier
+  generatedBy    String       @default("AI")
+  promptVersion  String?
+  modelName      String?
+  temperature    Float?
+  adminOverride  Boolean      @default(false)
+  overrideReason String?
+  createdAt      DateTime     @default(now())
+
+  profile OperatorProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("supply_quality_scores")
+}
+
+// ─────────────────────────────────────────────
+// DISCOVERY & PACKAGE MODELS (Artifact 5)
+// ─────────────────────────────────────────────
+
+enum DiscoveryStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PackageType {
+  PIPELINE_SPRINT
+  BD_SPRINT
+  FRACTIONAL_RETAINER
+}
+
+model DiscoveryCall {
+  id                String           @id @default(cuid())
+  startupProfileId  String
+  scheduledAt       DateTime
+  durationMinutes   Int              @default(30)
+  meetingLink       String?
+  status            DiscoveryStatus  @default(SCHEDULED)
+  notes             String?
+  aiSummary         String?
+  aiRecommendation  String?
+  recommendedPkgs   PackageType[]
+  promptVersion     String?
+  modelName         String?
+  adminOverride     Boolean          @default(false)
+  overrideSummary   String?
+  overrideReason    String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  startupProfile    StartupProfile   @relation(fields: [startupProfileId], references: [id], onDelete: Cascade)
+
+  @@index([startupProfileId])
+  @@index([scheduledAt])
+  @@map("discovery_calls")
+}
+
+model Package {
+  id            String      @id @default(cuid())
+  type          PackageType
+  name          String
+  description   String?
+  durationWeeks Int
+  weeklyHours   Int
+  priceUsd      Int
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+
+  @@map("packages")
+}
+
+// ─────────────────────────────────────────────
+// MATCHING & SHORTLIST MODELS (Artifact 6)
+// ─────────────────────────────────────────────
+
+enum ShortlistStatus {
+  DRAFT
+  PUBLISHED
+  SELECTION_MADE
+  EXPIRED
+}
+
+enum CandidateStatus {
+  SHORTLISTED
+  INTERESTED
+  DECLINED
+  SELECTED
+  PASSED
+}
+
+enum CandidateInterest {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model MatchShortlist {
+  id                String           @id @default(cuid())
+  startupProfileId  String
+  generatedBy       String           @default("AI")
+  status            ShortlistStatus  @default(DRAFT)
+  publishedAt       DateTime?
+  selectionDeadline DateTime?
+  promptVersion     String?
+  modelName         String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  startupProfile    StartupProfile   @relation(fields: [startupProfileId], references: [id], onDelete: Cascade)
+  candidates        MatchCandidate[]
+
+  @@index([startupProfileId])
+  @@map("match_shortlists")
+}
+
+model MatchCandidate {
+  id               String             @id @default(cuid())
+  shortlistId      String
+  operatorId       String
+  matchScore       Int
+  scoreBreakdown   Json
+  explanation      String?
+  mainRisk         String?
+  packageTier      PackageType?
+  weeklyFitHours   Int?
+  status           CandidateStatus    @default(SHORTLISTED)
+  interest         CandidateInterest  @default(PENDING)
+  declineReason    String?
+  selectedAt       DateTime?
+  createdAt        DateTime           @default(now())
+
+  shortlist MatchShortlist @relation(fields: [shortlistId], references: [id], onDelete: Cascade)
+  operator  OperatorProfile @relation(fields: [operatorId], references: [operatorId], onDelete: Cascade)
+
+  @@unique([shortlistId, operatorId])
+  @@index([shortlistId])
+  @@index([operatorId])
+  @@map("match_candidates")
+}
+
+// ─────────────────────────────────────────────
+// SOW, CONTRACT & E-SIGNATURE MODELS (Artifact 7)
+// ─────────────────────────────────────────────
+
+enum SowStatus {
+  DRAFT
+  REVIEW
+  APPROVED
+  SIGNED
+  LOCKED
+}
+
+enum ContractStatus {
+  PENDING_SIGNATURES
+  STARTUP_SIGNED
+  OPERATOR_SIGNED
+  FULLY_SIGNED
+  CANCELLED
+}
+
+model StatementOfWork {
+  id                String       @id @default(cuid())
+  shortlistId       String
+  startupProfileId  String
+  operatorId        String
+  packageType       PackageType
+  title             String
+  scope             String
+  deliverables      String
+  timeline          String
+  weeklyHours       Int
+  totalPriceUsd     Int
+  nonCircumvention  Boolean      @default(true)
+  status            SowStatus    @default(DRAFT)
+  currentVersion    Int          @default(1)
+  promptVersion     String?
+  modelName         String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  versions  SowVersion[]
+  contract  Contract?
+
+  @@index([startupProfileId])
+  @@index([operatorId])
+  @@map("statements_of_work")
+}
+
+model SowVersion {
+  id          String   @id @default(cuid())
+  sowId       String
+  version     Int
+  content     Json
+  changedBy   String
+  changeNote  String?
+  createdAt   DateTime @default(now())
+
+  sow StatementOfWork @relation(fields: [sowId], references: [id], onDelete: Cascade)
+
+  @@unique([sowId, version])
+  @@map("sow_versions")
+}
+
+model Contract {
+  id                  String          @id @default(cuid())
+  sowId               String          @unique
+  status              ContractStatus  @default(PENDING_SIGNATURES)
+  startupSignedAt     DateTime?
+  operatorSignedAt    DateTime?
+  startupSignatureId  String?
+  operatorSignatureId String?
+  fullySignedAt       DateTime?
+  contactsUnlocked    Boolean         @default(false)
+  watermarked         Boolean         @default(true)
+  idempotencyKey      String?         @unique
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  sow           StatementOfWork @relation(fields: [sowId], references: [id], onDelete: Cascade)
+  documentLogs  DocumentLog[]
+  paymentPlan   PaymentPlan?
+  engagement    Engagement?
+
+  @@map("contracts")
+}
+
+model DocumentLog {
+  id          String   @id @default(cuid())
+  contractId  String
+  action      String
+  performedBy String
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@map("document_logs")
+}
+
+// ─────────────────────────────────────────────
+// PAYMENTS & INVOICING MODELS (Artifact 8)
+// ─────────────────────────────────────────────
+
+enum PaymentPlanType {
+  CASH_SPRINT_FEE
+  MONTHLY_RETAINER
+  SUCCESS_FEE_ADDENDUM
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentEventStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+model PaymentPlan {
+  id              String          @id @default(cuid())
+  contractId      String          @unique
+  planType        PaymentPlanType
+  totalAmountUsd  Int
+  currency        String          @default("USD")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  contract Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  invoices Invoice[]
+
+  @@map("payment_plans")
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  paymentPlanId  String
+  amountUsd      Int
+  description    String
+  dueDate        DateTime
+  status         InvoiceStatus @default(DRAFT)
+  stripeUrl      String?       @db.Text
+  stripeId       String?       @unique
+  metadata       Json?
+  issuedAt       DateTime?
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  paymentPlan PaymentPlan    @relation(fields: [paymentPlanId], references: [id], onDelete: Cascade)
+  events      PaymentEvent[]
+
+  @@index([paymentPlanId])
+  @@index([status])
+  @@map("invoices")
+}
+
+model PaymentEvent {
+  id              String             @id @default(cuid())
+  invoiceId       String
+  stripeEventId   String             @unique
+  amountCaptured  Int
+  status          PaymentEventStatus
+  errorMessage    String?
+  createdAt       DateTime           @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("payment_events")
+}
+
+// ─────────────────────────────────────────────
+// ENGAGEMENT WORKSPACE MODELS (Artifact 9)
+// ─────────────────────────────────────────────
+
+enum EngagementStatus {
+  NOT_STARTED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  TERMINATED
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  REVIEW
+  COMPLETED
+}
+
+model Engagement {
+  id              String           @id @default(cuid())
+  contractId      String           @unique
+  startupId       String
+  operatorId      String
+  status          EngagementStatus @default(NOT_STARTED)
+  startDate       DateTime?
+  endDate         DateTime?
+  healthScore     Int              @default(100)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  contract   Contract         @relation(fields: [contractId], references: [id])
+  startup    StartupProfile   @relation(fields: [startupId], references: [id])
+  operator   OperatorProfile  @relation(fields: [operatorId], references: [id])
+  milestones EngagementMilestone[]
+  notes      WorkspaceNote[]
+  logs            ActivityLog[]
+  healthSnapshots HealthScoreSnapshot[]
+  nudges          SystemNudge[]
+  escalations     EscalationCase[]
+  closeoutReport  CloseoutReport?
+  ratings         EngagementRating[]
+  renewalRec      RenewalRecommendation?
+
+  @@index([startupId])
+  @@index([operatorId])
+  @@map("engagements")
+}
+
+model EngagementMilestone {
+  id            String          @id @default(cuid())
+  engagementId  String
+  title         String
+  description   String          @db.Text
+  dueDate       DateTime
+  status        MilestoneStatus @default(PENDING)
+  completedAt   DateTime?
+  evidenceUrl   String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+
+  @@index([engagementId])
+  @@map("engagement_milestones")
+}
+
+model WorkspaceNote {
+  id            String     @id @default(cuid())
+  engagementId  String
+  authorId      String
+  content       String     @db.Text
+  isPinned      Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  author     User       @relation(fields: [authorId], references: [id])
+
+  @@index([engagementId])
+  @@map("workspace_notes")
+}
+
+model ActivityLog {
+  id            String     @id @default(cuid())
+  engagementId  String
+  actorId       String
+  actionType    String     // e.g. "MILESTONE_COMPLETED", "FILE_UPLOADED"
+  description   String
+  metadata      Json?
+  createdAt     DateTime   @default(now())
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  actor      User       @relation(fields: [actorId], references: [id])
+
+  @@index([engagementId])
+  @@map("activity_logs")
+}
+
+// ─────────────────────────────────────────────
+// HEALTH, NUDGES & ESCALATIONS (Artifact 10)
+// ─────────────────────────────────────────────
+
+model HealthScoreSnapshot {
+  id              String     @id @default(cuid())
+  engagementId    String
+  scoreTotal      Int
+  components      Json       // e.g. { milestonePace: 20, communicationFreq: 25, paymentStatus: 30, ... }
+  aiCommentary    String?    @db.Text
+  suggestedAction String?    @db.Text
+  createdAt       DateTime   @default(now())
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+
+  @@index([engagementId])
+  @@map("health_score_snapshots")
+}
+
+enum NudgeType {
+  MILESTONE_DUE_SOON
+  MILESTONE_OVERDUE
+  INACTIVITY_WARNING
+  PAYMENT_REMINDER
+  MEETING_PREP
+}
+
+model SystemNudge {
+  id           String     @id @default(cuid())
+  engagementId String
+  targetUserId String
+  nudgeType    NudgeType
+  message      String
+  isRead       Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  targetUser User       @relation(fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([engagementId])
+  @@index([targetUserId])
+  @@map("system_nudges")
+}
+
+enum EscalationStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+  CLOSED
+}
+
+model EscalationCase {
+  id              String           @id @default(cuid())
+  engagementId    String
+  reporterId      String
+  reason          String           @db.Text
+  status          EscalationStatus @default(OPEN)
+  resolutionNotes String?          @db.Text
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  reporter   User       @relation(fields: [reporterId], references: [id])
+
+  @@index([engagementId])
+  @@map("escalation_cases")
+}
+
+// ─────────────────────────────────────────────
+// CLOSEOUT, RATINGS & RENEWALS (Artifact 11)
+// ─────────────────────────────────────────────
+
+enum CloseoutStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model CloseoutReport {
+  id              String         @id @default(cuid())
+  engagementId    String         @unique
+  summary         String         @db.Text
+  outcomes        String         @db.Text
+  nextSteps       String         @db.Text
+  generatedByAi   Boolean        @default(true)
+  promptVersion   String?
+  status          CloseoutStatus @default(DRAFT)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+
+  @@map("closeout_reports")
+}
+
+model EngagementRating {
+  id              String   @id @default(cuid())
+  engagementId    String
+  reviewerId      String
+  revieweeId      String
+  score           Int      // 1 to 5
+  components      Json?    // Any sub-scores or categorical ratings
+  comments        String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  reviewer   User       @relation("RatingReviewer", fields: [reviewerId], references: [id])
+  reviewee   User       @relation("RatingReviewee", fields: [revieweeId], references: [id])
+
+  @@index([engagementId])
+  @@index([reviewerId])
+  @@index([revieweeId])
+  @@map("engagement_ratings")
+}
+
+enum RenewalType {
+  RENEWAL
+  RETAINER_CONVERSION
+  FOLLOW_ON_SPRINT
+  NONE
+}
+
+model RenewalRecommendation {
+  id              String      @id @default(cuid())
+  engagementId    String      @unique
+  recommendedType RenewalType
+  reasoning       String      @db.Text
+  createdAt       DateTime    @default(now())
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+
+  @@map("renewal_recommendations")
+}
+
+// ── Early-Access Applications ──────────────────────────────────────
+
+enum ApplicationType {
+  COMPANY
+  TALENT
+}
+
+enum ApplicationStatus {
+  PENDING_PAYMENT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model Application {
+  id                String            @id @default(cuid())
+  type              ApplicationType
+  status            ApplicationStatus @default(PENDING_PAYMENT)
+
+  // Common fields
+  name              String
+  email             String
+  notes             String?           @db.Text
+
+  // Company-specific
+  companyName       String?
+  companyStage      String?
+  needArea          String?
+  targetMarkets     String?
+  engagementModel   String?
+  budgetRange       String?
+  urgency           String?
+
+  // Talent-specific
+  location          String?
+  talentCategory    String?
+  seniority         String?
+  engagementPref    String?
+  markets           String?
+  linkedInUrl       String?
+  references        Json?             // Array of { name, company, relationship, email, phone }
+  cvFileName        String?
+  cvFileUrl         String?
+
+  // Payment
+  feeAmountUsd      Int
+  stripeSessionId   String?           @unique
+  stripePaymentId   String?
+  paidAt            DateTime?
+
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@map("applications")
+}

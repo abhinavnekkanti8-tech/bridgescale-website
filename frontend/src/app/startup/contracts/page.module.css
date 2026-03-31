@@ -1,0 +1,20 @@
+.page { max-width: 800px; display: flex; flex-direction: column; gap: var(--space-8); }
+.header { display: flex; flex-direction: column; gap: var(--space-2); }
+.title { font-size: clamp(1.5rem, 3vw, 2rem); }
+.subtitle { font-size: 0.9375rem; color: var(--color-text-secondary); }
+.loading { text-align: center; padding: var(--space-12); color: var(--color-text-muted); }
+
+.emptyCard { display: flex; flex-direction: column; align-items: center; gap: var(--space-6); padding: var(--space-16); text-align: center; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+
+.cardList { display: flex; flex-direction: column; gap: var(--space-4); }
+.contractCard { padding: var(--space-6); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); display: flex; flex-direction: column; gap: var(--space-4); }
+
+.cardTop { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-4); flex-wrap: wrap; }
+.cardTitle { font-size: 1.125rem; font-weight: 600; margin-bottom: var(--space-2); }
+.metaRow { display: flex; gap: var(--space-2); flex-wrap: wrap; font-size: 0.875rem; color: var(--color-text-muted); }
+
+.actionRow { display: flex; align-items: center; gap: var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--color-border); flex-wrap: wrap; }
+.waitingText { font-size: 0.875rem; color: #f59e0b; font-weight: 500; }
+.unlockedText { font-size: 0.875rem; color: #14b8a6; font-weight: 600; }
+
+.errorBox { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4); background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: var(--radius-md); font-size: 0.875rem; color: #fca5a5; }

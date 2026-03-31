@@ -1,0 +1,197 @@
+import { PrismaService } from '../prisma/prisma.service';
+import { AiService } from '../ai/ai.service';
+import { CreateStartupProfileDto } from './dto/create-startup-profile.dto';
+import { UpdateStartupProfileDto } from './dto/update-startup-profile.dto';
+import { SessionUser } from '../common/types/session.types';
+export declare class StartupsService {
+    private readonly prisma;
+    private readonly aiService;
+    private readonly logger;
+    constructor(prisma: PrismaService, aiService: AiService);
+    create(orgId: string, dto: CreateStartupProfileDto): Promise<{
+        id: string;
+        status: import(".prisma/client").$Enums.ProfileStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        hasDeck: boolean;
+        hasProductDemo: boolean;
+        executionOwner: string | null;
+        toolingReady: boolean;
+        responsivenessCommit: boolean;
+        budgetBand: import(".prisma/client").$Enums.BudgetBand;
+        startupId: string;
+        industry: string;
+        stage: import(".prisma/client").$Enums.StartupStage;
+        targetMarkets: import(".prisma/client").$Enums.TargetMarket[];
+        salesMotion: import(".prisma/client").$Enums.SalesMotion;
+        additionalContext: string | null;
+    }>;
+    update(profileId: string, orgId: string, dto: UpdateStartupProfileDto): Promise<{
+        id: string;
+        status: import(".prisma/client").$Enums.ProfileStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        hasDeck: boolean;
+        hasProductDemo: boolean;
+        executionOwner: string | null;
+        toolingReady: boolean;
+        responsivenessCommit: boolean;
+        budgetBand: import(".prisma/client").$Enums.BudgetBand;
+        startupId: string;
+        industry: string;
+        stage: import(".prisma/client").$Enums.StartupStage;
+        targetMarkets: import(".prisma/client").$Enums.TargetMarket[];
+        salesMotion: import(".prisma/client").$Enums.SalesMotion;
+        additionalContext: string | null;
+    }>;
+    findOne(profileId: string): Promise<{
+        scores: {
+            id: string;
+            createdAt: Date;
+            scoreTotal: number;
+            blockers: string[];
+            recommendation: string | null;
+            eligibility: import(".prisma/client").$Enums.Eligibility;
+            promptVersion: string | null;
+            modelName: string | null;
+            profileId: string;
+            scoreBreakdown: import("@prisma/client/runtime/library").JsonValue;
+            generatedBy: string;
+            temperature: number | null;
+            adminOverride: boolean;
+            overrideReason: string | null;
+        }[];
+    } & {
+        id: string;
+        status: import(".prisma/client").$Enums.ProfileStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        hasDeck: boolean;
+        hasProductDemo: boolean;
+        executionOwner: string | null;
+        toolingReady: boolean;
+        responsivenessCommit: boolean;
+        budgetBand: import(".prisma/client").$Enums.BudgetBand;
+        startupId: string;
+        industry: string;
+        stage: import(".prisma/client").$Enums.StartupStage;
+        targetMarkets: import(".prisma/client").$Enums.TargetMarket[];
+        salesMotion: import(".prisma/client").$Enums.SalesMotion;
+        additionalContext: string | null;
+    }>;
+    findByOrgId(orgId: string): Promise<({
+        scores: {
+            id: string;
+            createdAt: Date;
+            scoreTotal: number;
+            blockers: string[];
+            recommendation: string | null;
+            eligibility: import(".prisma/client").$Enums.Eligibility;
+            promptVersion: string | null;
+            modelName: string | null;
+            profileId: string;
+            scoreBreakdown: import("@prisma/client/runtime/library").JsonValue;
+            generatedBy: string;
+            temperature: number | null;
+            adminOverride: boolean;
+            overrideReason: string | null;
+        }[];
+    } & {
+        id: string;
+        status: import(".prisma/client").$Enums.ProfileStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        hasDeck: boolean;
+        hasProductDemo: boolean;
+        executionOwner: string | null;
+        toolingReady: boolean;
+        responsivenessCommit: boolean;
+        budgetBand: import(".prisma/client").$Enums.BudgetBand;
+        startupId: string;
+        industry: string;
+        stage: import(".prisma/client").$Enums.StartupStage;
+        targetMarkets: import(".prisma/client").$Enums.TargetMarket[];
+        salesMotion: import(".prisma/client").$Enums.SalesMotion;
+        additionalContext: string | null;
+    }) | null>;
+    findAll(): Promise<({
+        startup: {
+            id: string;
+            name: string;
+            country: string | null;
+        };
+        scores: {
+            id: string;
+            createdAt: Date;
+            scoreTotal: number;
+            blockers: string[];
+            recommendation: string | null;
+            eligibility: import(".prisma/client").$Enums.Eligibility;
+            promptVersion: string | null;
+            modelName: string | null;
+            profileId: string;
+            scoreBreakdown: import("@prisma/client/runtime/library").JsonValue;
+            generatedBy: string;
+            temperature: number | null;
+            adminOverride: boolean;
+            overrideReason: string | null;
+        }[];
+    } & {
+        id: string;
+        status: import(".prisma/client").$Enums.ProfileStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        hasDeck: boolean;
+        hasProductDemo: boolean;
+        executionOwner: string | null;
+        toolingReady: boolean;
+        responsivenessCommit: boolean;
+        budgetBand: import(".prisma/client").$Enums.BudgetBand;
+        startupId: string;
+        industry: string;
+        stage: import(".prisma/client").$Enums.StartupStage;
+        targetMarkets: import(".prisma/client").$Enums.TargetMarket[];
+        salesMotion: import(".prisma/client").$Enums.SalesMotion;
+        additionalContext: string | null;
+    })[]>;
+    getScores(profileId: string): Promise<{
+        id: string;
+        createdAt: Date;
+        scoreTotal: number;
+        blockers: string[];
+        recommendation: string | null;
+        eligibility: import(".prisma/client").$Enums.Eligibility;
+        promptVersion: string | null;
+        modelName: string | null;
+        profileId: string;
+        scoreBreakdown: import("@prisma/client/runtime/library").JsonValue;
+        generatedBy: string;
+        temperature: number | null;
+        adminOverride: boolean;
+        overrideReason: string | null;
+    }[]>;
+    requestScore(profileId: string): Promise<{
+        status: string;
+        profileId: string;
+    }>;
+    private runScoringJob;
+    overrideScore(scoreId: string, admin: SessionUser, overrideData: {
+        scoreTotal: number;
+        overrideReason: string;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        scoreTotal: number;
+        blockers: string[];
+        recommendation: string | null;
+        eligibility: import(".prisma/client").$Enums.Eligibility;
+        promptVersion: string | null;
+        modelName: string | null;
+        profileId: string;
+        scoreBreakdown: import("@prisma/client/runtime/library").JsonValue;
+        generatedBy: string;
+        temperature: number | null;
+        adminOverride: boolean;
+        overrideReason: string | null;
+    }>;
+}

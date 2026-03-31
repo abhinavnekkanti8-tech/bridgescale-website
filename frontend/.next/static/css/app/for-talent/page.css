@@ -1,0 +1,93 @@
+/*!********************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[7].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[7].use[3]!./src/app/for-talent/talent.module.css ***!
+  \********************************************************************************************************************************************************************************************************************************************************************************/
+/* ── SHARED ── */
+.talent_page__UMCJi { min-height: 100vh; background: var(--color-bg); color: var(--color-text-primary); }
+.talent_container__NdJTX { max-width: 1100px; margin: 0 auto; padding: 0 32px; }
+.talent_section__6VMVD { padding: 80px 0; }
+
+/* ── NAV ── */
+.talent_nav__9ZDs7 { position: fixed; top: 0; left: 0; right: 0; z-index: 100; -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); background: rgba(8,9,13,0.96); border-bottom: 1px solid var(--color-border); }
+[data-theme="light"] .talent_nav__9ZDs7 { background: rgba(250,250,247,0.96); }
+.talent_navInner__syWsm { max-width: 1100px; margin: 0 auto; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 60px; }
+.talent_logo__cVhwJ { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--color-text-primary); }
+.talent_logoMark__wmkqe { font-size: 20px; }
+.talent_logoText__eEM_G { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; letter-spacing: -0.02em; }
+.talent_navLinks__6la_3 { display: flex; align-items: center; gap: 24px; }
+.talent_navLink__VgK8U { font-size: 0.85rem; font-weight: 500; color: var(--color-text-secondary); text-decoration: none; transition: color .15s; }
+.talent_navLink__VgK8U:hover { color: var(--color-text-primary); }
+.talent_navCta__b3oDF { font-size: 0.82rem; font-weight: 600; color: #fff; background: var(--grad-primary); padding: 8px 18px; border-radius: var(--radius-md); text-decoration: none; }
+
+/* ── HERO ── */
+.talent_hero__OiQDK { padding-top: 140px; padding-bottom: 80px; position: relative; overflow: hidden; }
+.talent_heroBg__Ea1jh { position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(20,184,166,0.06), transparent 70%); pointer-events: none; }
+.talent_badge__0_AF6 { display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-accent-teal); border: 1px solid rgba(20,184,166,0.3); padding: 6px 14px; border-radius: 20px; margin-bottom: 20px; }
+.talent_heroTitle__EG2Kp { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 48px; line-height: 1.12; letter-spacing: -0.03em; max-width: 700px; margin-bottom: 20px; }
+.talent_heroSub__HP8_2 { font-size: 1.05rem; font-weight: 400; color: var(--color-text-secondary); max-width: 600px; line-height: 1.8; margin-bottom: 32px; }
+.talent_heroActions__5V8Ul { display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* ── SECTION HEADERS ── */
+.talent_sectionLabel__nYXRd { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--color-accent-amber); margin-bottom: 12px; }
+.talent_sectionHeading__73ZOu { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 12px; }
+.talent_sectionSub__KDESq { font-size: 0.95rem; font-weight: 400; color: var(--color-text-secondary); line-height: 1.8; margin-bottom: 24px; }
+
+/* ── WHY GRID ── */
+.talent_whyGrid__7daGs { display: grid; grid-template-columns: repeat(3, 1fr); grid-gap: 20px; gap: 20px; margin-top: 24px; }
+.talent_whyCard__nV7jC { padding: 24px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
+.talent_whyIcon__5TT11 { font-size: 1.5rem; margin-bottom: 12px; }
+.talent_whyTitle__VJr_P { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 0.95rem; margin-bottom: 8px; }
+.talent_whyDesc__1WcJF { font-size: 0.82rem; color: var(--color-text-secondary); line-height: 1.7; }
+
+/* ── VETTING STEPS ── */
+.talent_vettingSteps__jnf5z { display: flex; flex-direction: column; gap: 20px; margin-top: 24px; }
+.talent_vStep__7DvCH { padding: 28px 32px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); border-left: 3px solid var(--color-accent-amber); }
+.talent_vNum__TGo3a { font-size: 0.7rem; font-weight: 700; color: var(--color-accent-amber); letter-spacing: 0.08em; margin-bottom: 8px; }
+.talent_vTitle__g2jSk { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 1.1rem; margin-bottom: 10px; }
+.talent_vDesc__A0Qpl { font-size: 0.88rem; color: var(--color-text-secondary); line-height: 1.8; margin-bottom: 12px; }
+.talent_vNote__WUpA4 { font-size: 0.8rem; color: var(--color-text-muted); font-style: italic; }
+
+/* ── FLOW STEPS ── */
+.talent_flowSteps__MPgXA { display: grid; grid-template-columns: repeat(4, 1fr); grid-gap: 20px; gap: 20px; margin-top: 24px; }
+.talent_flowStep__R7N_1 { padding: 24px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
+.talent_flowNum__K14Ci { font-size: 0.7rem; font-weight: 700; color: var(--color-accent-amber); letter-spacing: 0.08em; margin-bottom: 12px; }
+.talent_flowTitle__Nz2Gn { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 0.95rem; margin-bottom: 8px; }
+.talent_flowDesc__2ICde { font-size: 0.82rem; color: var(--color-text-secondary); line-height: 1.7; margin-bottom: 12px; }
+.talent_flowTag__a2Gqk { font-size: 0.7rem; font-weight: 600; color: var(--color-accent-teal); background: rgba(20,184,166,0.08); padding: 3px 10px; border-radius: 12px; }
+
+/* ── COMPENSATION ── */
+.talent_compGrid__ZLgwJ { display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 20px; gap: 20px; margin-top: 24px; }
+.talent_compCard__aJq74 { padding: 24px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
+.talent_compName__ceaDI { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
+.talent_compRange__1Q_3G { font-size: 0.82rem; font-weight: 600; color: var(--color-accent-amber); margin-bottom: 10px; }
+.talent_compDesc__S_bNL { font-size: 0.82rem; color: var(--color-text-secondary); line-height: 1.7; }
+.talent_compNote__Kw0y0 { text-align: center; margin-top: 20px; font-size: 0.82rem; color: var(--color-text-muted); }
+
+/* ── ROLES ── */
+.talent_rolesGrid__EsrB9 { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.talent_roleChip__nfdNM { display: flex; align-items: center; gap: 8px; padding: 10px 18px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); font-size: 0.85rem; font-weight: 500; }
+.talent_roleCheck__iEFCG { width: 18px; height: 18px; border-radius: 50%; background: rgba(20,184,166,0.1); color: var(--color-accent-teal); display: flex; align-items: center; justify-content: center; }
+
+/* ── CTA ── */
+.talent_ctaSection__ooPG8 { padding: 80px 0; text-align: center; }
+.talent_ctaTitle__WJf4z { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 28px; letter-spacing: -0.02em; margin-bottom: 12px; }
+.talent_ctaDesc__k82px { font-size: 0.95rem; color: var(--color-text-secondary); margin-bottom: 24px; max-width: 500px; margin-left: auto; margin-right: auto; line-height: 1.7; }
+
+/* ── FOOTER ── */
+.talent_footer__pztMM { padding: 40px 0; border-top: 1px solid var(--color-border); }
+.talent_footerInner__E5kDX { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+.talent_footerLogo__Nr2d6 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; letter-spacing: -0.02em; color: var(--color-text-primary); text-decoration: none; }
+.talent_footerNote__0DxgZ { font-size: 0.82rem; color: var(--color-text-secondary); }
+.talent_footerLinks__2uyYz { display: flex; gap: 24px; }
+.talent_footerLink___PuBV { font-size: 0.82rem; font-weight: 500; color: var(--color-text-secondary); text-decoration: none; transition: color .15s; }
+.talent_footerLink___PuBV:hover { color: var(--color-text-primary); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 780px) {
+  .talent_container__NdJTX { padding: 0 20px; }
+  .talent_nav__9ZDs7 .talent_navLinks__6la_3 { display: none; }
+  .talent_heroTitle__EG2Kp { font-size: 32px; }
+  .talent_whyGrid__7daGs { grid-template-columns: 1fr; }
+  .talent_flowSteps__MPgXA { grid-template-columns: 1fr 1fr; }
+  .talent_compGrid__ZLgwJ { grid-template-columns: 1fr; }
+}
+

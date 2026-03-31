@@ -1,0 +1,77 @@
+.container {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px 20px;
+  background: var(--color-bg);
+}
+.card {
+  max-width: 480px; width: 100%;
+  text-align: center; padding: 48px 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.successIcon, .errorIcon {
+  width: 56px; height: 56px;
+  border-radius: 50%; display: flex;
+  align-items: center; justify-content: center;
+  margin: 0 auto 20px; font-size: 26px;
+}
+.successIcon {
+  background: rgba(20,184,166,0.12);
+  color: var(--color-accent-teal);
+}
+.errorIcon {
+  background: rgba(239,68,68,0.1);
+  color: #dc2626;
+}
+.title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700; font-size: 1.5rem;
+  letter-spacing: -0.02em; margin-bottom: 12px;
+  color: var(--color-text-primary);
+}
+.desc {
+  font-size: 0.875rem; font-weight: 400;
+  color: var(--color-text-secondary);
+  line-height: 1.7; margin-bottom: 24px;
+}
+.details {
+  text-align: left; border-top: 1px solid var(--color-border);
+  padding-top: 20px; margin-bottom: 24px;
+}
+.detailRow {
+  display: flex; justify-content: space-between;
+  align-items: center; padding: 8px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+.detailLabel {
+  font-size: 0.82rem; font-weight: 500;
+  color: var(--color-text-muted);
+}
+.detailValue {
+  font-size: 0.85rem; font-weight: 500;
+  color: var(--color-text-primary);
+}
+.detailValue code {
+  background: var(--color-surface-alt, rgba(0,0,0,0.05));
+  padding: 2px 8px; border-radius: 4px;
+  font-size: 0.78rem; letter-spacing: 0.03em;
+}
+.statusBadge {
+  background: rgba(20,184,166,0.1);
+  color: var(--color-accent-teal);
+  padding: 2px 10px; border-radius: 12px;
+  font-size: 0.75rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.backLink {
+  font-size: 0.875rem; font-weight: 500;
+  color: var(--color-accent-amber);
+  text-decoration: none; transition: opacity .15s;
+}
+.backLink:hover { opacity: 0.75; }
+.loadingText {
+  font-size: 0.9rem; font-weight: 400;
+  color: var(--color-text-muted); padding: 20px;
+}

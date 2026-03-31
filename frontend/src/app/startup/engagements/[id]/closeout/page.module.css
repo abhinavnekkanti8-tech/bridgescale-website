@@ -1,0 +1,46 @@
+.page { max-width: 1200px; display: flex; flex-direction: column; gap: var(--space-8); }
+.header { display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-6); border-bottom: 1px solid var(--color-border); }
+.backLink { font-size: 0.875rem; color: var(--color-accent-blue); text-decoration: none; font-weight: 500; }
+.backLink:hover { text-decoration: underline; }
+.title { font-size: clamp(1.5rem, 3vw, 2.25rem); line-height: 1.2; }
+.subtitle { font-size: 0.9375rem; color: var(--color-text-secondary); }
+
+.layout { display: grid; grid-template-columns: 1fr; gap: var(--space-8); align-items: start; }
+@media (min-width: 1024px) {
+  .layout { grid-template-columns: 2fr 1fr; }
+}
+
+.mainCol { display: flex; flex-direction: column; gap: var(--space-10); }
+.sidebar { display: flex; flex-direction: column; gap: var(--space-8); }
+
+.section { display: flex; flex-direction: column; gap: var(--space-4); }
+.section h2 { font-size: 1.25rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-2); }
+
+/* Report */
+.reportCard { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+.reportSection h3 { font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-2); }
+.reportSection p { font-size: 0.9375rem; color: var(--color-text-primary); line-height: 1.6; }
+.aiBadge { display: inline-flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #8b5cf6; background: rgba(139,92,246,0.1); padding: 4px 8px; border-radius: var(--radius-sm); font-weight: 600; align-self: flex-start; }
+
+/* Ratings */
+.reviewFormCard { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-6); }
+.reviewForm { display: flex; flex-direction: column; gap: var(--space-4); }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 0.875rem; font-weight: 500; color: var(--color-text-primary); }
+.field select, .field textarea { padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-background); color: var(--color-text-primary); font-family: inherit; }
+.successBox { background: rgba(16,185,129,0.1); color: #059669; border: 1px solid rgba(16,185,129,0.2); padding: var(--space-4); border-radius: var(--radius-md); font-size: 0.9375rem; }
+
+.ratingsList { display: flex; flex-direction: column; gap: var(--space-4); }
+.ratingCard { background: var(--color-background); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); }
+.ratingHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2); font-size: 0.9375rem; }
+.stars { color: #f59e0b; letter-spacing: 2px; }
+.ratingComment { font-size: 0.875rem; color: var(--color-text-secondary); line-height: 1.5; font-style: italic; }
+
+/* Renewal */
+.renewalCard { background: linear-gradient(135deg, rgba(59,130,246,0.05) 0%, rgba(139,92,246,0.05) 100%); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+.renType { font-weight: 600; font-size: 1rem; color: var(--color-accent-blue); margin-bottom: var(--space-3); }
+.renReason { font-size: 0.875rem; color: var(--color-text-secondary); line-height: 1.5; }
+
+.emptyState { text-align: center; padding: var(--space-8); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-md); }
+.loading { text-align: center; padding: var(--space-12); color: var(--color-text-muted); }
+.errorBox { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4); background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: var(--radius-md); font-size: 0.875rem; color: #fca5a5; }

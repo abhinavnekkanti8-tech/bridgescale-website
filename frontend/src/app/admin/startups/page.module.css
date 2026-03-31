@@ -1,0 +1,20 @@
+.page { display: flex; flex-direction: column; gap: var(--space-6); max-width: 1000px; }
+.header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4); }
+.title { font-size: clamp(1.5rem, 3vw, 2rem); margin-bottom: var(--space-1); }
+.subtitle { font-size: 0.875rem; color: var(--color-text-muted); }
+.search { width: 100%; max-width: 360px; padding: var(--space-3) var(--space-4); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text-primary); font-size: 0.9375rem; font-family: inherit; outline: none; transition: border-color 0.2s; }
+.search:focus { border-color: var(--color-accent-violet); }
+
+/* Table */
+.table { display: flex; flex-direction: column; border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; }
+.tableHead { display: grid; grid-template-columns: 2fr 1fr 1fr 80px 1fr 1fr; align-items: center; padding: var(--space-3) var(--space-4); background: var(--color-surface); border-bottom: 1px solid var(--color-border); font-size: 0.8125rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.tableRow { display: grid; grid-template-columns: 2fr 1fr 1fr 80px 1fr 1fr; align-items: center; padding: var(--space-4); border-bottom: 1px solid var(--color-border); transition: background 0.15s; }
+.tableRow:last-child { border-bottom: none; }
+.tableRow:hover { background: var(--color-surface); }
+.orgName { display: block; font-weight: 600; font-size: 0.9375rem; }
+.orgCountry { display: block; font-size: 0.8125rem; color: var(--color-text-muted); text-transform: capitalize; }
+.score { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1rem; }
+.actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+.loading, .empty { padding: var(--space-12); text-align: center; color: var(--color-text-muted); font-size: 0.9375rem; }
+.errorBox { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4); background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: var(--radius-md); font-size: 0.875rem; color: #fca5a5; }

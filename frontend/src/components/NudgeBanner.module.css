@@ -1,0 +1,23 @@
+.bannerContainer { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-6); width: 100%; }
+
+.nudgeAlert { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); border-left: 4px solid var(--color-border); background: var(--color-surface); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); animation: slideDown 0.3s ease-out forwards; }
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.icon { font-size: 1.25rem; line-height: 1; padding-top: 2px; }
+
+.content { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 0.875rem; color: var(--color-text-primary); }
+.content strong { font-weight: 600; font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); }
+.content p { margin: 0; line-height: 1.4; }
+
+.dismissBtn { background: transparent; border: none; color: var(--color-text-muted); font-size: 1.5rem; line-height: 1; margin-left: var(--space-2); cursor: pointer; padding: 0 4px; transition: color 0.1s; align-self: center; }
+.dismissBtn:hover { color: var(--color-text-primary); }
+
+/* Types */
+.default { border-left-color: var(--color-accent-violet); }
+.milestone_overdue { border-left-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
+.payment_reminder { border-left-color: #f59e0b; background: rgba(245, 158, 11, 0.05); }
+.inactivity_warning { border-left-color: #8b5cf6; }

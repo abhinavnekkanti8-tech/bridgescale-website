@@ -1,0 +1,65 @@
+  ▲ Next.js 14.2.35
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+   Generating static pages (0/35) ...
+   Generating static pages (8/35) 
+   Generating static pages (17/35) 
+   Generating static pages (26/35) 
+ ✓ Generating static pages (35/35)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ○ /                                    5.17 kB         101 kB
+├ ○ /_not-found                          876 B          88.2 kB
+├ ○ /admin/analytics                     1.52 kB         101 kB
+├ ○ /admin/billing                       2.13 kB         101 kB
+├ ○ /admin/contracts                     2.23 kB         101 kB
+├ ○ /admin/dashboard                     1.45 kB         101 kB
+├ ○ /admin/deal-desk                     1.48 kB         101 kB
+├ ○ /admin/discovery                     1.31 kB         101 kB
+├ ○ /admin/escalations                   1.63 kB         101 kB
+├ ○ /admin/matching                      1.37 kB         101 kB
+├ ○ /admin/operators                     1.71 kB         101 kB
+├ ○ /admin/settings                      1.49 kB         101 kB
+├ ○ /admin/startups                      1.55 kB         101 kB
+├ ○ /auth/login                          3.84 kB        99.9 kB
+├ ○ /contracts/sow                       2.43 kB         102 kB
+├ ○ /dashboard                           2.59 kB        89.9 kB
+├ ○ /operator/apply                      3.88 kB        99.9 kB
+├ ○ /operator/contracts                  1.82 kB         101 kB
+├ ○ /operator/dashboard                  2.11 kB         101 kB
+├ ○ /operator/engagements                2 kB            101 kB
+├ ƒ /operator/engagements/[id]           2.93 kB         102 kB
+├ ƒ /operator/engagements/[id]/closeout  293 B           102 kB
+├ ○ /operator/invitations                861 B           100 kB
+├ ○ /operator/matches                    1.62 kB         101 kB
+├ ○ /operator/profile                    2.34 kB         102 kB
+├ ○ /startup/apply                       3.75 kB        99.8 kB
+├ ○ /startup/billing                     1.78 kB         101 kB
+├ ○ /startup/contracts                   2.06 kB         101 kB
+├ ○ /startup/dashboard                   1.34 kB         101 kB
+├ ○ /startup/discovery                   1.67 kB         101 kB
+├ ○ /startup/discovery/summary           2.28 kB         102 kB
+├ ○ /startup/engagements                 2.22 kB         101 kB
+├ ƒ /startup/engagements/[id]            3.52 kB         103 kB
+├ ƒ /startup/engagements/[id]/closeout   185 B           102 kB
+├ ○ /startup/matching                    2.22 kB         101 kB
+├ ○ /startup/profile                     3.44 kB         103 kB
+└ ○ /startup/readiness                   2.73 kB         102 kB
++ First Load JS shared by all            87.3 kB
+  ├ chunks/2117-72a4530461964925.js      31.7 kB
+  ├ chunks/fd9d1056-9cefad7268eb2eeb.js  53.6 kB
+  └ other shared chunks (total)          1.94 kB
+
+
+ƒ Middleware                             26.7 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

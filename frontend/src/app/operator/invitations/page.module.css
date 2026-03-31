@@ -1,0 +1,12 @@
+.page { max-width: 900px; display: flex; flex-direction: column; gap: var(--space-8); }
+.header { display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-6); border-bottom: 1px solid var(--color-border); }
+.title { font-size: clamp(1.5rem, 3vw, 2.25rem); line-height: 1.2; }
+.subtitle { font-size: 0.9375rem; color: var(--color-text-secondary); }
+
+.tableWrap { overflow-x: auto; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+.table { width: 100%; border-collapse: collapse; }
+.table th { text-align: left; padding: 12px 16px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border); font-weight: 600; }
+.table td { padding: 14px 16px; font-size: 0.9375rem; color: var(--color-text-primary); border-bottom: 1px solid var(--color-border); }
+.table tr:last-child td { border-bottom: none; }
+
+.badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.03em; }

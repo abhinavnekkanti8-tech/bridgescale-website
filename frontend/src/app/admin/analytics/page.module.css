@@ -1,0 +1,22 @@
+.page { max-width: 1200px; display: flex; flex-direction: column; gap: var(--space-8); }
+.header { display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-6); border-bottom: 1px solid var(--color-border); }
+.title { font-size: clamp(1.5rem, 3vw, 2.25rem); line-height: 1.2; }
+.subtitle { font-size: 0.9375rem; color: var(--color-text-secondary); }
+
+.dashboardGrid { display: flex; flex-direction: column; gap: var(--space-10); }
+
+.sector { display: flex; flex-direction: column; gap: var(--space-4); }
+.sectorTitle { font-size: 1.25rem; font-weight: 600; color: var(--color-text-primary); border-left: 3px solid var(--color-accent-blue); padding-left: var(--space-3); }
+
+.metricGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-4); }
+
+.kpiCard { display: flex; flex-direction: column; gap: var(--space-2); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); box-shadow: 0 2px 4px -1px rgba(0,0,0,0.03); }
+.kpiTitle { font-size: 0.875rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+.kpiValue { font-family: 'Plus Jakarta Sans', monospace; font-size: 2.5rem; font-weight: 800; color: var(--color-text-primary); line-height: 1; display: flex; align-items: baseline; gap: var(--space-2); }
+.kpiSubtitle { font-size: 0.8125rem; color: var(--color-text-muted); margin-top: auto; }
+
+.trendUp { font-size: 1.25rem; color: #10b981; }
+.trendDown { font-size: 1.25rem; color: #ef4444; }
+
+.loading { text-align: center; padding: var(--space-12); color: var(--color-text-muted); }
+.errorBox { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4); background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: var(--radius-md); font-size: 0.875rem; color: #fca5a5; }
