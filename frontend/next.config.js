@@ -16,6 +16,8 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Disable SWC on Windows (fixes "Failed to load SWC binary for win32/x64" error)
+  swcMinify: false,
 };
 
 module.exports = nextConfig;

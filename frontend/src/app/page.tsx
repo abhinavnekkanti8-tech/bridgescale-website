@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { MarketingNav } from '@/components/MarketingNav';
 import styles from './page.module.css';
 
 /* ── Scroll Reveal Hook ── */
@@ -129,21 +130,7 @@ export default function HomePage() {
     <div className={styles.page}>
 
       {/* ══════ NAV ══════ */}
-      <nav className={styles.nav}>
-        <div className={styles.navInner}>
-          <Link href="/" className={styles.logo}>
-            <span className={styles.logoMark}>◆</span>
-            Bridge<span className={styles.logoAccent}>Scale</span>
-          </Link>
-          <div className={styles.navLinks}>
-            <Link href="/for-companies" className={styles.navLink}>For Companies</Link>
-            <Link href="/for-talent" className={styles.navLink}>For Talent</Link>
-            <Link href="/about" className={styles.navLink}>About</Link>
-            <Link href="/blog" className={styles.navLink}>Blog</Link>
-            <a href="#signup" className={styles.navCta}>Request Early Access</a>
-          </div>
-        </div>
-      </nav>
+      <MarketingNav />
 
       {/* ══════ HERO ══════ */}
       <section className={styles.hero}>

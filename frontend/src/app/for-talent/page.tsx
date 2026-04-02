@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
+import { MarketingNav } from '@/components/MarketingNav';
 import styles from './talent.module.css';
 
 /* ── Scroll-reveal hook ── */
@@ -72,18 +73,7 @@ export default function ForTalentPage() {
   return (
     <div className={styles.page}>
       {/* ── NAV ── */}
-      <nav className={styles.nav}>
-        <div className={styles.navInner}>
-          <Link href="/" className={styles.logo}>BridgeScale</Link>
-          <div className={styles.navLinks}>
-            <Link href="/for-companies" className={styles.navLink}>For Companies</Link>
-            <Link href="/for-talent" className={`${styles.navLink} ${styles.navLinkActive}`}>For Talent</Link>
-            <Link href="/about" className={styles.navLink}>About</Link>
-            <Link href="/blog" className={styles.navLink}>Blog</Link>
-            <Link href="/#cta" className={`btn btn-primary ${styles.navCta}`}>Request Early Access</Link>
-          </div>
-        </div>
-      </nav>
+      <MarketingNav />
 
       {/* ── HERO ── */}
       <header className={styles.hero}>

@@ -6,8 +6,8 @@ services:
     container_name: platform_db
     environment:
       POSTGRES_USER: ${DB_USER:-platform}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-platform_dev}
-      POSTGRES_DB: ${DB_NAME:-platform_dev}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-platform}
+      POSTGRES_DB: ${DB_NAME:-platform}
     ports:
       - '5432:5432'
     volumes:

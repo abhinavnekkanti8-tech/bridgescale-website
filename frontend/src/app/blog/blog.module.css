@@ -1,0 +1,78 @@
+.page { min-height: 100vh; background: var(--color-bg); color: var(--color-text-primary); }
+.container { max-width: 1120px; margin: 0 auto; padding: 0 32px; }
+
+/* ── HERO ── */
+.hero { padding: 88px 0 64px; border-bottom: 1px solid var(--color-border); }
+.eyebrow {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.2em; color: var(--color-accent); margin-bottom: 20px;
+}
+.heroTitle {
+  font-family: var(--font-serif); font-weight: 700;
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  line-height: 1.1; letter-spacing: -0.025em;
+  max-width: 720px;
+}
+
+/* ── POST LIST ── */
+.main { padding: 0 0 80px; }
+
+.postRow {
+  display: grid; grid-template-columns: 200px 1fr;
+  gap: 48px; padding: 48px 0;
+  border-bottom: 1px solid var(--color-border);
+  align-items: start;
+}
+.postRowFeatured { padding-top: 56px; }
+
+.postMeta {
+  display: flex; flex-direction: column; gap: 6px;
+  padding-top: 6px;
+}
+.postDate {
+  font-size: 12px; font-weight: 500; color: var(--color-text-muted);
+  letter-spacing: 0.03em;
+}
+.postAuthor {
+  font-size: 12px; font-weight: 400; color: var(--color-text-muted);
+}
+
+.postBody { display: flex; flex-direction: column; gap: 12px; }
+.postTitle {
+  font-family: var(--font-serif); font-weight: 700;
+  font-size: clamp(1.25rem, 2vw, 1.6rem);
+  line-height: 1.2; letter-spacing: -0.02em;
+  color: var(--color-text-primary); text-decoration: none;
+  transition: color .2s;
+}
+.postTitle:hover { color: var(--color-accent); }
+.postExcerpt {
+  font-size: 0.9rem; font-weight: 300;
+  color: var(--color-text-secondary); line-height: 1.8;
+  max-width: 640px;
+}
+.readMore {
+  font-size: 13px; font-weight: 500; color: var(--color-accent);
+  text-decoration: none; transition: opacity .2s; width: fit-content;
+}
+.readMore:hover { opacity: 0.7; }
+
+/* ── FOOTER ── */
+.footer { padding: 40px 0; background: var(--color-dark); color: rgba(255,255,255,0.5); }
+.footerInner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+.footerLogo {
+  font-family: var(--font-serif); font-weight: 700; font-size: 18px;
+  letter-spacing: -0.02em; color: #fff; text-decoration: none;
+}
+.footerNote { font-size: 0.82rem; }
+.footerLinks { display: flex; gap: 24px; }
+.footerLink { font-size: 0.82rem; font-weight: 500; color: rgba(255,255,255,0.5); text-decoration: none; transition: color .15s; }
+.footerLink:hover { color: #fff; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .container { padding: 0 20px; }
+  .postRow { grid-template-columns: 1fr; gap: 12px; }
+  .postMeta { flex-direction: row; gap: 12px; }
+  .heroTitle { font-size: 1.8rem; }
+}
