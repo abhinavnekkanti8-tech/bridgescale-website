@@ -15,7 +15,7 @@
 .gaugeWrap { position: relative; width: 140px; height: 140px; flex-shrink: 0; }
 .gauge { width: 100%; height: 100%; }
 .gaugeCenter { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.gaugeScore { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 2rem; font-weight: 800; letter-spacing: -0.04em; }
+.gaugeScore { font-family: var(--font-body); font-size: 2rem; font-weight: 800; letter-spacing: -0.04em; }
 .gaugeLabel { font-size: 0.75rem; color: var(--color-text-muted); }
 .scoreDetails { flex: 1; display: flex; flex-direction: column; gap: var(--space-4); }
 .eligDesc { font-size: 0.9375rem; color: var(--color-text-secondary); line-height: 1.6; }

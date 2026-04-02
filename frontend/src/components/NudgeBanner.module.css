@@ -17,7 +17,7 @@
 .dismissBtn:hover { color: var(--color-text-primary); }
 
 /* Types */
-.default { border-left-color: var(--color-accent-violet); }
+.default { border-left-color: var(--color-accent); }
 .milestone_overdue { border-left-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
 .payment_reminder { border-left-color: #f59e0b; background: rgba(245, 158, 11, 0.05); }
 .inactivity_warning { border-left-color: #8b5cf6; }

@@ -22,8 +22,8 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 30% 40%, rgba(245,158,11,0.07) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 70% 70%, rgba(168,85,247,0.07) 0%, transparent 60%);
+    radial-gradient(ellipse 80% 60% at 30% 40%, rgba(126,147,181,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 70% 70%, rgba(126,147,181,0.05) 0%, transparent 60%);
 }
 
 .leftContent {
@@ -42,9 +42,10 @@
 }
 
 .logoText {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-serif);
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
+  color: var(--color-text-primary);
 }
 
 .heroTitle {
@@ -136,8 +137,8 @@
 }
 
 .input:focus {
-  border-color: var(--color-accent-violet);
-  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(126, 147, 181, 0.18);
 }
 
 .input::placeholder {
@@ -151,7 +152,7 @@
 
 .forgotLink {
   font-size: 0.8125rem;
-  color: var(--color-accent-violet);
+  color: var(--color-accent);
   transition: opacity 0.2s;
 }
 

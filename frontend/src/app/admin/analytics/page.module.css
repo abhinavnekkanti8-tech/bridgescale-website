@@ -12,7 +12,7 @@
 
 .kpiCard { display: flex; flex-direction: column; gap: var(--space-2); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); box-shadow: 0 2px 4px -1px rgba(0,0,0,0.03); }
 .kpiTitle { font-size: 0.875rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-.kpiValue { font-family: 'Plus Jakarta Sans', monospace; font-size: 2.5rem; font-weight: 800; color: var(--color-text-primary); line-height: 1; display: flex; align-items: baseline; gap: var(--space-2); }
+.kpiValue { font-family: var(--font-body); font-size: 2.5rem; font-weight: 800; color: var(--color-text-primary); line-height: 1; display: flex; align-items: baseline; gap: var(--space-2); }
 .kpiSubtitle { font-size: 0.8125rem; color: var(--color-text-muted); margin-top: auto; }
 
 .trendUp { font-size: 1.25rem; color: #10b981; }

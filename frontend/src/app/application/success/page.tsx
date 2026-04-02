@@ -58,7 +58,7 @@ function SuccessContent() {
           <div className={styles.errorIcon}>✕</div>
           <h1 className={styles.title}>Something went wrong</h1>
           <p className={styles.desc}>{error || 'Unable to load application status.'}</p>
-          <Link href="/" className={styles.backLink}>← Back to BridgeSales</Link>
+          <Link href="/" className={styles.backLink}>← Back to BridgeScale</Link>
         </div>
       </div>
     );
@@ -95,7 +95,7 @@ function SuccessContent() {
           </div>
         </div>
 
-        <Link href="/" className={styles.backLink}>← Back to BridgeSales</Link>
+        <Link href="/" className={styles.backLink}>← Back to BridgeScale</Link>
       </div>
     </div>
   );

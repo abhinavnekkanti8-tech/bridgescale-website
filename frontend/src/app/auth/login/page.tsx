@@ -61,16 +61,15 @@ function LoginPage() {
       <div className={styles.left}>
         <div className={styles.leftContent}>
           <Link href="/" className={styles.logoLink}>
-            <span className="gradient-text" style={{ fontSize: '1.5rem' }}>◆</span>
-            <span className={styles.logoText}>Nexus Platform</span>
+            <span className={styles.logoText}>BridgeScale</span>
           </Link>
           <h1 className={styles.heroTitle}>
-            Diaspora-First
+            Fractional Diaspora
             <br />
-            <span className="gradient-text">Sales Leadership</span>
+            Senior Talent
           </h1>
           <p className={styles.heroSubtitle}>
-            AI-native marketplace connecting Andhra Pradesh startups with senior diaspora operators across EU, US, AU, and RoW.
+            Platform-managed marketplace connecting Indian startups and MSMEs with vetted diaspora senior talent for international growth.
           </p>
           <div className={styles.pillRow}>
             <span className="badge badge-amber">Pipeline Sprints</span>
