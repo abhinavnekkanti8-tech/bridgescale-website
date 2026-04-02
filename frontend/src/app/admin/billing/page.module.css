@@ -12,7 +12,7 @@
 
 .primaryTitle { font-weight: 600; font-size: 0.9375rem; margin-bottom: 2px; }
 .subtext { font-size: 0.75rem; color: var(--color-text-muted); }
-.valueText { font-family: 'Plus Jakarta Sans', monospace; font-weight: 600; font-size: 0.9375rem; }
+.valueText { font-family: var(--font-body); font-weight: 600; font-size: 0.9375rem; }
 .warningText { color: #ef4444; font-weight: 600; font-size: 0.875rem; }
 .successText { font-size: 0.8125rem; color: #14b8a6; font-weight: 600; }
 

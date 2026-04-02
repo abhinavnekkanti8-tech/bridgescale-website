@@ -54,7 +54,7 @@ export function ProtectedLayout({ children }: { children: ReactNode }) {
   if (loading) {
     return (
       <div className={styles.loadingScreen}>
-        <span className="gradient-text" style={{ fontSize: '2rem' }}>◆</span>
+        <span style={{ fontSize: '2rem', color: 'var(--color-accent)' }}>&#9670;</span>
         <p>Loading…</p>
       </div>
     );
@@ -78,8 +78,8 @@ export function ProtectedLayout({ children }: { children: ReactNode }) {
       <aside className={styles.sidebar}>
         <div className={styles.sidebarTop}>
           <Link href="/" className={styles.sidebarLogo}>
-            <span className="gradient-text">◆</span>
-            <span className={styles.sidebarLogoText}>Nexus</span>
+            <span style={{ color: 'var(--color-accent)' }}>&#9670;</span>
+            <span className={styles.sidebarLogoText}>BridgeScale</span>
           </Link>
           <nav className={styles.nav}>
             {navItems.map((item) => (

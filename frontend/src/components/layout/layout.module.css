@@ -30,7 +30,7 @@
   align-items: center;
   gap: var(--space-2);
   text-decoration: none;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-serif);
   font-weight: 700;
 }
 
@@ -82,7 +82,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--grad-primary);
+  background: var(--color-accent);
   display: flex;
   align-items: center;
   justify-content: center;

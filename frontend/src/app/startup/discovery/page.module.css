@@ -9,7 +9,7 @@
 .input:focus { border-color: var(--color-accent-violet); box-shadow: 0 0 0 3px rgba(168,85,247,0.12); }
 
 .slotGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: var(--space-2); }
-.slot { padding: var(--space-3); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); cursor: pointer; font-size: 0.9375rem; font-weight: 600; transition: all 0.18s; color: var(--color-text-primary); font-family: 'Plus Jakarta Sans', sans-serif; }
+.slot { padding: var(--space-3); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); cursor: pointer; font-size: 0.9375rem; font-weight: 600; transition: all 0.18s; color: var(--color-text-primary); font-family: var(--font-body); }
 .slot:hover { border-color: var(--color-accent-violet); }
 .slotActive { background: rgba(168,85,247,0.08); border-color: var(--color-accent-violet); color: var(--color-accent-violet); }
 
