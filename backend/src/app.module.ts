@@ -19,6 +19,10 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { ApplicationsModule } from './applications/applications.module';
 import { EmailModule } from './email/email.module';
 import { DiagnosesModule } from './diagnoses/diagnoses.module';
+import { OpportunityBriefsModule } from './opportunity-briefs/opportunity-briefs.module';
+import { TalentPreScreenModule } from './talent-pre-screen/talent-pre-screen.module';
+import { ApplicationMatchingModule } from './application-matching/application-matching.module';
+import { InterviewsModule } from './interviews/interviews.module';
 
 @Module({
   imports: [
@@ -69,6 +73,10 @@ import { DiagnosesModule } from './diagnoses/diagnoses.module';
     ApplicationsModule,
     EmailModule,
     DiagnosesModule,
+    OpportunityBriefsModule,
+    TalentPreScreenModule,
+    ApplicationMatchingModule,
+    InterviewsModule,
   ],
   controllers: [AppController],
 })

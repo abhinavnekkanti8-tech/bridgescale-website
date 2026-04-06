@@ -28,6 +28,10 @@ const analytics_module_1 = require("./analytics/analytics.module");
 const applications_module_1 = require("./applications/applications.module");
 const email_module_1 = require("./email/email.module");
 const diagnoses_module_1 = require("./diagnoses/diagnoses.module");
+const opportunity_briefs_module_1 = require("./opportunity-briefs/opportunity-briefs.module");
+const talent_pre_screen_module_1 = require("./talent-pre-screen/talent-pre-screen.module");
+const application_matching_module_1 = require("./application-matching/application-matching.module");
+const interviews_module_1 = require("./interviews/interviews.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -68,6 +72,10 @@ exports.AppModule = AppModule = __decorate([
             applications_module_1.ApplicationsModule,
             email_module_1.EmailModule,
             diagnoses_module_1.DiagnosesModule,
+            opportunity_briefs_module_1.OpportunityBriefsModule,
+            talent_pre_screen_module_1.TalentPreScreenModule,
+            application_matching_module_1.ApplicationMatchingModule,
+            interviews_module_1.InterviewsModule,
         ],
         controllers: [app_controller_1.AppController],
     })
