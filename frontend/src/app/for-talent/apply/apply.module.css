@@ -1,0 +1,524 @@
+/* ── Talent Apply Page ── */
+.page {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+.container {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  min-height: 100vh;
+}
+
+/* ── Left panel ── */
+.left {
+  background: var(--color-dark);
+  padding: 56px 32px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.backLink {
+  font-size: 12px;
+  font-weight: 500;
+  color: #4a4a4a;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  margin-bottom: 48px;
+  display: inline-block;
+  transition: color 0.15s;
+}
+.backLink:hover { color: var(--color-accent); }
+
+.leftLabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-bottom: 12px;
+}
+
+.leftTitle {
+  font-family: var(--font-serif);
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #f5f3ef;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+
+.leftSub {
+  font-size: 0.85rem;
+  font-weight: 300;
+  color: #6b6b6b;
+  line-height: 1.7;
+  margin-bottom: 40px;
+}
+
+.feeCard {
+  border: 1px solid #272727;
+  padding: 20px 24px;
+  margin-bottom: 40px;
+}
+
+.feeLabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #4a4a4a;
+  margin-bottom: 8px;
+}
+
+.feeAmount {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  font-weight: 700;
+  color: #f5f3ef;
+  margin-bottom: 8px;
+}
+
+.feeNote {
+  font-size: 0.78rem;
+  color: #4a4a4a;
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+/* ── Step list (sidebar) ── */
+.stepList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: auto;
+}
+
+.stepItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid #1e1e1e;
+  font-size: 12px;
+  font-weight: 300;
+  color: #4a4a4a;
+  transition: color 0.2s;
+}
+
+.stepActive {
+  color: #f5f3ef;
+  font-weight: 500;
+}
+
+.stepDone { color: var(--color-accent); }
+
+.stepDot {
+  width: 22px; height: 22px;
+  border: 1px solid currentColor;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* ── Right panel ── */
+.right {
+  padding: 56px 64px;
+  overflow-y: auto;
+}
+
+.form {
+  max-width: 680px;
+}
+
+.stepHeader {
+  margin-bottom: 40px;
+}
+
+.stepNum {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-bottom: 8px;
+}
+
+.stepTitle {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+
+/* ── Section labels ── */
+.sectionTitle {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-bottom: 12px;
+  margin-top: 8px;
+}
+
+.sectionHint {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--color-text-muted);
+  line-height: 1.65;
+  margin-bottom: 20px;
+}
+
+/* ── Fields ── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 18px;
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.req { color: var(--color-accent); }
+
+.field input,
+.field select,
+.field textarea {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 300;
+  padding: 11px 14px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+  resize: vertical;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--color-accent);
+}
+
+.fieldError {
+  border-color: #c0392b !important;
+}
+
+.fieldErrorMsg {
+  font-size: 12px;
+  color: #c0392b;
+}
+
+.fieldRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* ── Radio cards ── */
+.radioCards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.radioCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+  line-height: 1.4;
+}
+
+.radioCard input { display: none; }
+
+.radioCard:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
+}
+
+.radioCardSelected {
+  border-color: var(--color-accent);
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+/* ── Chips ── */
+.chipGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 7px 16px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.chip:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
+}
+
+.chipSelected {
+  border-color: var(--color-accent);
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+/* ── Deal history rows ── */
+.dealRow {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dealRow:last-of-type { border-bottom: none; }
+
+.dealRowNum {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-border);
+  flex-shrink: 0;
+  padding-top: 4px;
+  width: 28px;
+}
+
+.dealRowFields { flex: 1; }
+
+/* ── Market confidence table ── */
+.marketTable {
+  border: 1px solid var(--color-border);
+  margin-bottom: 8px;
+}
+
+.marketTableHeader {
+  display: grid;
+  grid-template-columns: 1fr repeat(3, 80px);
+  padding: 10px 14px;
+  background: var(--color-surface-alt);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.marketTableRow {
+  display: grid;
+  grid-template-columns: 1fr repeat(3, 80px);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+  align-items: center;
+}
+
+.marketTableRow:last-child { border-bottom: none; }
+
+.marketName {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--color-text-secondary);
+}
+
+.confBtn {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  color: var(--color-border);
+  transition: color 0.15s;
+  padding: 4px;
+  text-align: center;
+}
+
+.confBtn:hover { color: var(--color-accent); }
+.confBtnActive { color: var(--color-accent) !important; }
+
+/* ── Reference cards ── */
+.refCard {
+  border: 1px solid var(--color-border);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.refCardNum {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 20px;
+}
+
+/* ── Case study prompt ── */
+.caseStudyPrompt {
+  background: var(--color-surface-alt);
+  border-left: 2px solid var(--color-accent);
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+
+.caseStudyLabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-bottom: 12px;
+}
+
+.caseStudyPrompt p {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+/* ── Error & navigation ── */
+.errorBox {
+  padding: 12px 16px;
+  border: 1px solid #c0392b;
+  background: #fdf0ef;
+  color: #c0392b;
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+.navRow {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.prevBtn {
+  padding: 14px 24px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.prevBtn:hover {
+  border-color: var(--color-text-primary);
+  color: var(--color-text-primary);
+}
+
+.nextBtn {
+  flex: 1;
+  padding: 14px;
+  background: var(--color-text-primary);
+  color: var(--color-bg);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.nextBtn:hover:not(:disabled) { background: var(--color-accent-hover); }
+
+.submitBtn {
+  flex: 1;
+  padding: 14px;
+  background: var(--color-accent);
+  color: #f5f3ef;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.submitBtn:hover:not(:disabled) { background: var(--color-accent-hover); }
+.submitBtn:disabled,
+.nextBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.submitNote {
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  text-align: center;
+  margin-top: 12px;
+}
+
+/* ── Success ── */
+.successCard {
+  max-width: 480px;
+  margin: 80px auto;
+  padding: 56px;
+  border: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.successIcon {
+  width: 48px; height: 48px;
+  border: 1.5px solid var(--color-accent);
+  color: var(--color-accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.25rem;
+  margin: 0 auto 24px;
+}
+
+.successCard h2 {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  margin-bottom: 12px;
+}
+
+.successCard p {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+  font-weight: 300;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .container { grid-template-columns: 1fr; }
+  .left { position: static; height: auto; }
+  .right { padding: 40px 24px; }
+  .fieldRow { grid-template-columns: 1fr; }
+  .marketTableHeader,
+  .marketTableRow { grid-template-columns: 1fr repeat(3, 56px); }
+}

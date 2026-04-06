@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { CreateApplicationDto, ApplicationTypeDto } from './dto/create-application.dto';
-import { ApplicationStatus } from '@prisma/client';
+import { ApplicationStatus, PaymentProvider } from '@prisma/client';
 
 @Injectable()
 export class ApplicationsService {
@@ -21,10 +21,19 @@ export class ApplicationsService {
   ) {}
 
   /**
-   * Determine the application fee based on type.
+   * Fee in minor units (paisa for INR, cents for USD).
+   * Company: ₹15,000 = 1,500,000 paisa. Talent: $50 = 5,000 cents.
    */
+  private getFeeMinor(type: ApplicationTypeDto): { amount: number; currency: string; provider: PaymentProvider } {
+    if (type === ApplicationTypeDto.COMPANY) {
+      return { amount: 1500000, currency: 'INR', provider: PaymentProvider.RAZORPAY };
+    }
+    return { amount: 5000, currency: 'USD', provider: PaymentProvider.STRIPE };
+  }
+
+  /** @deprecated use getFeeMinor */
   private getFeeAmount(type: ApplicationTypeDto): number {
-    return type === ApplicationTypeDto.COMPANY ? 200 : 50;
+    return type === ApplicationTypeDto.COMPANY ? 15000 : 50;
   }
 
   /**
@@ -39,7 +48,7 @@ export class ApplicationsService {
    * In DUMMY_PAYMENT_MODE, the application is immediately marked as SUBMITTED.
    */
   async createApplication(dto: CreateApplicationDto) {
-    const feeAmount = this.getFeeAmount(dto.type);
+    const fee = this.getFeeMinor(dto.type);
 
     // Check for duplicate recent applications (same email within 24h)
     const recentDuplicate = await this.prisma.application.findFirst({
@@ -62,23 +71,62 @@ export class ApplicationsService {
       name: dto.name,
       email: dto.email.toLowerCase(),
       notes: dto.notes,
-      // Company-specific
+
+      // Company — mandatory
       companyName: dto.companyName,
+      companyWebsite: dto.companyWebsite,
       companyStage: dto.companyStage,
       needArea: dto.needArea,
       targetMarkets: dto.targetMarkets,
       engagementModel: dto.engagementModel,
       budgetRange: dto.budgetRange,
       urgency: dto.urgency,
-      // Talent-specific
+
+      // Company — optional
+      salesMotion: dto.salesMotion,
+      teamStructure: dto.teamStructure,
+      hasDeck: dto.hasDeck,
+      hasDemo: dto.hasDemo,
+      hasCrm: dto.hasCrm,
+      previousAttempts: dto.previousAttempts,
+      idealOutcome90d: dto.idealOutcome90d,
+      specificTargets: dto.specificTargets,
+
+      // Talent — profile
       location: dto.location,
       talentCategory: dto.talentCategory,
+      currentRole: dto.currentRole,
+      currentEmployer: dto.currentEmployer,
+      employmentStatus: dto.employmentStatus as any,
+      yearsExperience: dto.yearsExperience,
+      seniorityLevel: dto.seniorityLevel as any,
       seniority: dto.seniority,
+
+      // Talent — track record
       engagementPref: dto.engagementPref,
       markets: dto.markets,
+      dealHistory: dto.dealHistory ? (dto.dealHistory as object[]) : undefined,
+      confidenceMarkets: dto.confidenceMarkets ? (dto.confidenceMarkets as object[]) : undefined,
+      languagesSpoken: dto.languagesSpoken ?? [],
+
+      // Talent — references
       linkedInUrl: dto.linkedInUrl,
       references: dto.references ? (dto.references as object[]) : undefined,
-      feeAmountUsd: feeAmount,
+
+      // Talent — assessment & commercials
+      caseStudyResponse: dto.caseStudyResponse,
+      availabilityHours: dto.availabilityHours as any,
+      earliestStart: dto.earliestStart ? new Date(dto.earliestStart) : undefined,
+      rateExpectationMin: dto.rateExpectationMin,
+      rateExpectationMax: dto.rateExpectationMax,
+      rateCurrency: dto.rateCurrency ?? 'USD',
+      preferredStructures: dto.preferredStructures ?? [],
+
+      // Payment
+      paymentProvider: fee.provider,
+      feeAmountMinor: fee.amount,
+      feeCurrency: fee.currency,
+      feeAmountUsd: this.getFeeAmount(dto.type), // legacy field
     };
 
     if (this.isDummyMode()) {

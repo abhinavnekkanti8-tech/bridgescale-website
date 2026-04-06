@@ -32,6 +32,7 @@ enum UserStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
+  PENDING_APPROVAL
 }
 
 enum MembershipStatus {
@@ -825,6 +826,61 @@ model RenewalRecommendation {
   @@map("renewal_recommendations")
 }
 
+// ─────────────────────────────────────────────
+// AI WORKFLOWS, PAYMENTS & SOW TEMPLATES
+// ─────────────────────────────────────────────
+
+enum PaymentProvider {
+  RAZORPAY
+  STRIPE
+  DUMMY
+}
+
+enum EmploymentStatus {
+  EMPLOYED_FULL_TIME
+  FREELANCE
+  BETWEEN_ROLES
+  OTHER
+}
+
+enum SeniorityLevel {
+  IC
+  MANAGER
+  DIRECTOR
+  VP
+  C_SUITE
+}
+
+enum AvailabilityHours {
+  H5_10
+  H10_20
+  H20_30
+  FULL_FRACTIONAL
+}
+
+enum DiagnosisStatus {
+  DRAFT_AI
+  UNDER_REVIEW
+  READY_FOR_CLIENT
+  APPROVED
+  REVISION_REQUESTED
+}
+
+enum PreScreenRecommendation {
+  STRONG_PASS
+  PASS
+  CONDITIONAL
+  FAIL
+}
+
+enum SowTemplateType {
+  PIPELINE_SPRINT
+  BD_SPRINT
+  FRACTIONAL_RETAINER
+  MARKET_ENTRY
+  HYBRID_EQUITY
+}
+
 // ── Early-Access Applications ──────────────────────────────────────
 
 enum ApplicationType {
@@ -834,8 +890,17 @@ enum ApplicationType {
 
 enum ApplicationStatus {
   PENDING_PAYMENT
+  PAYMENT_FAILED
   SUBMITTED
   UNDER_REVIEW
+  // Company workflow
+  DIAGNOSIS_GENERATED
+  DIAGNOSIS_UNDER_REVIEW
+  DIAGNOSIS_APPROVED
+  BRIEF_GENERATED
+  // Talent workflow
+  PRESCREENED
+  INTERVIEW_SCHEDULED
   APPROVED
   REJECTED
 }
@@ -850,8 +915,9 @@ model Application {
   email             String
   notes             String?           @db.Text
 
-  // Company-specific
+  // Company — mandatory
   companyName       String?
+  companyWebsite    String?
   companyStage      String?
   needArea          String?
   targetMarkets     String?
@@ -859,27 +925,154 @@ model Application {
   budgetRange       String?
   urgency           String?
 
-  // Talent-specific
+  // Company — optional (improve AI diagnosis quality)
+  salesMotion       String?
+  teamStructure     String?           @db.Text
+  hasDeck           Boolean?
+  hasDemo           Boolean?
+  hasCrm            Boolean?
+  previousAttempts  String?           @db.Text
+  idealOutcome90d   String?           @db.Text
+  specificTargets   String?           @db.Text
+
+  // Talent — profile
   location          String?
   talentCategory    String?
-  seniority         String?
+  currentRole       String?
+  currentEmployer   String?
+  employmentStatus  EmploymentStatus?
+  yearsExperience   Int?
+  seniorityLevel    SeniorityLevel?
+  seniority         String?           // legacy free-text, kept for backwards compat
+
+  // Talent — track record
   engagementPref    String?
   markets           String?
+  dealHistory       Json?             // Array of { company, dealSizeRange, geography, outcome, role }
+  confidenceMarkets Json?             // Array of { market, confidence: STRONG|MODERATE|LIGHT }
+  languagesSpoken   String[]
+
+  // Talent — references
   linkedInUrl       String?
-  references        Json?             // Array of { name, company, relationship, email, phone }
+  references        Json?             // Array of { name, title, company, relationship, email, linkedIn }
   cvFileName        String?
   cvFileUrl         String?
 
+  // Talent — assessment & commercials
+  caseStudyResponse String?           @db.Text
+  availabilityHours AvailabilityHours?
+  earliestStart     DateTime?
+  rateExpectationMin Int?
+  rateExpectationMax Int?
+  rateCurrency      String?           @default("USD")
+  preferredStructures String[]
+
   // Payment
-  feeAmountUsd      Int
+  paymentProvider   PaymentProvider?
+  feeAmountMinor    Int               @default(0) // paisa for INR, cents for USD
+  feeCurrency       String?
+  razorpayOrderId   String?
+  razorpayPaymentId String?
   stripeSessionId   String?           @unique
   stripePaymentId   String?
   paidAt            DateTime?
 
+  // Legacy (kept for backwards compat)
+  feeAmountUsd      Int               @default(0)
+
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
+
+  // Relations to AI workflow models
+  needDiagnosis     NeedDiagnosis?
+  opportunityBrief  OpportunityBrief?
+  talentPreScreen   TalentPreScreen?
 
   @@index([email])
   @@index([status])
   @@map("applications")
+}
+
+// ── AI Workflow: Need Diagnosis (company) ─────────────────────────
+
+model NeedDiagnosis {
+  id                  String          @id @default(cuid())
+  applicationId       String          @unique
+  status              DiagnosisStatus @default(DRAFT_AI)
+  aiContent           Json            // Structured diagnosis from GPT
+  humanEditedContent  Json?           // Admin-edited version
+  clientFacingContent Json?           // Simplified version sent to company
+  reviewerNotes       String?         @db.Text
+  revisionNotes       String?         @db.Text
+  aiModel             String?
+  promptVersion       String?
+  generatedAt         DateTime        @default(now())
+  finalizedAt         DateTime?
+  clientApprovedAt    DateTime?
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("need_diagnoses")
+}
+
+// ── AI Workflow: Opportunity Brief (company, post-approval) ────────
+
+model OpportunityBrief {
+  id                  String   @id @default(cuid())
+  applicationId       String   @unique
+  internalContent     Json     // Full brief for matching + admin
+  clientFacingContent Json     // Simplified version shown to company
+  suggestedTemplateId String?  // FK to SowTemplate (soft ref, not enforced)
+  aiModel             String?
+  promptVersion       String?
+  generatedAt         DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("opportunity_briefs")
+}
+
+// ── AI Workflow: Talent Pre-Screen ────────────────────────────────
+
+model TalentPreScreen {
+  id                    String                  @id @default(cuid())
+  applicationId         String                  @unique
+  recommendation        PreScreenRecommendation
+  completenessScore     Int                     // 0-100
+  consistencyScore      Int                     // 0-100
+  referenceScore        Int                     // 0-100
+  assessmentScore       Int                     // 0-100
+  redFlags              Json                    // Array of { type, description, severity }
+  suggestedProbeQuestions Json                  // Array of strings
+  linkedinVerification  Json?                   // { verified, confidence, source }
+  referenceVerification Json?                   // Array of { email, verified, confidence }
+  aiModel               String?
+  promptVersion         String?
+  generatedAt           DateTime                @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("talent_pre_screens")
+}
+
+// ── SoW Templates ─────────────────────────────────────────────────
+
+model SowTemplate {
+  id               String          @id @default(cuid())
+  slug             String          @unique
+  name             String
+  templateType     SowTemplateType
+  version          Int             @default(1)
+  description      String          @db.Text
+  contentPlainText String          @db.Text
+  placeholders     Json            // Array of { name, description, required }
+  durationDays     Int
+  suggestedFeeMin  Int             // in USD cents
+  suggestedFeeMax  Int             // in USD cents
+  currency         String          @default("USD")
+  isActive         Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@map("sow_templates")
 }
