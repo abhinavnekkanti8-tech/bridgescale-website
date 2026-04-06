@@ -3,12 +3,14 @@ import {
   Post,
   Get,
   Body,
+  Query,
   Req,
   Res,
   HttpCode,
   HttpStatus,
   UseGuards,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
@@ -89,6 +91,30 @@ export class AuthController {
 
     res.clearCookie('platform.sid');
     return { message: 'Logged out successfully.' };
+  }
+
+  /**
+   * POST /api/v1/auth/magic
+   * Validate a magic-link token and create a session.
+   * Frontend hits this after the user clicks the link in their email.
+   */
+  @Post('magic')
+  @HttpCode(HttpStatus.OK)
+  async magicLogin(
+    @Body('token') token: string,
+    @Req() req: Request,
+  ) {
+    if (!token) throw new BadRequestException('Token is required.');
+
+    const sessionUser = await this.authService.validateMagicLink(token);
+
+    await new Promise<void>((resolve, reject) => {
+      (req as any).session.regenerate((err: Error) => (err ? reject(err) : resolve()));
+    });
+
+    (req as any).session.user = sessionUser;
+
+    return { message: 'Login successful.', user: sessionUser };
   }
 
   /**

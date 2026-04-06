@@ -88,6 +88,43 @@ export function applicationReceivedEmail(data: {
   };
 }
 
+// ── Magic Link ────────────────────────────────────────────────────────────
+
+export function magicLinkEmail(data: {
+  name: string;
+  magicUrl: string;
+  expiryMinutes: number;
+}): { subject: string; html: string } {
+  const body = `
+    <h1 style="font-size:24px;font-weight:700;margin:0 0 16px;font-family:'Plus Jakarta Sans',sans-serif;">
+      Your BridgeScale login link
+    </h1>
+    <p style="font-size:15px;line-height:1.7;color:#94a3b8;margin:0 0 24px;">
+      Hi ${data.name}, your account has been created. Click below to access your dashboard.
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td align="center">
+          <a href="${data.magicUrl}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#f59e0b,#a855f7);color:#fff;font-weight:700;font-size:15px;text-decoration:none;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;">
+            Access my dashboard →
+          </a>
+        </td>
+      </tr>
+    </table>
+    <p style="font-size:13px;line-height:1.7;color:#64748b;margin:0 0 12px;">
+      This link expires in <strong>${data.expiryMinutes} minutes</strong> and can only be used once.
+      If you didn't request this, you can ignore this email.
+    </p>
+    <p style="font-size:12px;color:#475569;word-break:break-all;">
+      Or copy this URL: ${data.magicUrl}
+    </p>`;
+
+  return {
+    subject: 'BridgeScale — your login link',
+    html: baseLayout('Login to BridgeScale', body),
+  };
+}
+
 // ── Status Update ─────────────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<string, { label: string; color: string; message: string }> = {

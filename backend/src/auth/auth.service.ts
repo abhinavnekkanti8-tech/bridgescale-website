@@ -75,7 +75,6 @@ export class AuthService {
     const user = await this.usersService.findByEmail(email);
 
     if (!user) {
-      // Use a consistent error to avoid email enumeration
       throw new UnauthorizedException('Invalid email or password.');
     }
 
@@ -87,12 +86,16 @@ export class AuthService {
       throw new UnauthorizedException('Your account is inactive. Please contact support.');
     }
 
+    if (!user.passwordHash) {
+      // Account was created via magic link — no password set
+      throw new UnauthorizedException('This account uses passwordless login. Please use your magic link.');
+    }
+
     const passwordValid = await bcrypt.compare(password, user.passwordHash);
     if (!passwordValid) {
       throw new UnauthorizedException('Invalid email or password.');
     }
 
-    // Use the first active membership to determine primary role and org
     const membership = user.memberships[0];
     if (!membership) {
       throw new BadRequestException('Your account has no active role assignment. Please contact support.');
@@ -101,6 +104,71 @@ export class AuthService {
     await this.usersService.touchLoginTimestamp(user.id);
 
     this.logger.log(`User ${user.email} authenticated with role ${membership.membershipRole}`);
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: membership.membershipRole,
+      orgId: membership.orgId,
+    };
+  }
+
+  /**
+   * Validate a magic-link token and return a SessionUser.
+   * Clears the token after successful use (single-use).
+   */
+  async validateMagicLink(token: string): Promise<SessionUser> {
+    const user = await this.prisma.user.findUnique({
+      where: { magicLinkToken: token },
+      include: {
+        memberships: {
+          where: { status: 'ACTIVE' },
+          include: { organization: true },
+        },
+      },
+    });
+
+    if (!user || !user.magicLinkExpiry) {
+      throw new UnauthorizedException('Invalid or expired login link.');
+    }
+
+    if (new Date() > user.magicLinkExpiry) {
+      throw new UnauthorizedException('This login link has expired. Please request a new one.');
+    }
+
+    if (user.status === 'SUSPENDED') {
+      throw new UnauthorizedException('Your account has been suspended. Please contact support.');
+    }
+
+    // Consume token (single-use) and activate the account if still pending
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        magicLinkToken: null,
+        magicLinkExpiry: null,
+        lastLoginAt: new Date(),
+        // Activate pending memberships
+      },
+    });
+
+    // Activate all pending memberships for this user
+    await this.prisma.membership.updateMany({
+      where: { userId: user.id, status: 'PENDING' },
+      data: { status: 'ACTIVE' },
+    });
+
+    this.logger.log(`Magic-link login for ${user.email}`);
+
+    // Re-fetch with active memberships after update
+    const activeMemberships = await this.prisma.membership.findMany({
+      where: { userId: user.id, status: 'ACTIVE' },
+    });
+
+    const membership = activeMemberships[0];
+    if (!membership) {
+      throw new BadRequestException('Your account has no active role. Please contact support.');
+    }
 
     return {
       id: user.id,

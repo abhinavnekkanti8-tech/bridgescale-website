@@ -42,10 +42,8 @@ const ENGAGEMENT_MODELS = [
 ];
 
 type FormState = {
-  // Contact
   name: string;
   email: string;
-  // Company — mandatory
   companyName: string;
   companyWebsite: string;
   industry: string;
@@ -56,7 +54,6 @@ type FormState = {
   urgency: string;
   engagementModel: string;
   notes: string;
-  // Company — optional
   salesMotion: string;
   teamStructure: string;
   hasDeck: boolean | null;
@@ -98,13 +95,44 @@ function diagnosisQuality(filled: number): { label: string; color: string } {
   return { label: 'Basic', color: '#9e9890' };
 }
 
+/** Load Razorpay checkout.js dynamically (idempotent) */
+function loadRazorpay(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if ((window as any).Razorpay) { resolve(); return; }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed to load Razorpay checkout.js'));
+    document.head.appendChild(script);
+  });
+}
+
+type PaymentInitResponse = {
+  applicationId: string;
+  status: string;
+  provider: 'RAZORPAY' | 'STRIPE';
+  keyId?: string;
+  orderId?: string;
+  amount?: number;
+  currency?: string;
+  prefill?: { name: string; email: string };
+  dummyMode: boolean;
+};
+
+// ── Page states ────────────────────────────────────────────────────────────────
+type PageState =
+  | { phase: 'form' }
+  | { phase: 'payment'; data: PaymentInitResponse }
+  | { phase: 'processing' }
+  | { phase: 'success' };
+
 export default function CompanyApplyPage() {
   const router = useRouter();
   const [form, setForm] = useState<FormState>(INITIAL);
   const [optionalOpen, setOptionalOpen] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [page, setPage] = useState<PageState>({ phase: 'form' });
 
   const filled = optionalFilled(form);
   const quality = diagnosisQuality(filled);
@@ -126,11 +154,11 @@ export default function CompanyApplyPage() {
     setForm(prev => ({ ...prev, [field]: prev[field] === val ? null : val }));
   }
 
+  // ── Step 1: Submit form → get payment initiation data ─────────────────────
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
 
-    // Basic validation
     if (!form.name || !form.email || !form.companyName || !form.industry ||
         !form.companyStage || form.targetMarkets.length === 0 ||
         !form.needArea || !form.budgetRange || !form.urgency) {
@@ -153,7 +181,6 @@ export default function CompanyApplyPage() {
         budgetRange: form.budgetRange,
         urgency: form.urgency,
         notes: form.notes || undefined,
-        // Optional fields
         salesMotion: form.salesMotion || undefined,
         teamStructure: form.teamStructure || undefined,
         hasDeck: form.hasDeck ?? undefined,
@@ -170,17 +197,14 @@ export default function CompanyApplyPage() {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const data: PaymentInitResponse = await res.json();
       if (!res.ok) {
-        const msg = Array.isArray(data?.message) ? data.message[0] : data?.message;
+        const msg = Array.isArray((data as any)?.message) ? (data as any).message[0] : (data as any)?.message;
         throw new Error(msg || 'Submission failed. Please try again.');
       }
 
-      setSubmitted(true);
-      // In dummy mode, navigate to status page
-      if (data.dummyMode) {
-        setTimeout(() => router.push(`/application/status?id=${data.applicationId}`), 1500);
-      }
+      // Show payment step
+      setPage({ phase: 'payment', data });
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.');
     } finally {
@@ -188,18 +212,148 @@ export default function CompanyApplyPage() {
     }
   }
 
-  if (submitted) {
+  // ── Step 2a: Real Razorpay modal (live mode) ───────────────────────────────
+  async function openRazorpayModal(data: PaymentInitResponse) {
+    setError('');
+    setLoading(true);
+    try {
+      await loadRazorpay();
+
+      const options = {
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency,
+        name: 'BridgeScale',
+        description: 'Company application fee',
+        order_id: data.orderId,
+        prefill: data.prefill,
+        theme: { color: '#9e7f5a' },
+        handler: async (response: any) => {
+          setPage({ phase: 'processing' });
+          try {
+            const res = await fetch('/api/v1/applications/payment/razorpay/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                applicationId: data.applicationId,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              }),
+            });
+
+            if (!res.ok) throw new Error('Payment verification failed.');
+            setPage({ phase: 'success' });
+            setTimeout(() => router.push(`/application/status?id=${data.applicationId}`), 1500);
+          } catch (err: any) {
+            setPage({ phase: 'payment', data });
+            setError(err.message || 'Payment verification failed. Please contact support.');
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setLoading(false);
+            setPage({ phase: 'payment', data });
+          },
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      setError(err.message || 'Could not open payment window.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Step 2b: Dummy confirm (dev mode) ─────────────────────────────────────
+  async function handleDummyConfirm(applicationId: string) {
+    setError('');
+    setLoading(true);
+    setPage({ phase: 'processing' });
+    try {
+      const res = await fetch('/api/v1/applications/payment/dummy-confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId }),
+      });
+
+      if (!res.ok) throw new Error('Dummy confirm failed.');
+      setPage({ phase: 'success' });
+      setTimeout(() => router.push(`/application/status?id=${applicationId}`), 1500);
+    } catch (err: any) {
+      setPage(prev => prev.phase === 'processing' ? { phase: 'payment', data: (prev as any).data } : prev);
+      setError(err.message || 'An error occurred.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Success screen ─────────────────────────────────────────────────────────
+  if (page.phase === 'success' || page.phase === 'processing') {
     return (
       <div className={styles.page}>
         <div className={styles.successCard}>
-          <div className={styles.successIcon}>✓</div>
-          <h2>Application received</h2>
-          <p>We'll begin generating your needs diagnosis shortly. You'll receive an email with next steps.</p>
+          <div className={styles.successIcon}>{page.phase === 'success' ? '✓' : '…'}</div>
+          <h2>{page.phase === 'success' ? 'Payment confirmed' : 'Processing payment…'}</h2>
+          <p>
+            {page.phase === 'success'
+              ? 'Your application has been received. We\'ll begin generating your needs diagnosis shortly.'
+              : 'Please wait while we confirm your payment.'}
+          </p>
         </div>
       </div>
     );
   }
 
+  // ── Payment screen ─────────────────────────────────────────────────────────
+  if (page.phase === 'payment') {
+    const { data } = page;
+    return (
+      <div className={styles.page}>
+        <div className={styles.successCard}>
+          <div className={styles.successIcon}>₹</div>
+          <h2>Complete your payment</h2>
+          <p style={{ marginBottom: '8px' }}>
+            Your application has been saved. Pay the ₹15,000 application fee to begin your diagnosis.
+          </p>
+          {data.dummyMode && (
+            <p style={{ fontSize: '12px', color: '#9e9890', marginBottom: '24px' }}>
+              [Dev mode — payment is simulated]
+            </p>
+          )}
+          {error && <div className={styles.errorBox} style={{ marginBottom: '16px' }}>⚠ {error}</div>}
+
+          {data.dummyMode ? (
+            <button
+              className={styles.submitBtn}
+              onClick={() => handleDummyConfirm(data.applicationId)}
+              disabled={loading}
+              style={{ width: '100%' }}
+            >
+              {loading ? 'Processing…' : 'Simulate ₹15,000 payment →'}
+            </button>
+          ) : (
+            <button
+              className={styles.submitBtn}
+              onClick={() => openRazorpayModal(data)}
+              disabled={loading}
+              style={{ width: '100%' }}
+            >
+              {loading ? 'Opening payment…' : 'Pay ₹15,000 →'}
+            </button>
+          )}
+
+          <p className={styles.submitNote} style={{ marginTop: '16px' }}>
+            Secured by Razorpay. Fully credited if we can't find a match.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Form screen ────────────────────────────────────────────────────────────
   return (
     <div className={styles.page}>
       <div className={styles.container}>
@@ -418,7 +572,7 @@ export default function CompanyApplyPage() {
             {error && <div className={styles.errorBox}>⚠ {error}</div>}
 
             <button type="submit" className={styles.submitBtn} disabled={loading}>
-              {loading ? 'Submitting...' : 'Submit application →'}
+              {loading ? 'Submitting…' : 'Submit application — proceed to payment →'}
             </button>
 
             <p className={styles.submitNote}>

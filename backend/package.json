@@ -36,6 +36,7 @@
     "pino": "^9.1.0",
     "pino-http": "^10.2.0",
     "pino-pretty": "^11.0.0",
+    "razorpay": "^2.9.6",
     "reflect-metadata": "^0.2.0",
     "resend": "^6.10.0",
     "rxjs": "^7.8.1",

@@ -240,8 +240,16 @@ export default function TalentApplyPage() {
         throw new Error(msg || 'Submission failed. Please try again.');
       }
 
-      setSubmitted(true);
-      if (data.dummyMode) {
+      if (data.status === 'SUBMITTED') {
+        // Dummy mode: backend auto-confirmed payment, go straight to status
+        setSubmitted(true);
+        setTimeout(() => router.push(`/application/status?id=${data.applicationId}`), 1500);
+      } else if (data.checkoutUrl) {
+        // Live Stripe mode: redirect to Stripe Checkout
+        window.location.href = data.checkoutUrl;
+      } else {
+        // Fallback: show success and redirect
+        setSubmitted(true);
         setTimeout(() => router.push(`/application/status?id=${data.applicationId}`), 1500);
       }
     } catch (err: any) {

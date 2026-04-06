@@ -46,14 +46,17 @@ enum MembershipStatus {
 // ─────────────────────────────────────────────
 
 model User {
-  id           String       @id @default(cuid())
-  name         String
-  email        String       @unique
-  passwordHash String
-  status       UserStatus   @default(ACTIVE)
-  lastLoginAt  DateTime?
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id               String       @id @default(cuid())
+  name             String
+  email            String       @unique
+  passwordHash     String?      // nullable — users created via magic-link have no password initially
+  status           UserStatus   @default(ACTIVE)
+  lastLoginAt      DateTime?
+  // Magic-link auth
+  magicLinkToken   String?      @unique
+  magicLinkExpiry  DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   memberships     Membership[]
   notes           WorkspaceNote[]
@@ -64,6 +67,7 @@ model User {
   ratingsReceived EngagementRating[] @relation("RatingReviewee")
 
   @@index([email])
+  @@index([magicLinkToken])
   @@map("users")
 }
 

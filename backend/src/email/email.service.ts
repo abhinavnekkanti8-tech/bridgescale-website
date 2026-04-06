@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { applicationReceivedEmail, statusUpdateEmail } from './templates';
+import { applicationReceivedEmail, statusUpdateEmail, magicLinkEmail } from './templates';
 
 @Injectable()
 export class EmailService {
@@ -65,6 +65,23 @@ export class EmailService {
     });
 
     await this.send(application.email, subject, html);
+  }
+
+  /**
+   * Send magic-link login email.
+   */
+  async sendMagicLink(params: {
+    name: string;
+    email: string;
+    magicUrl: string;
+    expiryMinutes?: number;
+  }): Promise<void> {
+    const { subject, html } = magicLinkEmail({
+      name: params.name,
+      magicUrl: params.magicUrl,
+      expiryMinutes: params.expiryMinutes ?? 30,
+    });
+    await this.send(params.email, subject, html);
   }
 
   /**
