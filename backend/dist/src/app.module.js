@@ -27,6 +27,7 @@ const closeout_module_1 = require("./closeout/closeout.module");
 const analytics_module_1 = require("./analytics/analytics.module");
 const applications_module_1 = require("./applications/applications.module");
 const email_module_1 = require("./email/email.module");
+const diagnoses_module_1 = require("./diagnoses/diagnoses.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -66,6 +67,7 @@ exports.AppModule = AppModule = __decorate([
             analytics_module_1.AnalyticsModule,
             applications_module_1.ApplicationsModule,
             email_module_1.EmailModule,
+            diagnoses_module_1.DiagnosesModule,
         ],
         controllers: [app_controller_1.AppController],
     })

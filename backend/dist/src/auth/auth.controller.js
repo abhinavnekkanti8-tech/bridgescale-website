@@ -52,6 +52,16 @@ let AuthController = class AuthController {
         res.clearCookie('platform.sid');
         return { message: 'Logged out successfully.' };
     }
+    async magicLogin(token, req) {
+        if (!token)
+            throw new common_1.BadRequestException('Token is required.');
+        const sessionUser = await this.authService.validateMagicLink(token);
+        await new Promise((resolve, reject) => {
+            req.session.regenerate((err) => (err ? reject(err) : resolve()));
+        });
+        req.session.user = sessionUser;
+        return { message: 'Login successful.', user: sessionUser };
+    }
     getSession(user) {
         if (!user)
             throw new common_1.UnauthorizedException();
@@ -87,6 +97,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "logout", null);
+__decorate([
+    (0, common_1.Post)('magic'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Body)('token')),
+    __param(1, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "magicLogin", null);
 __decorate([
     (0, common_1.Get)('session'),
     (0, common_1.UseGuards)(session_auth_guard_1.SessionAuthGuard),

@@ -25,10 +25,12 @@ export declare class UsersService {
     } & {
         id: string;
         email: string;
+        magicLinkToken: string | null;
         name: string;
-        passwordHash: string;
+        passwordHash: string | null;
         status: import(".prisma/client").$Enums.UserStatus;
         lastLoginAt: Date | null;
+        magicLinkExpiry: Date | null;
         createdAt: Date;
         updatedAt: Date;
     }) | null>;
@@ -55,10 +57,12 @@ export declare class UsersService {
     } & {
         id: string;
         email: string;
+        magicLinkToken: string | null;
         name: string;
-        passwordHash: string;
+        passwordHash: string | null;
         status: import(".prisma/client").$Enums.UserStatus;
         lastLoginAt: Date | null;
+        magicLinkExpiry: Date | null;
         createdAt: Date;
         updatedAt: Date;
     }>;
@@ -84,19 +88,23 @@ export declare class UsersService {
         })[];
         id: string;
         email: string;
+        magicLinkToken: string | null;
         name: string;
         status: import(".prisma/client").$Enums.UserStatus;
         lastLoginAt: Date | null;
+        magicLinkExpiry: Date | null;
         createdAt: Date;
         updatedAt: Date;
     } | null;
     touchLoginTimestamp(userId: string): Promise<{
         id: string;
         email: string;
+        magicLinkToken: string | null;
         name: string;
-        passwordHash: string;
+        passwordHash: string | null;
         status: import(".prisma/client").$Enums.UserStatus;
         lastLoginAt: Date | null;
+        magicLinkExpiry: Date | null;
         createdAt: Date;
         updatedAt: Date;
     }>;

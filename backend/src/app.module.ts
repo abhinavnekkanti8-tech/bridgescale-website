@@ -18,6 +18,7 @@ import { CloseoutModule } from './closeout/closeout.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ApplicationsModule } from './applications/applications.module';
 import { EmailModule } from './email/email.module';
+import { DiagnosesModule } from './diagnoses/diagnoses.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { EmailModule } from './email/email.module';
     AnalyticsModule,
     ApplicationsModule,
     EmailModule,
+    DiagnosesModule,
   ],
   controllers: [AppController],
 })

@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { RazorpayService } from '../payments/razorpay.service';
+import { AiWorkflowService } from '../ai/ai-workflow.service';
 import { CreateApplicationDto, ApplicationTypeDto } from './dto/create-application.dto';
 import { ApplicationStatus, PaymentProvider, MembershipRole, OrgType, UserStatus } from '@prisma/client';
 import { randomBytes } from 'crypto';
@@ -21,6 +22,7 @@ export class ApplicationsService {
     private readonly config: ConfigService,
     private readonly emailService: EmailService,
     private readonly razorpay: RazorpayService,
+    private readonly aiWorkflow: AiWorkflowService,
   ) {}
 
   /**
@@ -277,6 +279,11 @@ export class ApplicationsService {
       companyName: (updated as any).companyName,
     });
 
+    // Trigger diagnosis generation (non-blocking, fire-and-forget)
+    this.aiWorkflow
+      .generateDiagnosisForApplication(updated.id)
+      .catch((err) => this.logger.error(`Failed to trigger diagnosis: ${err.message}`));
+
     return { success: true, applicationId: updated.id, status: updated.status };
   }
 
@@ -318,6 +325,11 @@ export class ApplicationsService {
       type: updated.type,
       companyName: (updated as any).companyName,
     });
+
+    // Trigger diagnosis generation (non-blocking, fire-and-forget)
+    this.aiWorkflow
+      .generateDiagnosisForApplication(updated.id)
+      .catch((err) => this.logger.error(`Failed to trigger diagnosis: ${err.message}`));
 
     return { success: true, applicationId: updated.id, status: updated.status };
   }
@@ -366,6 +378,11 @@ export class ApplicationsService {
       companyName: (application as any).companyName,
     });
 
+    // Trigger diagnosis generation (non-blocking, fire-and-forget)
+    this.aiWorkflow
+      .generateDiagnosisForApplication(application.id)
+      .catch((err) => this.logger.error(`Failed to trigger diagnosis: ${err.message}`));
+
     return { received: true, applicationId: application.id };
   }
 
@@ -400,6 +417,11 @@ export class ApplicationsService {
       type: application.type,
       companyName: (application as any).companyName,
     });
+
+    // Trigger diagnosis generation (non-blocking, fire-and-forget)
+    this.aiWorkflow
+      .generateDiagnosisForApplication(application.id)
+      .catch((err) => this.logger.error(`Failed to trigger diagnosis: ${err.message}`));
 
     return { received: true, applicationId: application.id };
   }
@@ -544,5 +566,23 @@ export class ApplicationsService {
 
     this.logger.log(`CV attached to application ${applicationId}: ${fileName}`);
     return { applicationId: updated.id, cvFileName: updated.cvFileName, cvFileUrl: updated.cvFileUrl };
+  }
+
+  /**
+   * Get the authenticated user's application by email.
+   * Used for the dashboard — shows user their own application + diagnosis.
+   */
+  async getMyApplication(email: string) {
+    const application = await this.prisma.application.findFirst({
+      where: { email: email.toLowerCase() },
+      include: {
+        needDiagnosis: true,
+        opportunityBrief: true,
+        talentPreScreen: true,
+      },
+    });
+
+    if (!application) throw new NotFoundException('No application found for this email.');
+    return application;
   }
 }

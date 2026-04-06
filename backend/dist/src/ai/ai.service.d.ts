@@ -25,6 +25,13 @@ export declare class AiService {
     constructor(config: ConfigService);
     scoreStartupReadiness(profile: Record<string, unknown>): Promise<ReadinessScoreOutput>;
     private validateScoreOutput;
+    generateNeedsDiagnosis(applicationData: Record<string, unknown>): Promise<{
+        analysis: string;
+        challenges: string[];
+        opportunities: string[];
+        recommendedRole: string;
+        estimatedSprint: string;
+    }>;
     getPromptVersion(): string;
     getModelName(): string;
     getTemperature(): number;

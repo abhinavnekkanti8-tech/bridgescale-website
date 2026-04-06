@@ -17,5 +17,22 @@ export declare class EmailService {
         name: string;
         email: string;
     }, newStatus: string): Promise<void>;
+    sendMagicLink(params: {
+        name: string;
+        email: string;
+        magicUrl: string;
+        expiryMinutes?: number;
+    }): Promise<void>;
+    sendDiagnosisGenerated(params: {
+        email: string;
+        name: string;
+        type: 'COMPANY' | 'TALENT';
+        recommendedRole: string;
+    }): Promise<void>;
+    sendDiagnosisApproved(params: {
+        email: string;
+        name: string;
+        type: 'COMPANY' | 'TALENT';
+    }): Promise<void>;
     private send;
 }

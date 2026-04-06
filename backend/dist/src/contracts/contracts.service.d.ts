@@ -154,10 +154,10 @@ export declare class ContractsService {
         versions: {
             id: string;
             createdAt: Date;
+            version: number;
             sowId: string;
             content: import("@prisma/client/runtime/library").JsonValue;
             changeNote: string | null;
-            version: number;
             changedBy: string;
         }[];
     } & {
@@ -336,10 +336,10 @@ export declare class ContractsService {
     getSowVersions(sowId: string): Promise<{
         id: string;
         createdAt: Date;
+        version: number;
         sowId: string;
         content: import("@prisma/client/runtime/library").JsonValue;
         changeNote: string | null;
-        version: number;
         changedBy: string;
     }[]>;
 }

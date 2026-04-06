@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { applicationReceivedEmail, statusUpdateEmail, magicLinkEmail } from './templates';
+import { applicationReceivedEmail, statusUpdateEmail, magicLinkEmail, diagnosisGeneratedEmail, diagnosisApprovedEmail } from './templates';
 
 @Injectable()
 export class EmailService {
@@ -80,6 +80,38 @@ export class EmailService {
       name: params.name,
       magicUrl: params.magicUrl,
       expiryMinutes: params.expiryMinutes ?? 30,
+    });
+    await this.send(params.email, subject, html);
+  }
+
+  /**
+   * Send diagnosis generated notification email.
+   */
+  async sendDiagnosisGenerated(params: {
+    email: string;
+    name: string;
+    type: 'COMPANY' | 'TALENT';
+    recommendedRole: string;
+  }): Promise<void> {
+    const { subject, html } = diagnosisGeneratedEmail({
+      name: params.name,
+      type: params.type,
+      recommendedRole: params.recommendedRole,
+    });
+    await this.send(params.email, subject, html);
+  }
+
+  /**
+   * Send diagnosis approved notification email.
+   */
+  async sendDiagnosisApproved(params: {
+    email: string;
+    name: string;
+    type: 'COMPANY' | 'TALENT';
+  }): Promise<void> {
+    const { subject, html } = diagnosisApprovedEmail({
+      name: params.name,
+      type: params.type,
     });
     await this.send(params.email, subject, html);
   }

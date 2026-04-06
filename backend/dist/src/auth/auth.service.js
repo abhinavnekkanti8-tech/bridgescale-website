@@ -67,6 +67,9 @@ let AuthService = AuthService_1 = class AuthService {
         if (user.status === 'INACTIVE') {
             throw new common_1.UnauthorizedException('Your account is inactive. Please contact support.');
         }
+        if (!user.passwordHash) {
+            throw new common_1.UnauthorizedException('This account uses passwordless login. Please use your magic link.');
+        }
         const passwordValid = await bcrypt.compare(password, user.passwordHash);
         if (!passwordValid) {
             throw new common_1.UnauthorizedException('Invalid email or password.');
@@ -77,6 +80,53 @@ let AuthService = AuthService_1 = class AuthService {
         }
         await this.usersService.touchLoginTimestamp(user.id);
         this.logger.log(`User ${user.email} authenticated with role ${membership.membershipRole}`);
+        return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: membership.membershipRole,
+            orgId: membership.orgId,
+        };
+    }
+    async validateMagicLink(token) {
+        const user = await this.prisma.user.findUnique({
+            where: { magicLinkToken: token },
+            include: {
+                memberships: {
+                    where: { status: 'ACTIVE' },
+                    include: { organization: true },
+                },
+            },
+        });
+        if (!user || !user.magicLinkExpiry) {
+            throw new common_1.UnauthorizedException('Invalid or expired login link.');
+        }
+        if (new Date() > user.magicLinkExpiry) {
+            throw new common_1.UnauthorizedException('This login link has expired. Please request a new one.');
+        }
+        if (user.status === 'SUSPENDED') {
+            throw new common_1.UnauthorizedException('Your account has been suspended. Please contact support.');
+        }
+        await this.prisma.user.update({
+            where: { id: user.id },
+            data: {
+                magicLinkToken: null,
+                magicLinkExpiry: null,
+                lastLoginAt: new Date(),
+            },
+        });
+        await this.prisma.membership.updateMany({
+            where: { userId: user.id, status: 'PENDING' },
+            data: { status: 'ACTIVE' },
+        });
+        this.logger.log(`Magic-link login for ${user.email}`);
+        const activeMemberships = await this.prisma.membership.findMany({
+            where: { userId: user.id, status: 'ACTIVE' },
+        });
+        const membership = activeMemberships[0];
+        if (!membership) {
+            throw new common_1.BadRequestException('Your account has no active role. Please contact support.');
+        }
         return {
             id: user.id,
             name: user.name,

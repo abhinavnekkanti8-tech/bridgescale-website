@@ -1,7 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.applicationReceivedEmail = applicationReceivedEmail;
+exports.magicLinkEmail = magicLinkEmail;
 exports.statusUpdateEmail = statusUpdateEmail;
+exports.diagnosisGeneratedEmail = diagnosisGeneratedEmail;
+exports.diagnosisApprovedEmail = diagnosisApprovedEmail;
 const BRAND_GRADIENT = 'linear-gradient(135deg, #f59e0b, #a855f7)';
 const FOOTER_TEXT = '© BridgeSales — Fractional diaspora talent for India\'s startups & MSMEs.';
 function baseLayout(title, body) {
@@ -77,6 +80,35 @@ function applicationReceivedEmail(data) {
         html: baseLayout(`Application Received — BridgeSales`, body),
     };
 }
+function magicLinkEmail(data) {
+    const body = `
+    <h1 style="font-size:24px;font-weight:700;margin:0 0 16px;font-family:'Plus Jakarta Sans',sans-serif;">
+      Your BridgeScale login link
+    </h1>
+    <p style="font-size:15px;line-height:1.7;color:#94a3b8;margin:0 0 24px;">
+      Hi ${data.name}, your account has been created. Click below to access your dashboard.
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td align="center">
+          <a href="${data.magicUrl}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#f59e0b,#a855f7);color:#fff;font-weight:700;font-size:15px;text-decoration:none;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;">
+            Access my dashboard →
+          </a>
+        </td>
+      </tr>
+    </table>
+    <p style="font-size:13px;line-height:1.7;color:#64748b;margin:0 0 12px;">
+      This link expires in <strong>${data.expiryMinutes} minutes</strong> and can only be used once.
+      If you didn't request this, you can ignore this email.
+    </p>
+    <p style="font-size:12px;color:#475569;word-break:break-all;">
+      Or copy this URL: ${data.magicUrl}
+    </p>`;
+    return {
+        subject: 'BridgeScale — your login link',
+        html: baseLayout('Login to BridgeScale', body),
+    };
+}
 const STATUS_LABELS = {
     UNDER_REVIEW: {
         label: 'Under Review',
@@ -118,6 +150,77 @@ function statusUpdateEmail(data) {
     return {
         subject: `BridgeSales — Your application is now: ${info.label}`,
         html: baseLayout(`Application Status Updated — BridgeSales`, body),
+    };
+}
+function diagnosisGeneratedEmail(data) {
+    const isCompany = data.type === 'COMPANY';
+    const copy = isCompany
+        ? `We've analyzed your company's needs and identified key growth opportunities. Our recommendation: <strong style="color:#f1f5f9;">${data.recommendedRole}</strong> as your next hire or engagement.`
+        : `We've reviewed your profile and identified talent opportunities aligned with your expertise. We're actively matching you with companies seeking <strong style="color:#f1f5f9;">${data.recommendedRole}</strong> capabilities.`;
+    const body = `
+    <h1 style="font-size:24px;font-weight:700;margin:0 0 16px;font-family:'Plus Jakarta Sans',sans-serif;">
+      Your needs diagnosis is ready
+    </h1>
+    <p style="font-size:15px;line-height:1.7;color:#94a3b8;margin:0 0 24px;">
+      Hi ${data.name},
+    </p>
+    <p style="font-size:15px;line-height:1.7;color:#94a3b8;margin:0 0 24px;">
+      ${copy}
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td align="center">
+          <a href="https://dashboard.bridgesales.com" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#f59e0b,#a855f7);color:#fff;font-weight:700;font-size:15px;text-decoration:none;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;">
+            View full diagnosis →
+          </a>
+        </td>
+      </tr>
+    </table>
+    <p style="font-size:14px;line-height:1.7;color:#94a3b8;margin:0;">
+      <strong style="color:#f1f5f9;">Next steps:</strong><br/>
+      Log in to your dashboard to review the detailed analysis, challenges, and opportunities tailored to your profile.
+    </p>`;
+    return {
+        subject: `BridgeSales — Your diagnosis is ready`,
+        html: baseLayout(`Diagnosis Generated — BridgeSales`, body),
+    };
+}
+function diagnosisApprovedEmail(data) {
+    const isCompany = data.type === 'COMPANY';
+    const nextStep = isCompany
+        ? 'Our team will be in touch soon to discuss the recommended engagement structure and timeline.'
+        : "We'll be matching you with companies that align with your profile over the coming weeks.";
+    const body = `
+    <h1 style="font-size:24px;font-weight:700;margin:0 0 16px;font-family:'Plus Jakarta Sans',sans-serif;">
+      Your diagnosis has been approved
+    </h1>
+    <p style="font-size:15px;line-height:1.7;color:#94a3b8;margin:0 0 24px;">
+      Hi ${data.name},
+    </p>
+    <p style="font-size:15px;line-height:1.7;color:#94a3b8;margin:0 0 24px;">
+      Great news! Your needs diagnosis has been reviewed and approved by our team. We're confident in the recommended path forward and are excited to help you execute.
+    </p>
+    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:24px;margin-bottom:24px;">
+      <div style="font-size:14px;line-height:1.7;color:#94a3b8;">
+        <strong style="color:#f1f5f9;">What happens next?</strong><br/>
+        ${nextStep}
+      </div>
+    </div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td align="center">
+          <a href="https://dashboard.bridgesales.com" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#f59e0b,#a855f7);color:#fff;font-weight:700;font-size:15px;text-decoration:none;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;">
+            View your dashboard →
+          </a>
+        </td>
+      </tr>
+    </table>
+    <p style="font-size:14px;line-height:1.7;color:#94a3b8;margin:0;">
+      Questions? Reply to this email and we'll get back to you as soon as possible.
+    </p>`;
+    return {
+        subject: `BridgeSales — Your diagnosis has been approved`,
+        html: baseLayout(`Diagnosis Approved — BridgeSales`, body),
     };
 }
 //# sourceMappingURL=templates.js.map

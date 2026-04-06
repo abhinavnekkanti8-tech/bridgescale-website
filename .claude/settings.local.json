@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"section\\\\|Section\\\\|<section\\\\|id=\"\"\\\\|className.*section\\\\|//.*Section\\\\|/\\\\*.*Section\" \"C:\\\\Users\\\\manis\\\\Desktop\\\\AG\\\\Platform\\\\.claude\\\\worktrees\\\\elated-ritchie\\\\frontend\\\\src\\\\app\\\\page.tsx\")",
+      "Read(//c/Users/manis/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/8a8038f0-fc9f-4598-8d71-7792d82ce08a/a9ec239f-b161-4e84-8f53-16ef3cfda2fa/skills/web-artifacts-builder/**)",
+      "Bash(bash scripts/init-artifact.sh bridgesales-landing)",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(bash scripts/bundle-artifact.sh bridgesales-landing)",
+      "Bash(bash ../scripts/bundle-artifact.sh)",
+      "Bash(npx vite:*)",
+      "Bash(node -e \"const {execSync} = require\\(''''child_process''''\\); console.log\\(execSync\\(''''npm install vite@5.4.11 --save-dev'''', {encoding:''''utf8''''}\\)\\)\")",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm approve-builds:*)",
+      "Bash(grep -E \"\\\\.\\(tsx?|css\\)$\")",
+      "Bash(npx next:*)",
+      "Bash(./node_modules/.bin/next build:*)",
+      "Bash(while read:*)",
+      "Bash(do sed:*)",
+      "Bash(echo \"Fixed: $f\")",
+      "Bash(done)",
+      "Bash(ls -la */)",
+      "Bash(npx prisma:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node -e \"const r = require\\(''razorpay''\\); console.log\\(''razorpay ok, version:'', require\\(''./node_modules/razorpay/package.json''\\).version\\)\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run:*)"
+    ]
+  }
+}

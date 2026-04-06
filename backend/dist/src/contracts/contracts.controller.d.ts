@@ -78,10 +78,10 @@ export declare class ContractsController {
         versions: {
             id: string;
             createdAt: Date;
+            version: number;
             sowId: string;
             content: import("@prisma/client/runtime/library").JsonValue;
             changeNote: string | null;
-            version: number;
             changedBy: string;
         }[];
     } & {
@@ -107,10 +107,10 @@ export declare class ContractsController {
     getSowVersions(id: string): Promise<{
         id: string;
         createdAt: Date;
+        version: number;
         sowId: string;
         content: import("@prisma/client/runtime/library").JsonValue;
         changeNote: string | null;
-        version: number;
         changedBy: string;
     }[]>;
     editSow(id: string, dto: EditSowDto, req: {

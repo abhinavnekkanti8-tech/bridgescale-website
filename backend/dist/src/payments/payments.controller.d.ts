@@ -7,10 +7,10 @@ export declare class PaymentsController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        currency: string;
         contractId: string;
         planType: import(".prisma/client").$Enums.PaymentPlanType;
         totalAmountUsd: number;
-        currency: string;
     }>;
     getPaymentPlan(contractId: string): Promise<({
         invoices: {
@@ -18,9 +18,9 @@ export declare class PaymentsController {
             status: import(".prisma/client").$Enums.InvoiceStatus;
             createdAt: Date;
             updatedAt: Date;
+            description: string;
             paymentPlanId: string;
             amountUsd: number;
-            description: string;
             dueDate: Date;
             stripeUrl: string | null;
             stripeId: string | null;
@@ -32,19 +32,19 @@ export declare class PaymentsController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        currency: string;
         contractId: string;
         planType: import(".prisma/client").$Enums.PaymentPlanType;
         totalAmountUsd: number;
-        currency: string;
     }) | null>;
     issueInvoice(dto: IssueInvoiceDto): Promise<{
         id: string;
         status: import(".prisma/client").$Enums.InvoiceStatus;
         createdAt: Date;
         updatedAt: Date;
+        description: string;
         paymentPlanId: string;
         amountUsd: number;
-        description: string;
         dueDate: Date;
         stripeUrl: string | null;
         stripeId: string | null;
@@ -94,19 +94,19 @@ export declare class PaymentsController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            currency: string;
             contractId: string;
             planType: import(".prisma/client").$Enums.PaymentPlanType;
             totalAmountUsd: number;
-            currency: string;
         };
     } & {
         id: string;
         status: import(".prisma/client").$Enums.InvoiceStatus;
         createdAt: Date;
         updatedAt: Date;
+        description: string;
         paymentPlanId: string;
         amountUsd: number;
-        description: string;
         dueDate: Date;
         stripeUrl: string | null;
         stripeId: string | null;
@@ -156,19 +156,19 @@ export declare class PaymentsController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            currency: string;
             contractId: string;
             planType: import(".prisma/client").$Enums.PaymentPlanType;
             totalAmountUsd: number;
-            currency: string;
         };
     } & {
         id: string;
         status: import(".prisma/client").$Enums.InvoiceStatus;
         createdAt: Date;
         updatedAt: Date;
+        description: string;
         paymentPlanId: string;
         amountUsd: number;
-        description: string;
         dueDate: Date;
         stripeUrl: string | null;
         stripeId: string | null;
@@ -181,9 +181,9 @@ export declare class PaymentsController {
         status: import(".prisma/client").$Enums.InvoiceStatus;
         createdAt: Date;
         updatedAt: Date;
+        description: string;
         paymentPlanId: string;
         amountUsd: number;
-        description: string;
         dueDate: Date;
         stripeUrl: string | null;
         stripeId: string | null;
@@ -196,9 +196,9 @@ export declare class PaymentsController {
         status: import(".prisma/client").$Enums.InvoiceStatus;
         createdAt: Date;
         updatedAt: Date;
+        description: string;
         paymentPlanId: string;
         amountUsd: number;
-        description: string;
         dueDate: Date;
         stripeUrl: string | null;
         stripeId: string | null;

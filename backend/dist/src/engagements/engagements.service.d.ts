@@ -45,8 +45,8 @@ export declare class EngagementsService {
             status: import(".prisma/client").$Enums.MilestoneStatus;
             createdAt: Date;
             updatedAt: Date;
-            engagementId: string;
             description: string;
+            engagementId: string;
             dueDate: Date;
             title: string;
             completedAt: Date | null;
@@ -74,8 +74,8 @@ export declare class EngagementsService {
         } & {
             id: string;
             createdAt: Date;
-            engagementId: string;
             description: string;
+            engagementId: string;
             metadata: import("@prisma/client/runtime/library").JsonValue | null;
             actorId: string;
             actionType: string;
@@ -137,8 +137,8 @@ export declare class EngagementsService {
         status: import(".prisma/client").$Enums.MilestoneStatus;
         createdAt: Date;
         updatedAt: Date;
-        engagementId: string;
         description: string;
+        engagementId: string;
         dueDate: Date;
         title: string;
         completedAt: Date | null;
@@ -149,8 +149,8 @@ export declare class EngagementsService {
         status: import(".prisma/client").$Enums.MilestoneStatus;
         createdAt: Date;
         updatedAt: Date;
-        engagementId: string;
         description: string;
+        engagementId: string;
         dueDate: Date;
         title: string;
         completedAt: Date | null;

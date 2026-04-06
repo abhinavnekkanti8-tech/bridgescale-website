@@ -17,9 +17,11 @@ const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
 const applications_service_1 = require("./applications.service");
 const create_application_dto_1 = require("./dto/create-application.dto");
+const payment_dto_1 = require("./dto/payment.dto");
 const session_auth_guard_1 = require("../common/guards/session-auth.guard");
 const roles_guard_1 = require("../common/guards/roles.guard");
 const roles_decorator_1 = require("../common/decorators/roles.decorator");
+const current_user_decorator_1 = require("../common/decorators/current-user.decorator");
 const client_1 = require("@prisma/client");
 const multer_1 = require("multer");
 const path_1 = require("path");
@@ -36,6 +38,26 @@ let ApplicationsController = class ApplicationsController {
     async createApplication(dto) {
         return this.applicationsService.createApplication(dto);
     }
+    async getMyApplication(user) {
+        if (!user)
+            throw new common_1.BadRequestException('User not authenticated.');
+        return this.applicationsService.getMyApplication(user.email);
+    }
+    async verifyRazorpayPayment(dto) {
+        return this.applicationsService.verifyRazorpayPayment({
+            applicationId: dto.applicationId,
+            razorpayOrderId: dto.razorpayOrderId,
+            razorpayPaymentId: dto.razorpayPaymentId,
+            razorpaySignature: dto.razorpaySignature,
+        });
+    }
+    async dummyConfirmPayment(dto) {
+        return this.applicationsService.dummyConfirmPayment(dto.applicationId);
+    }
+    async handleRazorpayWebhook(req, signature, payload) {
+        const rawBody = (req.rawBody ?? Buffer.alloc(0)).toString('utf-8');
+        return this.applicationsService.handleRazorpayWebhook(rawBody, signature ?? '', payload);
+    }
     async getApplicationStatus(id) {
         return this.applicationsService.getApplicationStatus(id);
     }
@@ -49,15 +71,13 @@ let ApplicationsController = class ApplicationsController {
         return this.applicationsService.updateApplicationStatus(id, status);
     }
     async uploadCv(id, file) {
-        if (!file) {
+        if (!file)
             throw new common_1.BadRequestException('No file uploaded.');
-        }
         return this.applicationsService.attachCv(id, file.originalname, `/uploads/cv/${file.filename}`);
     }
     async handleStripeWebhook(payload) {
-        if (!payload || payload.type !== 'checkout.session.completed') {
+        if (!payload || payload.type !== 'checkout.session.completed')
             return { received: true };
-        }
         const session = payload.data?.object;
         if (!session?.id)
             return { received: true };
@@ -73,6 +93,40 @@ __decorate([
     __metadata("design:paramtypes", [create_application_dto_1.CreateApplicationDto]),
     __metadata("design:returntype", Promise)
 ], ApplicationsController.prototype, "createApplication", null);
+__decorate([
+    (0, common_1.Get)('my-application'),
+    (0, common_1.UseGuards)(session_auth_guard_1.SessionAuthGuard),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], ApplicationsController.prototype, "getMyApplication", null);
+__decorate([
+    (0, common_1.Post)('payment/razorpay/verify'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [payment_dto_1.VerifyRazorpayDto]),
+    __metadata("design:returntype", Promise)
+], ApplicationsController.prototype, "verifyRazorpayPayment", null);
+__decorate([
+    (0, common_1.Post)('payment/dummy-confirm'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [payment_dto_1.DummyConfirmDto]),
+    __metadata("design:returntype", Promise)
+], ApplicationsController.prototype, "dummyConfirmPayment", null);
+__decorate([
+    (0, common_1.Post)('payment/razorpay/webhook'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Headers)('x-razorpay-signature')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", Promise)
+], ApplicationsController.prototype, "handleRazorpayWebhook", null);
 __decorate([
     (0, common_1.Get)(':id/status'),
     __param(0, (0, common_1.Param)('id')),
@@ -106,19 +160,17 @@ __decorate([
         storage: (0, multer_1.diskStorage)({
             destination: UPLOADS_DIR,
             filename: (_req, file, cb) => {
-                const uniqueSuffix = (0, uuid_1.v4)();
-                const ext = (0, path_1.extname)(file.originalname).toLowerCase();
-                cb(null, `${uniqueSuffix}${ext}`);
+                cb(null, `${(0, uuid_1.v4)()}${(0, path_1.extname)(file.originalname).toLowerCase()}`);
             },
         }),
         limits: { fileSize: 5 * 1024 * 1024 },
         fileFilter: (_req, file, cb) => {
-            const allowedTypes = [
+            const allowed = [
                 'application/pdf',
                 'application/msword',
                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             ];
-            if (allowedTypes.includes(file.mimetype)) {
+            if (allowed.includes(file.mimetype)) {
                 cb(null, true);
             }
             else {

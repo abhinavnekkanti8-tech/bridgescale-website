@@ -1,4 +1,4 @@
-// File: C:\Users\manis\Desktop\AG\Platform\frontend\src\app\for-talent\page.tsx
+// File: C:\Users\manis\Desktop\AG\Platform\.claude\worktrees\elated-ritchie\frontend\src\app\for-talent\page.tsx
 import * as entry from '../../../../src/app/for-talent/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

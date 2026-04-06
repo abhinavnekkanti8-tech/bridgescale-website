@@ -24,6 +24,8 @@ import { VerifyRazorpayDto, DummyConfirmDto } from './dto/payment.dto';
 import { SessionAuthGuard } from '../common/guards/session-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { SessionUser } from '../common/types/session.types';
 import { MembershipRole, ApplicationStatus } from '@prisma/client';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
@@ -48,6 +50,18 @@ export class ApplicationsController {
   @HttpCode(HttpStatus.CREATED)
   async createApplication(@Body() dto: CreateApplicationDto) {
     return this.applicationsService.createApplication(dto);
+  }
+
+  /**
+   * GET /api/v1/applications/my-application
+   * AUTHENTICATED — Get the current user's application.
+   * Used by the dashboard to show application status + diagnosis.
+   */
+  @Get('my-application')
+  @UseGuards(SessionAuthGuard)
+  async getMyApplication(@CurrentUser() user: SessionUser) {
+    if (!user) throw new BadRequestException('User not authenticated.');
+    return this.applicationsService.getMyApplication(user.email);
   }
 
   /**

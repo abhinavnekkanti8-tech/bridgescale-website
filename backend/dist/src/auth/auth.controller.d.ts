@@ -17,6 +17,10 @@ export declare class AuthController {
     logout(req: Request, res: Response): Promise<{
         message: string;
     }>;
+    magicLogin(token: string, req: Request): Promise<{
+        message: string;
+        user: SessionUser;
+    }>;
     getSession(user: SessionUser): {
         user: SessionUser;
     };

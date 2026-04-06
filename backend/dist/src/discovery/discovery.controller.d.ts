@@ -51,12 +51,12 @@ export declare class DiscoveryController {
         id: string;
         name: string;
         createdAt: Date;
-        type: import(".prisma/client").$Enums.PackageType;
         description: string | null;
+        isActive: boolean;
+        type: import(".prisma/client").$Enums.PackageType;
         weeklyHours: number;
         durationWeeks: number;
         priceUsd: number;
-        isActive: boolean;
     }[]>;
     seedPackages(): Promise<{
         seeded: boolean;

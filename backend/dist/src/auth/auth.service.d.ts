@@ -9,4 +9,5 @@ export declare class AuthService {
     constructor(usersService: UsersService, prisma: PrismaService);
     register(dto: RegisterDto): Promise<SessionUser>;
     validateCredentials(email: string, password: string): Promise<SessionUser>;
+    validateMagicLink(token: string): Promise<SessionUser>;
 }

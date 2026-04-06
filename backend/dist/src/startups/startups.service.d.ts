@@ -20,10 +20,10 @@ export declare class StartupsService {
         responsivenessCommit: boolean;
         budgetBand: import(".prisma/client").$Enums.BudgetBand;
         startupId: string;
-        industry: string;
-        stage: import(".prisma/client").$Enums.StartupStage;
         targetMarkets: import(".prisma/client").$Enums.TargetMarket[];
         salesMotion: import(".prisma/client").$Enums.SalesMotion;
+        industry: string;
+        stage: import(".prisma/client").$Enums.StartupStage;
         additionalContext: string | null;
     }>;
     update(profileId: string, orgId: string, dto: UpdateStartupProfileDto): Promise<{
@@ -38,10 +38,10 @@ export declare class StartupsService {
         responsivenessCommit: boolean;
         budgetBand: import(".prisma/client").$Enums.BudgetBand;
         startupId: string;
-        industry: string;
-        stage: import(".prisma/client").$Enums.StartupStage;
         targetMarkets: import(".prisma/client").$Enums.TargetMarket[];
         salesMotion: import(".prisma/client").$Enums.SalesMotion;
+        industry: string;
+        stage: import(".prisma/client").$Enums.StartupStage;
         additionalContext: string | null;
     }>;
     findOne(profileId: string): Promise<{
@@ -73,10 +73,10 @@ export declare class StartupsService {
         responsivenessCommit: boolean;
         budgetBand: import(".prisma/client").$Enums.BudgetBand;
         startupId: string;
-        industry: string;
-        stage: import(".prisma/client").$Enums.StartupStage;
         targetMarkets: import(".prisma/client").$Enums.TargetMarket[];
         salesMotion: import(".prisma/client").$Enums.SalesMotion;
+        industry: string;
+        stage: import(".prisma/client").$Enums.StartupStage;
         additionalContext: string | null;
     }>;
     findByOrgId(orgId: string): Promise<({
@@ -108,10 +108,10 @@ export declare class StartupsService {
         responsivenessCommit: boolean;
         budgetBand: import(".prisma/client").$Enums.BudgetBand;
         startupId: string;
-        industry: string;
-        stage: import(".prisma/client").$Enums.StartupStage;
         targetMarkets: import(".prisma/client").$Enums.TargetMarket[];
         salesMotion: import(".prisma/client").$Enums.SalesMotion;
+        industry: string;
+        stage: import(".prisma/client").$Enums.StartupStage;
         additionalContext: string | null;
     }) | null>;
     findAll(): Promise<({
@@ -148,10 +148,10 @@ export declare class StartupsService {
         responsivenessCommit: boolean;
         budgetBand: import(".prisma/client").$Enums.BudgetBand;
         startupId: string;
-        industry: string;
-        stage: import(".prisma/client").$Enums.StartupStage;
         targetMarkets: import(".prisma/client").$Enums.TargetMarket[];
         salesMotion: import(".prisma/client").$Enums.SalesMotion;
+        industry: string;
+        stage: import(".prisma/client").$Enums.StartupStage;
         additionalContext: string | null;
     })[]>;
     getScores(profileId: string): Promise<{

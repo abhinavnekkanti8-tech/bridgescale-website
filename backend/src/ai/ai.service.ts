@@ -166,6 +166,77 @@ export class AiService {
     }
   }
 
+  /**
+   * Generate a needs diagnosis for a company application.
+   * Returns structured analysis of their commercial gap and fractional talent requirements.
+   */
+  async generateNeedsDiagnosis(applicationData: Record<string, unknown>): Promise<{
+    analysis: string;
+    challenges: string[];
+    opportunities: string[];
+    recommendedRole: string;
+    estimatedSprint: string;
+  }> {
+    const diagnosisPrompt = `You are an expert fractional talent advisor specializing in helping diaspora-first startups.
+Analyze this company's application and generate a needs diagnosis.
+
+Return a JSON object with:
+{
+  "analysis": "<2-3 sentences analyzing their commercial gap>",
+  "challenges": ["<specific challenge>", ...],
+  "opportunities": ["<growth opportunity with fractional talent>", ...],
+  "recommendedRole": "<e.g. 'Fractional VP Sales'>",
+  "estimatedSprint": "<e.g. '30-day BD sprint targeting UK market'>"
+}`;
+
+    if (this.isDummy) {
+      this.logger.debug('Returning mock needs diagnosis (dummy key).');
+      return {
+        analysis: 'This company needs structured commercial motion to enter new markets. With current stage and budget, a fractional BD/sales leader can validate markets and establish initial partnerships.',
+        challenges: [
+          'No dedicated commercial owner for international expansion',
+          'Limited market validation in target geographies',
+          'Undefined sales motion for B2B segment',
+        ],
+        opportunities: [
+          'Market entry into EU with fractional BD',
+          'Sales collateral and pitch refinement',
+          'Channel partnership strategy',
+        ],
+        recommendedRole: 'Fractional VP Sales / Head of Growth',
+        estimatedSprint: '30-day market entry sprint',
+      };
+    }
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: this.model,
+        temperature: 0.2,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: diagnosisPrompt },
+          { role: 'user', content: JSON.stringify(applicationData) },
+        ],
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) throw new Error('Empty response from OpenAI');
+
+      const parsed = JSON.parse(content) as {
+        analysis: string;
+        challenges: string[];
+        opportunities: string[];
+        recommendedRole: string;
+        estimatedSprint: string;
+      };
+      return parsed;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`OpenAI diagnosis failed: ${msg}`);
+      throw new InternalServerErrorException('Diagnosis generation failed. Please try again.');
+    }
+  }
+
   getPromptVersion() { return READINESS_PROMPT_VERSION; }
   getModelName() { return this.model; }
   getTemperature() { return TEMPERATURE; }

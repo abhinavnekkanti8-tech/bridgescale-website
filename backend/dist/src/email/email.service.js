@@ -53,6 +53,29 @@ let EmailService = EmailService_1 = class EmailService {
         });
         await this.send(application.email, subject, html);
     }
+    async sendMagicLink(params) {
+        const { subject, html } = (0, templates_1.magicLinkEmail)({
+            name: params.name,
+            magicUrl: params.magicUrl,
+            expiryMinutes: params.expiryMinutes ?? 30,
+        });
+        await this.send(params.email, subject, html);
+    }
+    async sendDiagnosisGenerated(params) {
+        const { subject, html } = (0, templates_1.diagnosisGeneratedEmail)({
+            name: params.name,
+            type: params.type,
+            recommendedRole: params.recommendedRole,
+        });
+        await this.send(params.email, subject, html);
+    }
+    async sendDiagnosisApproved(params) {
+        const { subject, html } = (0, templates_1.diagnosisApprovedEmail)({
+            name: params.name,
+            type: params.type,
+        });
+        await this.send(params.email, subject, html);
+    }
     async send(to, subject, html) {
         if (this.isDummy) {
             this.logger.log(`[DUMMY EMAIL] To: ${to}`);
