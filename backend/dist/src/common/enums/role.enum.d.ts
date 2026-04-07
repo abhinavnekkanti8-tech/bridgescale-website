@@ -1,7 +1,0 @@
-export declare enum MembershipRole {
-    STARTUP_ADMIN = "STARTUP_ADMIN",
-    STARTUP_MEMBER = "STARTUP_MEMBER",
-    OPERATOR = "OPERATOR",
-    PLATFORM_ADMIN = "PLATFORM_ADMIN",
-    DEAL_DESK = "DEAL_DESK"
-}
