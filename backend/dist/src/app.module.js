@@ -32,6 +32,8 @@ const opportunity_briefs_module_1 = require("./opportunity-briefs/opportunity-br
 const talent_pre_screen_module_1 = require("./talent-pre-screen/talent-pre-screen.module");
 const application_matching_module_1 = require("./application-matching/application-matching.module");
 const interviews_module_1 = require("./interviews/interviews.module");
+const approvals_module_1 = require("./approvals/approvals.module");
+const sow_module_1 = require("./sow/sow.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -76,6 +78,8 @@ exports.AppModule = AppModule = __decorate([
             talent_pre_screen_module_1.TalentPreScreenModule,
             application_matching_module_1.ApplicationMatchingModule,
             interviews_module_1.InterviewsModule,
+            approvals_module_1.ApprovalsModule,
+            sow_module_1.SowModule,
         ],
         controllers: [app_controller_1.AppController],
     })

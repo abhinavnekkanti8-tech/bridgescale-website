@@ -26,7 +26,23 @@
       "Bash(node -e \"const r = require\\(''razorpay''\\); console.log\\(''razorpay ok, version:'', require\\(''./node_modules/razorpay/package.json''\\).version\\)\")",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(find /c/Users/manis/Desktop/AG/Platform/.claude/worktrees/elated-ritchie -maxdepth 3 -type f \\\\\\(-name *.md -o -name *.txt -o -name CLAUDE.md \\\\\\))",
+      "Bash(grep -r \"Phase 4\\\\|T4\\\\.\\\\|T4_\" /c/Users/manis/Desktop/AG/Platform/.claude/worktrees/elated-ritchie --include=*.md --include=*.txt)",
+      "Bash(find /c/Users/manis/Desktop/AG/Platform -maxdepth 2 -type f \\\\\\(-name *.md -o -name TASKS.md -o -name ROADMAP.md \\\\\\))",
+      "Bash(xargs grep:*)",
+      "Bash(ls -la C:UsersmanisDesktopAGPlatformbackendprisma/seed*)",
+      "Bash(grep -E \"\\\\.\\(ts|js\\)$\")",
+      "Bash(find C:UsersmanisDesktopAGPlatformfrontendsrc -name *diagnosis* -o -name *prescreen* -o -name *status*)",
+      "Bash(ls backend/src/contracts/sow-templates.*)",
+      "Bash(ls backend/prisma/seed* backend/prisma/seeds/)",
+      "Bash(grep -l \"generateNeedDiagnosis\\\\|generateTalentPreScreen\\\\|generateOpportunityBrief\\\\|provisionAccount\\\\|payment-intent\\\\|dummy-confirm\\\\|schedule-interview\" backend/src/applications/*.ts backend/src/ai/*.ts)",
+      "Bash(grep -n \"generateNeed\\\\|generateOpportunity\\\\|generateTalent\\\\|generatePreScreen\" backend/src/ai/*.ts)",
+      "Bash(grep -n \"generateNeed\\\\|generateTalent\\\\|generateOpportunity\\\\|generatePreScreen\\\\|generateBrief\" backend/src/diagnoses/*.ts backend/src/opportunity-briefs/*.ts backend/src/talent-pre-screen/*.ts)",
+      "Bash(grep -n \"auth/magic-link\\\\|magicLink\" backend/src/auth/*.ts)",
+      "Bash(grep -rn \"RAZORPAY_KEY_ID\\\\|RAZORPAY_KEY_SECRET\\\\|RAZORPAY_WEBHOOK\" backend/src backend/.env*)",
+      "Bash(grep -n \"prefillSowFromBrief\\\\|prefillSow\" backend/src/contracts/*.ts)",
+      "Bash(1 -r)"
     ]
   }
 }

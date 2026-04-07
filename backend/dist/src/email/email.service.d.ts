@@ -34,5 +34,25 @@ export declare class EmailService {
         name: string;
         type: 'COMPANY' | 'TALENT';
     }): Promise<void>;
+    sendInterviewScheduled(params: {
+        email: string;
+        name: string;
+        otherPartyName: string;
+        scheduledAt: Date;
+        meetingLink?: string;
+    }): Promise<void>;
+    sendInterviewOutcome(params: {
+        email: string;
+        name: string;
+        decision: 'APPROVED' | 'REJECTED';
+        feedback?: string;
+    }): Promise<void>;
+    sendEngagementApproved(params: {
+        email: string;
+        name: string;
+        partnerName: string;
+        engagementType: string;
+        startDate: Date;
+    }): Promise<void>;
     private send;
 }

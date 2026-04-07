@@ -37,3 +37,29 @@ export declare function diagnosisApprovedEmail(data: {
     subject: string;
     html: string;
 };
+export declare function interviewScheduledEmail(data: {
+    name: string;
+    otherPartyName: string;
+    scheduledAt: Date;
+    meetingLink?: string;
+}): {
+    subject: string;
+    html: string;
+};
+export declare function interviewOutcomeEmail(data: {
+    name: string;
+    decision: 'APPROVED' | 'REJECTED';
+    feedback?: string;
+}): {
+    subject: string;
+    html: string;
+};
+export declare function engagementApprovedEmail(data: {
+    name: string;
+    partnerName: string;
+    engagementType: string;
+    startDate: Date;
+}): {
+    subject: string;
+    html: string;
+};

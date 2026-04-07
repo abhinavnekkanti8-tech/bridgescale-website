@@ -76,6 +76,32 @@ let EmailService = EmailService_1 = class EmailService {
         });
         await this.send(params.email, subject, html);
     }
+    async sendInterviewScheduled(params) {
+        const { subject, html } = (0, templates_1.interviewScheduledEmail)({
+            name: params.name,
+            otherPartyName: params.otherPartyName,
+            scheduledAt: params.scheduledAt,
+            meetingLink: params.meetingLink,
+        });
+        await this.send(params.email, subject, html);
+    }
+    async sendInterviewOutcome(params) {
+        const { subject, html } = (0, templates_1.interviewOutcomeEmail)({
+            name: params.name,
+            decision: params.decision,
+            feedback: params.feedback,
+        });
+        await this.send(params.email, subject, html);
+    }
+    async sendEngagementApproved(params) {
+        const { subject, html } = (0, templates_1.engagementApprovedEmail)({
+            name: params.name,
+            partnerName: params.partnerName,
+            engagementType: params.engagementType,
+            startDate: params.startDate,
+        });
+        await this.send(params.email, subject, html);
+    }
     async send(to, subject, html) {
         if (this.isDummy) {
             this.logger.log(`[DUMMY EMAIL] To: ${to}`);

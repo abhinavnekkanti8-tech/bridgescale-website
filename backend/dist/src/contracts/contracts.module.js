@@ -10,14 +10,16 @@ exports.ContractsModule = void 0;
 const common_1 = require("@nestjs/common");
 const contracts_controller_1 = require("./contracts.controller");
 const contracts_service_1 = require("./contracts.service");
+const sow_templates_controller_1 = require("./sow-templates.controller");
+const sow_templates_service_1 = require("./sow-templates.service");
 let ContractsModule = class ContractsModule {
 };
 exports.ContractsModule = ContractsModule;
 exports.ContractsModule = ContractsModule = __decorate([
     (0, common_1.Module)({
-        controllers: [contracts_controller_1.ContractsController],
-        providers: [contracts_service_1.ContractsService],
-        exports: [contracts_service_1.ContractsService],
+        controllers: [contracts_controller_1.ContractsController, sow_templates_controller_1.SowTemplatesController],
+        providers: [contracts_service_1.ContractsService, sow_templates_service_1.SowTemplatesService],
+        exports: [contracts_service_1.ContractsService, sow_templates_service_1.SowTemplatesService],
     })
 ], ContractsModule);
 //# sourceMappingURL=contracts.module.js.map
