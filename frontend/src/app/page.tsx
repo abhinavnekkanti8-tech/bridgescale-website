@@ -157,8 +157,8 @@ export default function HomePage() {
           </p>
 
           <div className={styles.heroActions}>
-            <a href="#signup" className="btn btn-primary">I&apos;m a company looking for talent →</a>
-            <a href="#signup" className="btn btn-secondary">I&apos;m a sales professional</a>
+            <Link href="/for-companies/apply" className="btn btn-primary">I&apos;m a company looking for talent →</Link>
+            <Link href="/for-talent/apply" className="btn btn-secondary">I&apos;m a sales professional</Link>
           </div>
 
           <div className={styles.heroStats}>
@@ -370,14 +370,14 @@ export default function HomePage() {
                 </p>
               </div>
               <div className={styles.ctaCards}>
-                <Link href="/for-companies" className={styles.ctaCard}>
+                <Link href="/for-companies/apply" className={styles.ctaCard}>
                   <div>
                     <div className={styles.ctaCardLabel}>For companies</div>
                     <div className={styles.ctaCardText}>Apply as a company</div>
                   </div>
                   <span className={styles.ctaCardArrow}>→</span>
                 </Link>
-                <Link href="/for-talent" className={styles.ctaCard}>
+                <Link href="/for-talent/apply" className={styles.ctaCard}>
                   <div>
                     <div className={styles.ctaCardLabel}>For talent</div>
                     <div className={styles.ctaCardText}>Join as fractional talent</div>

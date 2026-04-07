@@ -86,7 +86,7 @@ export default function ForTalentPage() {
             You&apos;ve built pipelines, entered markets, and closed enterprise deals across international markets. BridgeScale gives you a structured way to deploy that expertise fractionally — compensated, scoped, and platform-managed.
           </p>
           <div className={styles.heroActions}>
-            <Link href="/#cta" className="btn btn-primary">Join as fractional talent &rarr;</Link>
+            <Link href="/for-talent/apply" className="btn btn-primary">Join as fractional talent &rarr;</Link>
             <a href="#vetting" className="btn btn-secondary">See the vetting process</a>
           </div>
         </div>
@@ -194,7 +194,7 @@ export default function ForTalentPage() {
           <div className={styles.container}>
             <h2 className={styles.ctaTitle}>Ready to put your expertise to work?</h2>
             <p className={styles.ctaDesc}>Join BridgeScale — $50 one-time application fee covers your vetting and onboarding into the network.</p>
-            <Link href="/#cta" className="btn btn-primary">Join as fractional talent &rarr;</Link>
+            <Link href="/for-talent/apply" className="btn btn-primary">Join as fractional talent &rarr;</Link>
           </div>
         </Reveal>
       </section>
