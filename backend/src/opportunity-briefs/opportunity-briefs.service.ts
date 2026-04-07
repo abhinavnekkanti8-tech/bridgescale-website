@@ -136,6 +136,37 @@ export class OpportunityBriefsService {
   }
 
   /**
+   * Suggest an SoW template type based on the opportunity brief.
+   * Used in T4.3 to recommend templates when creating SoWs from briefs.
+   */
+  async suggestSowTemplate(applicationId: string) {
+    const brief = await this.prisma.opportunityBrief.findUnique({
+      where: { applicationId },
+    });
+
+    if (!brief) throw new NotFoundException('Opportunity brief not found.');
+
+    const internalContent = brief.internalContent as Record<string, unknown> | null;
+    if (!internalContent) {
+      throw new BadRequestException('Brief has no content yet.');
+    }
+
+    // Use AI service to suggest the best template type
+    const suggestedType = this.aiService.suggestSowTemplateType(internalContent);
+
+    this.logger.log(
+      `Suggested SoW template type for ${applicationId}: ${suggestedType}`,
+    );
+
+    return {
+      applicationId,
+      briefId: brief.id,
+      suggestedTemplateType: suggestedType,
+      templateTypes: ['PIPELINE_SPRINT', 'BD_SPRINT', 'FRACTIONAL_RETAINER', 'MARKET_ENTRY', 'HYBRID_EQUITY'],
+    };
+  }
+
+  /**
    * Generate internal brief content using AI.
    * Delegates to the dedicated opportunity-brief prompt module.
    */

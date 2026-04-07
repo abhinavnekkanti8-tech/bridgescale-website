@@ -66,4 +66,16 @@ export class OpportunityBriefsController {
   ) {
     return this.opportunityBriefsService.updateBrief(applicationId, params);
   }
+
+  /**
+   * POST /api/v1/opportunity-briefs/:applicationId/suggest-template
+   * ADMIN — Suggest the best SoW template type based on the brief.
+   * Used in T4.3 to recommend templates when creating SoWs from briefs.
+   */
+  @Post(':applicationId/suggest-template')
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles(MembershipRole.PLATFORM_ADMIN)
+  async suggestTemplate(@Param('applicationId') applicationId: string) {
+    return this.opportunityBriefsService.suggestSowTemplate(applicationId);
+  }
 }

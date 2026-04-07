@@ -208,6 +208,115 @@ export class AiService {
     }
   }
 
+  /**
+   * Suggest the best SoW template type based on an opportunity brief.
+   * Analyzes the brief content and returns a template recommendation.
+   * Used in T4.3 to suggest templates when creating SoWs from briefs.
+   */
+  suggestSowTemplateType(
+    brief: Record<string, unknown>,
+  ): 'PIPELINE_SPRINT' | 'BD_SPRINT' | 'FRACTIONAL_RETAINER' | 'MARKET_ENTRY' | 'HYBRID_EQUITY' {
+    // Heuristic: based on brief content characteristics, select the best template type
+    const summary = (brief.summary as string)?.toLowerCase() ?? '';
+    const timeline = (brief.timeline as string)?.toLowerCase() ?? '';
+    const talentProfile = (brief.talentProfile as string)?.toLowerCase() ?? '';
+    const keyResponsibilities = brief.keyResponsibilities as string[] ?? [];
+    const responsibilitiesText = keyResponsibilities.join(' ').toLowerCase();
+
+    // Score each template type based on brief signals
+    let pipelineScore = 0;
+    let bdScore = 0;
+    let retainerScore = 0;
+    let marketEntryScore = 0;
+    let hybridScore = 0;
+
+    // Pipeline Sprint signals: sales, pipeline, revenue, closing, deals
+    if (summary.includes('sales') || summary.includes('pipeline') || summary.includes('revenue')) {
+      pipelineScore += 3;
+    }
+    if (responsibilitiesText.includes('pipeline') || responsibilitiesText.includes('closing')) {
+      pipelineScore += 2;
+    }
+
+    // BD Sprint signals: business development, partnerships, market, expansion
+    if (
+      summary.includes('partnership') ||
+      summary.includes('business development') ||
+      summary.includes('expansion')
+    ) {
+      bdScore += 3;
+    }
+    if (
+      responsibilitiesText.includes('partnership') ||
+      responsibilitiesText.includes('business development')
+    ) {
+      bdScore += 2;
+    }
+
+    // Fractional Retainer signals: ongoing, long-term, sustained, advisory
+    if (
+      timeline.includes('6 month') ||
+      timeline.includes('12 month') ||
+      timeline.includes('ongoing')
+    ) {
+      retainerScore += 3;
+    }
+    if (summary.includes('advisory') || summary.includes('ongoing')) {
+      retainerScore += 2;
+    }
+
+    // Market Entry signals: new market, geographic, region, country
+    if (
+      summary.includes('market entry') ||
+      summary.includes('new market') ||
+      summary.includes('geographic')
+    ) {
+      marketEntryScore += 3;
+    }
+    if (
+      talentProfile.includes('geographic') ||
+      talentProfile.includes('regional') ||
+      talentProfile.includes('market')
+    ) {
+      marketEntryScore += 2;
+    }
+
+    // Hybrid Equity signals: equity, growth, upside, long-term partnership
+    if (summary.includes('equity') || summary.includes('upside')) {
+      hybridScore += 3;
+    }
+    if (talentProfile.includes('equity') || talentProfile.includes('upside')) {
+      hybridScore += 2;
+    }
+
+    // Default: Pipeline Sprint is most common
+    let maxScore = pipelineScore;
+    let recommendation: 'PIPELINE_SPRINT' | 'BD_SPRINT' | 'FRACTIONAL_RETAINER' | 'MARKET_ENTRY' | 'HYBRID_EQUITY' =
+      'PIPELINE_SPRINT';
+
+    if (bdScore > maxScore) {
+      maxScore = bdScore;
+      recommendation = 'BD_SPRINT';
+    }
+    if (retainerScore > maxScore) {
+      maxScore = retainerScore;
+      recommendation = 'FRACTIONAL_RETAINER';
+    }
+    if (marketEntryScore > maxScore) {
+      maxScore = marketEntryScore;
+      recommendation = 'MARKET_ENTRY';
+    }
+    if (hybridScore > maxScore) {
+      recommendation = 'HYBRID_EQUITY';
+    }
+
+    this.logger.debug(
+      `Template suggestion for brief: ${recommendation} (scores: pipeline=${pipelineScore}, bd=${bdScore}, retainer=${retainerScore}, market=${marketEntryScore}, hybrid=${hybridScore})`,
+    );
+
+    return recommendation;
+  }
+
   getPromptVersion() { return READINESS_PROMPT_VERSION; }
   getNeedDiagnosisPromptVersion() { return NEED_DIAGNOSIS_PROMPT_VERSION; }
   getModelName() { return this.model; }
