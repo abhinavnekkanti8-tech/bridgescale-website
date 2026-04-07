@@ -1,6 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { applicationReceivedEmail, statusUpdateEmail, magicLinkEmail, diagnosisGeneratedEmail, diagnosisApprovedEmail } from './templates';
+import {
+  applicationReceivedEmail,
+  statusUpdateEmail,
+  magicLinkEmail,
+  diagnosisGeneratedEmail,
+  diagnosisApprovedEmail,
+  interviewScheduledEmail,
+  interviewOutcomeEmail,
+  engagementApprovedEmail,
+} from './templates';
 
 @Injectable()
 export class EmailService {
@@ -112,6 +121,61 @@ export class EmailService {
     const { subject, html } = diagnosisApprovedEmail({
       name: params.name,
       type: params.type,
+    });
+    await this.send(params.email, subject, html);
+  }
+
+  /**
+   * Send interview scheduled notification.
+   */
+  async sendInterviewScheduled(params: {
+    email: string;
+    name: string;
+    otherPartyName: string;
+    scheduledAt: Date;
+    meetingLink?: string;
+  }): Promise<void> {
+    const { subject, html } = interviewScheduledEmail({
+      name: params.name,
+      otherPartyName: params.otherPartyName,
+      scheduledAt: params.scheduledAt,
+      meetingLink: params.meetingLink,
+    });
+    await this.send(params.email, subject, html);
+  }
+
+  /**
+   * Send interview outcome notification.
+   */
+  async sendInterviewOutcome(params: {
+    email: string;
+    name: string;
+    decision: 'APPROVED' | 'REJECTED';
+    feedback?: string;
+  }): Promise<void> {
+    const { subject, html } = interviewOutcomeEmail({
+      name: params.name,
+      decision: params.decision,
+      feedback: params.feedback,
+    });
+    await this.send(params.email, subject, html);
+  }
+
+  /**
+   * Send engagement approved notification.
+   */
+  async sendEngagementApproved(params: {
+    email: string;
+    name: string;
+    partnerName: string;
+    engagementType: string;
+    startDate: Date;
+  }): Promise<void> {
+    const { subject, html } = engagementApprovedEmail({
+      name: params.name,
+      partnerName: params.partnerName,
+      engagementType: params.engagementType,
+      startDate: params.startDate,
     });
     await this.send(params.email, subject, html);
   }

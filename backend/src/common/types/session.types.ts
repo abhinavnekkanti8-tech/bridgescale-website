@@ -1,4 +1,4 @@
-import { MembershipRole } from '@prisma/client';
+import { MembershipRole, UserStatus } from '@prisma/client';
 
 /**
  * Shape of the authenticated user object stored in the express-session,
@@ -10,6 +10,7 @@ export interface SessionUser {
   email: string;
   role: MembershipRole;
   orgId: string;
+  status: UserStatus;
 }
 
 /**

@@ -265,3 +265,124 @@ export function diagnosisApprovedEmail(data: {
     html: baseLayout(`Diagnosis Approved — BridgeSales`, body),
   };
 }
+
+// ── Interview Scheduled ───────────────────────────────────────────
+
+export function interviewScheduledEmail(data: {
+  name: string;
+  otherPartyName: string;
+  scheduledAt: Date;
+  meetingLink?: string;
+}): { subject: string; html: string } {
+  const formattedDate = new Date(data.scheduledAt).toLocaleDateString('en-GB', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const body = `
+    <h1 style="font-size:24px;font-weight:700;margin:0 0 16px;font-family:'Plus Jakarta Sans',sans-serif;">
+      Interview scheduled
+    </h1>
+    <p style="font-size:15px;line-height:1.7;color:#94a3b8;margin:0 0 24px;">
+      Hi ${data.name},
+    </p>
+    <p style="font-size:15px;line-height:1.7;color:#94a3b8;margin:0 0 24px;">
+      Your interview with <strong style="color:#f1f5f9;">${data.otherPartyName}</strong> is confirmed for:
+    </p>
+    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:24px;margin-bottom:24px;text-align:center;">
+      <div style="font-size:18px;font-weight:700;color:#f59e0b;margin-bottom:12px;font-family:'Plus Jakarta Sans',sans-serif;">
+        ${formattedDate}
+      </div>
+      ${data.meetingLink ? `<p style="font-size:13px;color:#94a3b8;margin:0;"><strong>Meeting link:</strong><br/><a href="${data.meetingLink}" style="color:#f59e0b;text-decoration:underline;">${data.meetingLink}</a></p>` : ''}
+    </div>
+    <p style="font-size:14px;line-height:1.7;color:#94a3b8;margin:0;">
+      Please make sure to join a few minutes early. If you have any questions, reply to this email.
+    </p>`;
+
+  return {
+    subject: `BridgeSales — Interview scheduled with ${data.otherPartyName}`,
+    html: baseLayout(`Interview Scheduled — BridgeSales`, body),
+  };
+}
+
+// ── Interview Outcome ─────────────────────────────────────────────
+
+export function interviewOutcomeEmail(data: {
+  name: string;
+  decision: 'APPROVED' | 'REJECTED';
+  feedback?: string;
+}): { subject: string; html: string } {
+  const isApproved = data.decision === 'APPROVED';
+  const statusColor = isApproved ? '#22c55e' : '#ef4444';
+  const statusText = isApproved ? 'Approved' : 'Not Approved';
+
+  const body = `
+    <h1 style="font-size:24px;font-weight:700;margin:0 0 16px;font-family:'Plus Jakarta Sans',sans-serif;">
+      Interview outcome
+    </h1>
+    <p style="font-size:15px;line-height:1.7;color:#94a3b8;margin:0 0 24px;">
+      Hi ${data.name},
+    </p>
+    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:24px;margin-bottom:24px;text-align:center;">
+      <div style="font-size:14px;text-transform:uppercase;letter-spacing:0.08em;color:#475569;margin-bottom:8px;">Interview Result</div>
+      <div style="font-size:32px;font-weight:800;color:${statusColor};font-family:'Plus Jakarta Sans',sans-serif;margin-bottom:8px;">
+        ${statusText}
+      </div>
+      ${data.feedback ? `<div style="font-size:13px;color:#94a3b8;margin-top:12px;line-height:1.6;">${data.feedback}</div>` : ''}
+    </div>
+    <p style="font-size:14px;line-height:1.7;color:#94a3b8;margin:0;">
+      ${isApproved
+        ? 'Congratulations! The next steps for your engagement will be shared with you shortly.'
+        : 'Thank you for your time. We encourage you to apply again in the future.'}
+    </p>`;
+
+  return {
+    subject: `BridgeSales — Interview ${isApproved ? 'approved' : 'outcome'}`,
+    html: baseLayout(`Interview Outcome — BridgeSales`, body),
+  };
+}
+
+// ── Engagement Approved ───────────────────────────────────────────
+
+export function engagementApprovedEmail(data: {
+  name: string;
+  partnerName: string;
+  engagementType: string;
+  startDate: Date;
+}): { subject: string; html: string } {
+  const formattedDate = new Date(data.startDate).toLocaleDateString('en-GB', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const body = `
+    <h1 style="font-size:24px;font-weight:700;margin:0 0 16px;font-family:'Plus Jakarta Sans',sans-serif;">
+      Engagement approved
+    </h1>
+    <p style="font-size:15px;line-height:1.7;color:#94a3b8;margin:0 0 24px;">
+      Hi ${data.name},
+    </p>
+    <p style="font-size:15px;line-height:1.7;color:#94a3b8;margin:0 0 24px;">
+      Your <strong style="color:#f1f5f9;">${data.engagementType}</strong> engagement with <strong style="color:#f1f5f9;">${data.partnerName}</strong> has been approved!
+    </p>
+    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:24px;margin-bottom:24px;">
+      <div style="font-size:13px;color:#475569;margin-bottom:8px;">Start Date</div>
+      <div style="font-size:18px;font-weight:700;color:#22c55e;font-family:'Plus Jakarta Sans',sans-serif;">
+        ${formattedDate}
+      </div>
+    </div>
+    <p style="font-size:14px;line-height:1.7;color:#94a3b8;margin:0;">
+      The Statement of Work and onboarding details have been sent to your email. Welcome to your engagement!
+    </p>`;
+
+  return {
+    subject: `BridgeSales — Your engagement has been approved`,
+    html: baseLayout(`Engagement Approved — BridgeSales`, body),
+  };
+}

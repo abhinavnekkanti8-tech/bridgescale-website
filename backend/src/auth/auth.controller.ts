@@ -25,6 +25,20 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   /**
+   * Set a non-HttpOnly status cookie that the Next.js middleware can read
+   * to enforce PENDING_APPROVAL redirects without round-tripping the API.
+   */
+  private setStatusCookie(res: Response, status: string) {
+    res.cookie('platform.user_status', status, {
+      httpOnly: false,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+  }
+
+  /**
    * POST /api/v1/auth/register
    * Self-registration for startups and operators.
    */
@@ -33,6 +47,7 @@ export class AuthController {
   async register(
     @Body() registerDto: RegisterDto,
     @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
   ) {
     const sessionUser = await this.authService.register(registerDto);
 
@@ -42,6 +57,7 @@ export class AuthController {
     });
 
     req.session.user = sessionUser;
+    this.setStatusCookie(res, sessionUser.status);
 
     return {
       message: 'Registration successful.',
@@ -58,6 +74,7 @@ export class AuthController {
   async login(
     @Body() loginDto: LoginDto,
     @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
   ) {
     const sessionUser = await this.authService.validateCredentials(
       loginDto.email,
@@ -70,6 +87,7 @@ export class AuthController {
     });
 
     req.session.user = sessionUser;
+    this.setStatusCookie(res, sessionUser.status);
 
     return {
       message: 'Login successful.',
@@ -90,6 +108,7 @@ export class AuthController {
     });
 
     res.clearCookie('platform.sid');
+    res.clearCookie('platform.user_status');
     return { message: 'Logged out successfully.' };
   }
 
@@ -103,6 +122,7 @@ export class AuthController {
   async magicLogin(
     @Body('token') token: string,
     @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
   ) {
     if (!token) throw new BadRequestException('Token is required.');
 
@@ -113,6 +133,7 @@ export class AuthController {
     });
 
     (req as any).session.user = sessionUser;
+    this.setStatusCookie(res, sessionUser.status);
 
     return { message: 'Login successful.', user: sessionUser };
   }

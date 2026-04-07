@@ -5,11 +5,15 @@ import type { NextRequest } from 'next/server';
 const PROTECTED_PREFIXES = ['/startup', '/operator', '/admin'];
 // Paths only accessible to unauthenticated users
 const AUTH_ONLY_PREFIXES = ['/auth'];
+// Paths PENDING_APPROVAL users may still access
+const PENDING_APPROVAL_ALLOWED = ['/application', '/auth'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const sessionCookie = request.cookies.get('platform.sid');
   const isAuthenticated = Boolean(sessionCookie?.value);
+  const userStatus = request.cookies.get('platform.user_status')?.value;
+  const isPendingApproval = userStatus === 'PENDING_APPROVAL';
 
   const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
   const isAuthPage = AUTH_ONLY_PREFIXES.some((p) => pathname.startsWith(p));
@@ -21,8 +25,16 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // PENDING_APPROVAL users can only see /application/* and /auth/*
+  if (isAuthenticated && isPendingApproval) {
+    const allowed = PENDING_APPROVAL_ALLOWED.some((p) => pathname.startsWith(p));
+    if (!allowed && pathname !== '/') {
+      return NextResponse.redirect(new URL('/application/status', request.url));
+    }
+  }
+
   // Redirect authenticated users away from auth pages (e.g. /auth/login → /dashboard)
-  if (isAuthPage && isAuthenticated) {
+  if (isAuthPage && isAuthenticated && !isPendingApproval) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 

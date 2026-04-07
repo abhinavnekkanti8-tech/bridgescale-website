@@ -6,6 +6,12 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
+import {
+  OPPORTUNITY_BRIEF_PROMPT_VERSION,
+  OpportunityBriefInput,
+  OpportunityBriefOutput,
+  mockOpportunityBrief,
+} from '../ai/prompts/opportunity-brief.prompt';
 
 @Injectable()
 export class OpportunityBriefsService {
@@ -75,7 +81,7 @@ export class OpportunityBriefsService {
     const brief = await this.prisma.opportunityBrief.create({
       data: {
         applicationId,
-        internalContent,
+        internalContent: internalContent as any,
         clientFacingContent: {
           summary: internalContent.summary,
           keyResponsibilities: internalContent.keyResponsibilities?.slice(0, 5) || [],
@@ -83,7 +89,7 @@ export class OpportunityBriefsService {
           timeline: internalContent.timeline,
         },
         aiModel: this.aiService.getModelName(),
-        promptVersion: this.aiService.getPromptVersion(),
+        promptVersion: OPPORTUNITY_BRIEF_PROMPT_VERSION,
       },
       include: { application: true },
     });
@@ -131,66 +137,27 @@ export class OpportunityBriefsService {
 
   /**
    * Generate internal brief content using AI.
-   * Structured analysis of the opportunity.
+   * Delegates to the dedicated opportunity-brief prompt module.
    */
-  private async generateInternalContent(briefData: Record<string, any>) {
+  private async generateInternalContent(
+    briefData: Record<string, any>,
+  ): Promise<OpportunityBriefOutput> {
+    const input: OpportunityBriefInput = {
+      companyName: briefData.companyName,
+      needArea: briefData.needArea,
+      targetMarkets: briefData.targetMarkets,
+      budgetRange: briefData.budgetRange,
+      urgency: briefData.urgency,
+      diagnosis: briefData.diagnosis,
+    };
+
     try {
-      const prompt = `You are an expert in fractional hiring and talent matching.
-Generate a detailed, internal opportunity brief for the following company need:
-
-Company: ${briefData.companyName || 'Unknown'}
-Type of Need: ${briefData.needArea || 'Not specified'}
-Target Markets: ${Array.isArray(briefData.targetMarkets) ? briefData.targetMarkets.join(', ') : briefData.targetMarkets}
-Budget Range: ${briefData.budgetRange || 'Not specified'}
-Urgency: ${briefData.urgency || 'Not specified'}
-
-Diagnosis Summary:
-- Analysis: ${briefData.diagnosis?.analysis || 'Not provided'}
-- Recommended Role: ${briefData.diagnosis?.recommendedRole || 'Not provided'}
-- Estimated Sprint: ${briefData.diagnosis?.estimatedSprint || 'Not provided'}
-
-Generate a JSON object with:
-{
-  "summary": "<2-3 sentence summary of the opportunity>",
-  "keyResponsibilities": ["<responsibility 1>", ...],
-  "successMetrics": ["<metric 1>", ...],
-  "timeline": "<estimated timeline>",
-  "talentProfile": "<ideal talent profile description>",
-  "riskFactors": ["<risk 1>", ...],
-  "growthPotential": "<description of growth potential>"
-}`;
-
-      // For now, return a structured mock response
-      return {
-        summary: `Building ${briefData.companyName || 'the company'}'s commercial capability in ${(briefData.targetMarkets as string[])?.[0] || 'target markets'}. This fractional engagement will establish market entry strategy and initial customer pipeline.`,
-        keyResponsibilities: [
-          'Market research and competitive analysis',
-          'Initial customer identification and outreach',
-          'Sales collateral development',
-          'Partnership exploration',
-          'Revenue forecasting and pipeline building',
-        ],
-        successMetrics: [
-          'Identified 10+ qualified leads in target market',
-          'Established 3-5 strategic partnerships',
-          'Delivered market entry playbook',
-          '$X revenue pipeline created',
-          'Team trained on go-to-market strategy',
-        ],
-        timeline: briefData.diagnosis?.estimatedSprint || '30-day sprint',
-        talentProfile:
-          'Experienced sales/business development leader with successful market entry experience, deep network in target geography, and proven ability to identify and close early deals.',
-        riskFactors: [
-          'Market timing and readiness',
-          'Resource availability of company team',
-          'Competitive landscape changes',
-        ],
-        growthPotential:
-          'Potential evolution into retained fractional VP Sales or head of business development role based on initial sprint results.',
-      };
+      // Currently always returns the deterministic mock — when a real
+      // OpenAI call is wired up here it will use the prompt builders
+      // exported from ../ai/prompts/opportunity-brief.prompt.ts.
+      return mockOpportunityBrief(input);
     } catch (err: any) {
       this.logger.error(`Failed to generate internal brief: ${err.message}`);
-      // Return structured fallback
       return {
         summary: 'Opportunity brief awaiting generation.',
         keyResponsibilities: [],

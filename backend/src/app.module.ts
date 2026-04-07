@@ -23,6 +23,8 @@ import { OpportunityBriefsModule } from './opportunity-briefs/opportunity-briefs
 import { TalentPreScreenModule } from './talent-pre-screen/talent-pre-screen.module';
 import { ApplicationMatchingModule } from './application-matching/application-matching.module';
 import { InterviewsModule } from './interviews/interviews.module';
+import { ApprovalsModule } from './approvals/approvals.module';
+import { SowModule } from './sow/sow.module';
 
 @Module({
   imports: [
@@ -77,6 +79,8 @@ import { InterviewsModule } from './interviews/interviews.module';
     TalentPreScreenModule,
     ApplicationMatchingModule,
     InterviewsModule,
+    ApprovalsModule,
+    SowModule,
   ],
   controllers: [AppController],
 })

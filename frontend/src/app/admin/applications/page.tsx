@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState, useCallback } from 'react';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
@@ -98,6 +99,74 @@ function AdminApplicationsContent() {
       setError('');
     } catch {
       setError('Status update failed.');
+    }
+    setActioningId(null);
+  }
+
+  async function handleScheduleInterview(id: string) {
+    const scheduledAt = window.prompt(
+      'Interview date/time (ISO 8601, e.g. 2026-04-15T10:00:00Z)',
+    );
+    if (!scheduledAt) return;
+    const location = window.prompt('Location or meeting link (optional)') || undefined;
+    setActioningId(id);
+    try {
+      const updated = await apiFetch<Application>(
+        `/applications/${id}/schedule-interview`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ scheduledAt, location }),
+        },
+      );
+      setApplications((apps) =>
+        apps.map((a) => (a.id === id ? { ...a, ...updated } : a)),
+      );
+      if (selectedApp?.id === id) setSelectedApp({ ...selectedApp, ...updated });
+      setError('');
+    } catch {
+      setError('Failed to schedule interview.');
+    }
+    setActioningId(null);
+  }
+
+  async function handleApprove(id: string) {
+    if (!window.confirm('Approve this applicant? They will be activated immediately.')) {
+      return;
+    }
+    const reason = window.prompt('Approval note (optional)') || undefined;
+    setActioningId(id);
+    try {
+      const updated = await apiFetch<Application>(`/applications/${id}/approve`, {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      });
+      setApplications((apps) =>
+        apps.map((a) => (a.id === id ? { ...a, ...updated } : a)),
+      );
+      if (selectedApp?.id === id) setSelectedApp({ ...selectedApp, ...updated });
+      setError('');
+    } catch {
+      setError('Approval failed.');
+    }
+    setActioningId(null);
+  }
+
+  async function handleReject(id: string) {
+    const reason = window.prompt('Rejection reason (required)');
+    if (!reason) return;
+    setActioningId(id);
+    try {
+      const updated = await apiFetch<Application>(`/applications/${id}/reject`, {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      });
+      setApplications((apps) =>
+        apps.map((a) => (a.id === id ? { ...a, ...updated } : a)),
+      );
+      if (selectedApp?.id === id) setSelectedApp({ ...selectedApp, ...updated });
+      setError('');
+    } catch {
+      setError('Rejection failed.');
     }
     setActioningId(null);
   }
@@ -361,22 +430,71 @@ function AdminApplicationsContent() {
               </div>
             )}
 
+            {/* Review link (diagnosis for COMPANY, pre-screen for TALENT) */}
+            <div className={styles.drawerSection}>
+              <div className={styles.drawerLabel}>Review</div>
+              {selectedApp.type === 'COMPANY' ? (
+                <Link
+                  href={`/admin/applications/${selectedApp.id}/diagnosis`}
+                  className="btn btn-secondary"
+                  id="drawer-open-diagnosis"
+                  style={{ textDecoration: 'none', display: 'inline-block' }}
+                >
+                  🩺 Open Diagnosis
+                </Link>
+              ) : (
+                <Link
+                  href={`/admin/applications/${selectedApp.id}/prescreen`}
+                  className="btn btn-secondary"
+                  id="drawer-open-prescreen"
+                  style={{ textDecoration: 'none', display: 'inline-block' }}
+                >
+                  🔍 Open Pre-Screen
+                </Link>
+              )}
+            </div>
+
             {/* Actions */}
             <div className={styles.drawerActions}>
+              {selectedApp.status === 'SUBMITTED' && (
+                <button
+                  className="btn btn-secondary"
+                  disabled={actioningId === selectedApp.id}
+                  onClick={() => handleStatusChange(selectedApp.id, 'UNDER_REVIEW')}
+                  id="drawer-review"
+                >
+                  📋 Mark Under Review
+                </button>
+              )}
               {(selectedApp.status === 'SUBMITTED' || selectedApp.status === 'UNDER_REVIEW') && (
+                <button
+                  className="btn btn-secondary"
+                  disabled={actioningId === selectedApp.id}
+                  onClick={() => handleScheduleInterview(selectedApp.id)}
+                  id="drawer-schedule-interview"
+                >
+                  📅 Schedule Interview
+                </button>
+              )}
+              {selectedApp.status !== 'APPROVED' && selectedApp.status !== 'REJECTED' && (
                 <>
-                  <button className="btn btn-primary" disabled={actioningId === selectedApp.id} onClick={() => handleStatusChange(selectedApp.id, 'APPROVED')} id="drawer-approve">
+                  <button
+                    className="btn btn-primary"
+                    disabled={actioningId === selectedApp.id}
+                    onClick={() => handleApprove(selectedApp.id)}
+                    id="drawer-approve"
+                  >
                     ✓ Approve
                   </button>
-                  <button className="btn btn-secondary" disabled={actioningId === selectedApp.id} onClick={() => handleStatusChange(selectedApp.id, 'REJECTED')} id="drawer-reject">
+                  <button
+                    className="btn btn-secondary"
+                    disabled={actioningId === selectedApp.id}
+                    onClick={() => handleReject(selectedApp.id)}
+                    id="drawer-reject"
+                  >
                     ✗ Reject
                   </button>
                 </>
-              )}
-              {selectedApp.status === 'SUBMITTED' && (
-                <button className="btn btn-secondary" disabled={actioningId === selectedApp.id} onClick={() => handleStatusChange(selectedApp.id, 'UNDER_REVIEW')} id="drawer-review">
-                  📋 Mark Under Review
-                </button>
               )}
             </div>
           </div>

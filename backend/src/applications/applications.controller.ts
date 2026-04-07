@@ -197,4 +197,58 @@ export class ApplicationsController {
       session.payment_intent || '',
     );
   }
+
+  /**
+   * POST /api/v1/applications/:id/schedule-interview
+   * ADMIN — Schedule an interview, sets status to INTERVIEW_SCHEDULED.
+   * Body: { scheduledAt: ISO date, location?: string, notes?: string }
+   */
+  @Post(':id/schedule-interview')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles(MembershipRole.PLATFORM_ADMIN)
+  async scheduleInterview(
+    @Param('id') id: string,
+    @Body() body: { scheduledAt: string; location?: string; notes?: string },
+  ) {
+    if (!body?.scheduledAt) {
+      throw new BadRequestException('scheduledAt is required.');
+    }
+    return this.applicationsService.scheduleInterview(id, body);
+  }
+
+  /**
+   * POST /api/v1/applications/:id/approve
+   * ADMIN — Final approval, sets status to APPROVED and activates the user.
+   * Body: { reason?: string }
+   */
+  @Post(':id/approve')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles(MembershipRole.PLATFORM_ADMIN)
+  async approveApplication(
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+  ) {
+    return this.applicationsService.approveApplication(id, body?.reason);
+  }
+
+  /**
+   * POST /api/v1/applications/:id/reject
+   * ADMIN — Final rejection, sets status to REJECTED with reason.
+   * Body: { reason: string }
+   */
+  @Post(':id/reject')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles(MembershipRole.PLATFORM_ADMIN)
+  async rejectApplication(
+    @Param('id') id: string,
+    @Body() body: { reason: string },
+  ) {
+    if (!body?.reason) {
+      throw new BadRequestException('Rejection reason is required.');
+    }
+    return this.applicationsService.rejectApplication(id, body.reason);
+  }
 }

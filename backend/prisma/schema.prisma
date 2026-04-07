@@ -984,6 +984,13 @@ model Application {
   // Legacy (kept for backwards compat)
   feeAmountUsd      Int               @default(0)
 
+  // Admin decision fields (T3.13: schedule-interview / approve / reject)
+  interviewScheduledAt   DateTime?
+  interviewLocation      String?
+  interviewNotes         String?  @db.Text
+  decidedAt              DateTime?
+  decisionReason         String?  @db.Text
+
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 

@@ -1,6 +1,13 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
+import {
+  NEED_DIAGNOSIS_SYSTEM_PROMPT,
+  NEED_DIAGNOSIS_PROMPT_VERSION,
+  NEED_DIAGNOSIS_TEMPERATURE,
+  NeedDiagnosisOutput,
+  mockNeedDiagnosis,
+} from './prompts/need-diagnosis.prompt';
 
 // ── Scoring output schema ────────────────────────────────────────────────────
 export interface ScoreBreakdown {
@@ -170,51 +177,21 @@ export class AiService {
    * Generate a needs diagnosis for a company application.
    * Returns structured analysis of their commercial gap and fractional talent requirements.
    */
-  async generateNeedsDiagnosis(applicationData: Record<string, unknown>): Promise<{
-    analysis: string;
-    challenges: string[];
-    opportunities: string[];
-    recommendedRole: string;
-    estimatedSprint: string;
-  }> {
-    const diagnosisPrompt = `You are an expert fractional talent advisor specializing in helping diaspora-first startups.
-Analyze this company's application and generate a needs diagnosis.
-
-Return a JSON object with:
-{
-  "analysis": "<2-3 sentences analyzing their commercial gap>",
-  "challenges": ["<specific challenge>", ...],
-  "opportunities": ["<growth opportunity with fractional talent>", ...],
-  "recommendedRole": "<e.g. 'Fractional VP Sales'>",
-  "estimatedSprint": "<e.g. '30-day BD sprint targeting UK market'>"
-}`;
-
+  async generateNeedsDiagnosis(
+    applicationData: Record<string, unknown>,
+  ): Promise<NeedDiagnosisOutput> {
     if (this.isDummy) {
       this.logger.debug('Returning mock needs diagnosis (dummy key).');
-      return {
-        analysis: 'This company needs structured commercial motion to enter new markets. With current stage and budget, a fractional BD/sales leader can validate markets and establish initial partnerships.',
-        challenges: [
-          'No dedicated commercial owner for international expansion',
-          'Limited market validation in target geographies',
-          'Undefined sales motion for B2B segment',
-        ],
-        opportunities: [
-          'Market entry into EU with fractional BD',
-          'Sales collateral and pitch refinement',
-          'Channel partnership strategy',
-        ],
-        recommendedRole: 'Fractional VP Sales / Head of Growth',
-        estimatedSprint: '30-day market entry sprint',
-      };
+      return mockNeedDiagnosis(applicationData);
     }
 
     try {
       const response = await this.openai.chat.completions.create({
         model: this.model,
-        temperature: 0.2,
+        temperature: NEED_DIAGNOSIS_TEMPERATURE,
         response_format: { type: 'json_object' },
         messages: [
-          { role: 'system', content: diagnosisPrompt },
+          { role: 'system', content: NEED_DIAGNOSIS_SYSTEM_PROMPT },
           { role: 'user', content: JSON.stringify(applicationData) },
         ],
       });
@@ -222,13 +199,7 @@ Return a JSON object with:
       const content = response.choices[0]?.message?.content;
       if (!content) throw new Error('Empty response from OpenAI');
 
-      const parsed = JSON.parse(content) as {
-        analysis: string;
-        challenges: string[];
-        opportunities: string[];
-        recommendedRole: string;
-        estimatedSprint: string;
-      };
+      const parsed = JSON.parse(content) as NeedDiagnosisOutput;
       return parsed;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -238,6 +209,7 @@ Return a JSON object with:
   }
 
   getPromptVersion() { return READINESS_PROMPT_VERSION; }
+  getNeedDiagnosisPromptVersion() { return NEED_DIAGNOSIS_PROMPT_VERSION; }
   getModelName() { return this.model; }
   getTemperature() { return TEMPERATURE; }
 }

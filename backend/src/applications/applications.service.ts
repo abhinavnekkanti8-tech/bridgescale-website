@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { RazorpayService } from '../payments/razorpay.service';
 import { AiWorkflowService } from '../ai/ai-workflow.service';
+import { CrossVerifyService } from '../ai/cross-verify.service';
 import { CreateApplicationDto, ApplicationTypeDto } from './dto/create-application.dto';
 import { ApplicationStatus, PaymentProvider, MembershipRole, OrgType, UserStatus } from '@prisma/client';
 import { randomBytes } from 'crypto';
@@ -23,6 +24,7 @@ export class ApplicationsService {
     private readonly emailService: EmailService,
     private readonly razorpay: RazorpayService,
     private readonly aiWorkflow: AiWorkflowService,
+    private readonly crossVerify: CrossVerifyService,
   ) {}
 
   /**
@@ -484,10 +486,79 @@ export class ApplicationsService {
       });
 
       this.logger.log(`Account provisioned for ${application.email} (${application.type})`);
+
+      // Fire-and-forget cross-verification of any references on the source
+      // application. Result is persisted on the talentPreScreen if/when one
+      // exists, so this only runs for talent.
+      this.runCrossVerifyForApplication(application.id).catch((err) =>
+        this.logger.error(`Cross-verify pipeline failed: ${err.message}`),
+      );
     } catch (err: any) {
       // Non-blocking — don't fail payment confirmation if provisioning fails
       this.logger.error(`Failed to provision account for ${application.email}: ${err.message}`);
     }
+  }
+
+  /**
+   * Run cross-verification on a talent application's references and
+   * persist the result onto the talentPreScreen row (created lazily if it
+   * does not yet exist). Always non-blocking and never throws.
+   */
+  private async runCrossVerifyForApplication(applicationId: string): Promise<void> {
+    const app = await this.prisma.application.findUnique({
+      where: { id: applicationId },
+      select: {
+        id: true,
+        type: true,
+        linkedInUrl: true,
+        references: true,
+      },
+    });
+
+    if (!app || app.type !== 'TALENT') return;
+
+    const inputs: Array<{ email?: string; linkedInUrl?: string; fullName?: string }> = [];
+
+    // Self verification (the applicant themselves)
+    if (app.linkedInUrl) {
+      inputs.push({ linkedInUrl: app.linkedInUrl });
+    }
+
+    // Their references — typed loosely because Prisma stores JSON
+    const refs = (app.references as Array<Record<string, unknown>> | null) || [];
+    for (const r of refs) {
+      inputs.push({
+        email: typeof r.email === 'string' ? r.email : undefined,
+        linkedInUrl: typeof r.linkedIn === 'string' ? r.linkedIn : undefined,
+        fullName: typeof r.name === 'string' ? r.name : undefined,
+      });
+    }
+
+    if (inputs.length === 0) return;
+
+    const results = await this.crossVerify.verifyReferences(inputs);
+
+    await this.prisma.talentPreScreen.upsert({
+      where: { applicationId },
+      update: {
+        referenceVerification: results as any,
+      },
+      create: {
+        applicationId,
+        recommendation: 'CONDITIONAL',
+        completenessScore: 0,
+        consistencyScore: 0,
+        referenceScore: 0,
+        assessmentScore: 0,
+        redFlags: [],
+        suggestedProbeQuestions: [],
+        referenceVerification: results as any,
+      },
+    });
+
+    this.logger.log(
+      `Cross-verify completed for application ${applicationId}: ${results.length} references checked (mode=${this.crossVerify.getMode()})`,
+    );
   }
 
   /** Generate a magic-link token, persist it, and send the login email. */
@@ -584,5 +655,136 @@ export class ApplicationsService {
 
     if (!application) throw new NotFoundException('No application found for this email.');
     return application;
+  }
+
+  /**
+   * ADMIN — Schedule an interview for an application.
+   * Sets status to INTERVIEW_SCHEDULED and stores when/where + free-form notes.
+   * Sends a notification email to the applicant.
+   */
+  async scheduleInterview(
+    applicationId: string,
+    params: {
+      scheduledAt: string | Date;
+      location?: string;
+      notes?: string;
+    },
+  ) {
+    const application = await this.prisma.application.findUnique({
+      where: { id: applicationId },
+    });
+    if (!application) throw new NotFoundException('Application not found.');
+
+    const when = new Date(params.scheduledAt);
+    if (isNaN(when.getTime())) {
+      throw new BadRequestException('Invalid scheduledAt date.');
+    }
+
+    const updated = await this.prisma.application.update({
+      where: { id: applicationId },
+      data: {
+        status: ApplicationStatus.INTERVIEW_SCHEDULED,
+        interviewScheduledAt: when,
+        interviewLocation: params.location,
+        interviewNotes: params.notes,
+      },
+    });
+
+    this.logger.log(
+      `Application ${applicationId} interview scheduled for ${when.toISOString()}`,
+    );
+
+    this.emailService
+      .sendStatusUpdate(
+        { id: updated.id, name: updated.name, email: updated.email },
+        ApplicationStatus.INTERVIEW_SCHEDULED,
+      )
+      .catch((err) =>
+        this.logger.error(`Failed to send schedule email: ${err.message}`),
+      );
+
+    return updated;
+  }
+
+  /**
+   * ADMIN — Approve an application as final.
+   * Sets status to APPROVED and activates the user account if pending.
+   */
+  async approveApplication(applicationId: string, reason?: string) {
+    const application = await this.prisma.application.findUnique({
+      where: { id: applicationId },
+    });
+    if (!application) throw new NotFoundException('Application not found.');
+
+    const updated = await this.prisma.application.update({
+      where: { id: applicationId },
+      data: {
+        status: ApplicationStatus.APPROVED,
+        decidedAt: new Date(),
+        decisionReason: reason,
+      },
+    });
+
+    // Activate the corresponding user account if it's pending
+    const user = await this.prisma.user.findUnique({
+      where: { email: application.email.toLowerCase() },
+    });
+    if (user && user.status === UserStatus.PENDING_APPROVAL) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { status: UserStatus.ACTIVE },
+      });
+      this.logger.log(`User ${user.email} activated after application approval.`);
+    }
+
+    this.logger.log(`Application ${applicationId} approved.`);
+
+    this.emailService
+      .sendStatusUpdate(
+        { id: updated.id, name: updated.name, email: updated.email },
+        ApplicationStatus.APPROVED,
+      )
+      .catch((err) =>
+        this.logger.error(`Failed to send approval email: ${err.message}`),
+      );
+
+    return updated;
+  }
+
+  /**
+   * ADMIN — Reject an application as final.
+   * Sets status to REJECTED with the reason for the audit trail and email.
+   */
+  async rejectApplication(applicationId: string, reason: string) {
+    const application = await this.prisma.application.findUnique({
+      where: { id: applicationId },
+    });
+    if (!application) throw new NotFoundException('Application not found.');
+
+    if (!reason || reason.trim().length === 0) {
+      throw new BadRequestException('Rejection reason is required.');
+    }
+
+    const updated = await this.prisma.application.update({
+      where: { id: applicationId },
+      data: {
+        status: ApplicationStatus.REJECTED,
+        decidedAt: new Date(),
+        decisionReason: reason,
+      },
+    });
+
+    this.logger.log(`Application ${applicationId} rejected: ${reason}`);
+
+    this.emailService
+      .sendStatusUpdate(
+        { id: updated.id, name: updated.name, email: updated.email },
+        ApplicationStatus.REJECTED,
+      )
+      .catch((err) =>
+        this.logger.error(`Failed to send rejection email: ${err.message}`),
+      );
+
+    return updated;
   }
 }

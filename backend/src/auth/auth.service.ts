@@ -64,6 +64,7 @@ export class AuthService {
       email: result.email,
       role: result.role,
       orgId: result.orgId,
+      status: 'ACTIVE',
     };
   }
 
@@ -111,6 +112,7 @@ export class AuthService {
       email: user.email,
       role: membership.membershipRole,
       orgId: membership.orgId,
+      status: user.status,
     };
   }
 
@@ -170,12 +172,19 @@ export class AuthService {
       throw new BadRequestException('Your account has no active role. Please contact support.');
     }
 
+    // Re-fetch user to get the latest status
+    const refreshedUser = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { status: true },
+    });
+
     return {
       id: user.id,
       name: user.name,
       email: user.email,
       role: membership.membershipRole,
       orgId: membership.orgId,
+      status: refreshedUser?.status ?? user.status,
     };
   }
 }

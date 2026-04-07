@@ -163,4 +163,160 @@ export class DiagnosesService {
       orderBy: { generatedAt: 'asc' },
     });
   }
+
+  /**
+   * ADMIN — Finalize a diagnosis and send it to the client for sign-off.
+   * Transitions DRAFT_AI / UNDER_REVIEW → READY_FOR_CLIENT and sets the
+   * client-facing payload (defaults to humanEditedContent if not given).
+   */
+  async finalizeDiagnosis(
+    diagnosisId: string,
+    params?: {
+      clientFacingContent?: Record<string, any>;
+      reviewerNotes?: string;
+    },
+  ) {
+    const diagnosis = await this.prisma.needDiagnosis.findUnique({
+      where: { id: diagnosisId },
+      include: { application: true },
+    });
+
+    if (!diagnosis) throw new NotFoundException('Diagnosis not found.');
+    if (
+      diagnosis.status !== 'DRAFT_AI' &&
+      diagnosis.status !== 'UNDER_REVIEW' &&
+      diagnosis.status !== 'REVISION_REQUESTED'
+    ) {
+      throw new BadRequestException(
+        `Cannot finalize diagnosis in status ${diagnosis.status}.`,
+      );
+    }
+
+    const clientFacing =
+      params?.clientFacingContent ??
+      diagnosis.humanEditedContent ??
+      diagnosis.aiContent;
+
+    const updated = await this.prisma.needDiagnosis.update({
+      where: { id: diagnosisId },
+      data: {
+        status: 'READY_FOR_CLIENT',
+        clientFacingContent: clientFacing as any,
+        finalizedAt: new Date(),
+        ...(params?.reviewerNotes !== undefined
+          ? { reviewerNotes: params.reviewerNotes }
+          : {}),
+      },
+      include: { application: true },
+    });
+
+    // Bump the parent application status so the company sees it under review
+    if (diagnosis.application) {
+      await this.prisma.application.update({
+        where: { id: diagnosis.application.id },
+        data: { status: 'DIAGNOSIS_UNDER_REVIEW' },
+      });
+    }
+
+    this.logger.log(
+      `Diagnosis ${diagnosisId} finalized → READY_FOR_CLIENT (application ${diagnosis.application?.id})`,
+    );
+
+    if (diagnosis.application) {
+      this.emailService
+        .sendDiagnosisApproved({
+          email: diagnosis.application.email,
+          name: diagnosis.application.name,
+          type: diagnosis.application.type,
+        })
+        .catch((err) =>
+          this.logger.error(
+            `Failed to send finalize email to ${diagnosis.application.email}: ${err.message}`,
+          ),
+        );
+    }
+
+    return updated;
+  }
+
+  /**
+   * CLIENT — Approve the diagnosis. Bumps application to DIAGNOSIS_APPROVED
+   * so the brief generation pipeline can pick it up.
+   */
+  async clientApproveDiagnosis(diagnosisId: string, applicationId: string) {
+    const diagnosis = await this.prisma.needDiagnosis.findUnique({
+      where: { id: diagnosisId },
+      include: { application: true },
+    });
+
+    if (!diagnosis) throw new NotFoundException('Diagnosis not found.');
+    if (diagnosis.applicationId !== applicationId) {
+      throw new BadRequestException('You do not have access to this diagnosis.');
+    }
+    if (diagnosis.status !== 'READY_FOR_CLIENT') {
+      throw new BadRequestException(
+        `Cannot approve diagnosis in status ${diagnosis.status}.`,
+      );
+    }
+
+    const updated = await this.prisma.needDiagnosis.update({
+      where: { id: diagnosisId },
+      data: {
+        status: 'APPROVED',
+        clientApprovedAt: new Date(),
+      },
+      include: { application: true },
+    });
+
+    await this.prisma.application.update({
+      where: { id: applicationId },
+      data: { status: 'DIAGNOSIS_APPROVED' },
+    });
+
+    this.logger.log(`Diagnosis ${diagnosisId} client-approved → APPROVED`);
+    return updated;
+  }
+
+  /**
+   * CLIENT — Request a revision on the diagnosis. Bumps the diagnosis back
+   * to REVISION_REQUESTED and stores the client's notes for the admin to
+   * see during re-review.
+   */
+  async clientRequestRevision(
+    diagnosisId: string,
+    applicationId: string,
+    notes: string,
+  ) {
+    const diagnosis = await this.prisma.needDiagnosis.findUnique({
+      where: { id: diagnosisId },
+      include: { application: true },
+    });
+
+    if (!diagnosis) throw new NotFoundException('Diagnosis not found.');
+    if (diagnosis.applicationId !== applicationId) {
+      throw new BadRequestException('You do not have access to this diagnosis.');
+    }
+    if (diagnosis.status !== 'READY_FOR_CLIENT') {
+      throw new BadRequestException(
+        `Cannot request revision on diagnosis in status ${diagnosis.status}.`,
+      );
+    }
+    if (!notes || notes.trim().length === 0) {
+      throw new BadRequestException('Revision notes are required.');
+    }
+
+    const updated = await this.prisma.needDiagnosis.update({
+      where: { id: diagnosisId },
+      data: {
+        status: 'REVISION_REQUESTED',
+        revisionNotes: notes,
+      },
+      include: { application: true },
+    });
+
+    this.logger.log(
+      `Diagnosis ${diagnosisId} revision requested by client (application ${applicationId})`,
+    );
+    return updated;
+  }
 }
