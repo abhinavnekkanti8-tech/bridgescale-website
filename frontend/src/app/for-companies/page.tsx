@@ -74,7 +74,7 @@ export default function ForCompaniesPage() {
             Access experienced Indian diaspora sales leaders, BD operators, and partnership professionals — fractionally. No full-time commitment, no outsized hiring risk. Just structured commercial execution.
           </p>
           <div className={styles.heroActions}>
-            <Link href="/#cta" className="btn btn-primary">Apply as a company &rarr;</Link>
+            <Link href="/for-companies/apply" className="btn btn-primary">Apply as a company &rarr;</Link>
             <a href="#how-matching-works" className="btn btn-secondary">See how matching works</a>
           </div>
         </div>
@@ -183,7 +183,7 @@ export default function ForCompaniesPage() {
           <div className={styles.container}>
             <h2 className={styles.ctaTitle}>Ready to find your fractional commercial team?</h2>
             <p className={styles.ctaDesc}>Apply as a company — $200 one-time activation fee covers your full intake, diagnosis, and curated talent matching.</p>
-            <Link href="/#cta" className="btn btn-primary">Apply as a company &rarr;</Link>
+            <Link href="/for-companies/apply" className="btn btn-primary">Apply as a company &rarr;</Link>
           </div>
         </Reveal>
       </section>
