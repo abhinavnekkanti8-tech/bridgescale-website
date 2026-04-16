@@ -1,0 +1,53 @@
+.cta {
+  border: 1px solid var(--color-border);
+  padding: 1.5rem;
+  text-align: center;
+  background: var(--color-bg);
+  margin-top: 1.25rem;
+}
+
+.lockRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.lockIcon {
+  font-size: 1.25rem;
+}
+
+.lockText {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.payBtn {
+  display: inline-block;
+  padding: 0.75rem 2rem;
+  background: var(--color-text-primary, #0f0f0f);
+  color: var(--color-bg, #f5f3ef);
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  font-family: inherit;
+}
+
+.payBtn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.payBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.disabledNote {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-top: 0.75rem;
+}

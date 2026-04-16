@@ -2,7 +2,6 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import styles from './apply.module.css';
 
 const INDUSTRIES = [
@@ -44,6 +43,7 @@ const ENGAGEMENT_MODELS = [
 type FormState = {
   name: string;
   email: string;
+  password: string;
   companyName: string;
   companyWebsite: string;
   industry: string;
@@ -65,7 +65,7 @@ type FormState = {
 };
 
 const INITIAL: FormState = {
-  name: '', email: '',
+  name: '', email: '', password: '',
   companyName: '', companyWebsite: '', industry: '', companyStage: '',
   targetMarkets: [], needArea: '', budgetRange: '', urgency: '',
   engagementModel: '', notes: '',
@@ -95,39 +95,14 @@ function diagnosisQuality(filled: number): { label: string; color: string } {
   return { label: 'Basic', color: '#9e9890' };
 }
 
-/** Load Razorpay checkout.js dynamically (idempotent) */
-function loadRazorpay(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if ((window as any).Razorpay) { resolve(); return; }
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Failed to load Razorpay checkout.js'));
-    document.head.appendChild(script);
-  });
-}
-
-type PaymentInitResponse = {
-  applicationId: string;
-  status: string;
-  provider: 'RAZORPAY' | 'STRIPE';
-  keyId?: string;
-  orderId?: string;
-  amount?: number;
-  currency?: string;
-  prefill?: { name: string; email: string };
-  dummyMode: boolean;
-};
-
 // ── Page states ────────────────────────────────────────────────────────────────
+// Payment moved to dashboard unlock flow — signup is free.
 type PageState =
   | { phase: 'form' }
-  | { phase: 'payment'; data: PaymentInitResponse }
   | { phase: 'processing' }
   | { phase: 'success' };
 
 export default function CompanyApplyPage() {
-  const router = useRouter();
   const [form, setForm] = useState<FormState>(INITIAL);
   const [optionalOpen, setOptionalOpen] = useState(false);
   const [error, setError] = useState('');
@@ -154,15 +129,20 @@ export default function CompanyApplyPage() {
     setForm(prev => ({ ...prev, [field]: prev[field] === val ? null : val }));
   }
 
-  // ── Step 1: Submit form → get payment initiation data ─────────────────────
+  // ── Step 1: Submit form → create free account + auto-login ─────────────────
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
 
-    if (!form.name || !form.email || !form.companyName || !form.industry ||
+    if (!form.name || !form.email || !form.password || !form.companyName || !form.industry ||
         !form.companyStage || form.targetMarkets.length === 0 ||
         !form.needArea || !form.budgetRange || !form.urgency) {
       setError('Please fill in all required fields before submitting.');
+      return;
+    }
+
+    if (form.password.length < 8) {
+      setError('Password must be at least 8 characters.');
       return;
     }
 
@@ -172,6 +152,7 @@ export default function CompanyApplyPage() {
         type: 'COMPANY',
         name: form.name,
         email: form.email,
+        password: form.password,
         companyName: form.companyName,
         companyWebsite: form.companyWebsite || undefined,
         companyStage: form.companyStage,
@@ -197,94 +178,19 @@ export default function CompanyApplyPage() {
         body: JSON.stringify(payload),
       });
 
-      const data: PaymentInitResponse = await res.json();
+      const data = await res.json();
       if (!res.ok) {
-        const msg = Array.isArray((data as any)?.message) ? (data as any).message[0] : (data as any)?.message;
+        const msg = Array.isArray(data?.message) ? data.message[0] : data?.message;
         throw new Error(msg || 'Submission failed. Please try again.');
       }
 
-      // Show payment step
-      setPage({ phase: 'payment', data });
+      // Auto-login: account created with session data
+      setPage({ phase: 'success' });
+      setTimeout(() => {
+        window.location.href = '/startup/dashboard';
+      }, 500);
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // ── Step 2a: Real Razorpay modal (live mode) ───────────────────────────────
-  async function openRazorpayModal(data: PaymentInitResponse) {
-    setError('');
-    setLoading(true);
-    try {
-      await loadRazorpay();
-
-      const options = {
-        key: data.keyId,
-        amount: data.amount,
-        currency: data.currency,
-        name: 'BridgeScale',
-        description: 'Company application fee',
-        order_id: data.orderId,
-        prefill: data.prefill,
-        theme: { color: '#9e7f5a' },
-        handler: async (response: any) => {
-          setPage({ phase: 'processing' });
-          try {
-            const res = await fetch('/api/v1/applications/payment/razorpay/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                applicationId: data.applicationId,
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-              }),
-            });
-
-            if (!res.ok) throw new Error('Payment verification failed.');
-            setPage({ phase: 'success' });
-            setTimeout(() => router.push(`/application/status?id=${data.applicationId}`), 1500);
-          } catch (err: any) {
-            setPage({ phase: 'payment', data });
-            setError(err.message || 'Payment verification failed. Please contact support.');
-          }
-        },
-        modal: {
-          ondismiss: () => {
-            setLoading(false);
-            setPage({ phase: 'payment', data });
-          },
-        },
-      };
-
-      const rzp = new (window as any).Razorpay(options);
-      rzp.open();
-    } catch (err: any) {
-      setError(err.message || 'Could not open payment window.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // ── Step 2b: Dummy confirm (dev mode) ─────────────────────────────────────
-  async function handleDummyConfirm(applicationId: string) {
-    setError('');
-    setLoading(true);
-    setPage({ phase: 'processing' });
-    try {
-      const res = await fetch('/api/v1/applications/payment/dummy-confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ applicationId }),
-      });
-
-      if (!res.ok) throw new Error('Dummy confirm failed.');
-      setPage({ phase: 'success' });
-      setTimeout(() => router.push(`/application/status?id=${applicationId}`), 1500);
-    } catch (err: any) {
-      setPage(prev => prev.phase === 'processing' ? { phase: 'payment', data: (prev as any).data } : prev);
-      setError(err.message || 'An error occurred.');
     } finally {
       setLoading(false);
     }
@@ -296,57 +202,11 @@ export default function CompanyApplyPage() {
       <div className={styles.page}>
         <div className={styles.successCard}>
           <div className={styles.successIcon}>{page.phase === 'success' ? '✓' : '…'}</div>
-          <h2>{page.phase === 'success' ? 'Payment confirmed' : 'Processing payment…'}</h2>
+          <h2>{page.phase === 'success' ? 'Account created' : 'Creating account…'}</h2>
           <p>
             {page.phase === 'success'
-              ? 'Your application has been received. We\'ll begin generating your needs diagnosis shortly.'
-              : 'Please wait while we confirm your payment.'}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Payment screen ─────────────────────────────────────────────────────────
-  if (page.phase === 'payment') {
-    const { data } = page;
-    return (
-      <div className={styles.page}>
-        <div className={styles.successCard}>
-          <div className={styles.successIcon}>₹</div>
-          <h2>Complete your payment</h2>
-          <p style={{ marginBottom: '8px' }}>
-            Your application has been saved. Pay the ₹15,000 application fee to begin your diagnosis.
-          </p>
-          {data.dummyMode && (
-            <p style={{ fontSize: '12px', color: '#9e9890', marginBottom: '24px' }}>
-              [Dev mode — payment is simulated]
-            </p>
-          )}
-          {error && <div className={styles.errorBox} style={{ marginBottom: '16px' }}>⚠ {error}</div>}
-
-          {data.dummyMode ? (
-            <button
-              className={styles.submitBtn}
-              onClick={() => handleDummyConfirm(data.applicationId)}
-              disabled={loading}
-              style={{ width: '100%' }}
-            >
-              {loading ? 'Processing…' : 'Simulate ₹15,000 payment →'}
-            </button>
-          ) : (
-            <button
-              className={styles.submitBtn}
-              onClick={() => openRazorpayModal(data)}
-              disabled={loading}
-              style={{ width: '100%' }}
-            >
-              {loading ? 'Opening payment…' : 'Pay ₹15,000 →'}
-            </button>
-          )}
-
-          <p className={styles.submitNote} style={{ marginTop: '16px' }}>
-            Secured by Razorpay. Fully credited if we can't find a match.
+              ? 'Your account is ready. We\'re generating your match previews and preparing your dashboard.'
+              : 'Please wait while we set up your account.'}
           </p>
         </div>
       </div>
@@ -369,16 +229,16 @@ export default function CompanyApplyPage() {
           </p>
 
           <div className={styles.feeCard}>
-            <div className={styles.feeLabel}>Application fee</div>
-            <div className={styles.feeAmount}>₹15,000</div>
-            <div className={styles.feeNote}>One-time. Payable after submitting this form. Fully credited if we can't find a match.</div>
+            <div className={styles.feeLabel}>Matching fee</div>
+            <div className={styles.feeAmount}>₹8,500</div>
+            <div className={styles.feeNote}>One-time. Pay when you're ready to unlock matches. Fully credited if we can't find a match.</div>
           </div>
 
           <div className={styles.steps}>
-            <div className={styles.step}><span>01</span> Submit this form</div>
-            <div className={styles.step}><span>02</span> Pay ₹15,000 application fee</div>
-            <div className={styles.step}><span>03</span> Receive AI-generated diagnosis</div>
-            <div className={styles.step}><span>04</span> Review, approve, and get matched</div>
+            <div className={styles.step}><span>01</span> Create your free account</div>
+            <div className={styles.step}><span>02</span> View blurred match previews</div>
+            <div className={styles.step}><span>03</span> Pay ₹8,500 to unlock matches</div>
+            <div className={styles.step}><span>04</span> Receive AI-generated diagnosis</div>
           </div>
         </div>
 
@@ -399,6 +259,13 @@ export default function CompanyApplyPage() {
                   <label>Email address <span className={styles.req}>*</span></label>
                   <input type="email" required value={form.email} onChange={e => set('email', e.target.value)}
                     placeholder="ravi@yourcompany.com" disabled={loading} />
+                </div>
+              </div>
+              <div className={styles.fieldRow}>
+                <div className={styles.field}>
+                  <label>Password <span className={styles.req}>*</span></label>
+                  <input type="password" required value={form.password} onChange={e => set('password', e.target.value)}
+                    placeholder="At least 8 characters" disabled={loading} />
                 </div>
               </div>
             </div>
@@ -572,11 +439,11 @@ export default function CompanyApplyPage() {
             {error && <div className={styles.errorBox}>⚠ {error}</div>}
 
             <button type="submit" className={styles.submitBtn} disabled={loading}>
-              {loading ? 'Submitting…' : 'Submit application — proceed to payment →'}
+              {loading ? 'Creating account…' : 'Create free account →'}
             </button>
 
             <p className={styles.submitNote}>
-              After submitting, you'll be asked to pay the ₹15,000 application fee before your diagnosis is generated.
+              You'll be signed in automatically. View match previews and pay only when you're ready to unlock.
             </p>
           </form>
         </div>

@@ -1,0 +1,87 @@
+.card {
+  border: 1px solid var(--color-border);
+  padding: 1.25rem;
+  background: var(--color-bg);
+  position: relative;
+  overflow: hidden;
+}
+
+.scoreRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.scoreLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.scoreValue {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.meta {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.tag {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+  background: var(--color-surface, #f0ece6);
+  color: var(--color-text-secondary);
+  text-transform: capitalize;
+}
+
+.experience {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 1rem;
+}
+
+.lockedOverlay {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.blurredName {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  filter: blur(4px);
+  user-select: none;
+  margin-bottom: 0.25rem;
+}
+
+.blurredCompany {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  filter: blur(4px);
+  user-select: none;
+  margin-bottom: 0.5rem;
+}
+
+.lockIcon {
+  font-size: 1rem;
+  text-align: center;
+}
+
+.unlockedBadge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-accent, #2e7d32);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+}

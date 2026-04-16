@@ -7,6 +7,13 @@ import { Request } from 'express';
  */
 const PENDING_APPROVAL_ALLOWED_PREFIXES = [
   '/api/v1/applications/me',
+  '/api/v1/applications/my-application',
+  '/api/v1/applications/completion-status',
+  '/api/v1/applications/complete-assessment',
+  '/api/v1/applications/complete-references',
+  '/api/v1/applications/initiate-unlock',
+  '/api/v1/applications/verify-unlock',
+  '/api/v1/operators/profile',
   '/api/v1/auth',
 ];
 

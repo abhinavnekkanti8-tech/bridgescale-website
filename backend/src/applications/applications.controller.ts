@@ -21,6 +21,9 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApplicationsService } from './applications.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { VerifyRazorpayDto, DummyConfirmDto } from './dto/payment.dto';
+import { CompleteAssessmentDto } from './dto/complete-assessment.dto';
+import { CompleteReferencesDto } from './dto/complete-references.dto';
+import { UnlockMatchingRazorpayDto } from './dto/unlock-matching.dto';
 import { SessionAuthGuard } from '../common/guards/session-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -44,12 +47,35 @@ export class ApplicationsController {
   /**
    * POST /api/v1/applications
    * PUBLIC — Submit a new application.
-   * Returns payment initiation data (Razorpay order or Stripe session).
+   * Creates account immediately, returns session data for auto-login.
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createApplication(@Body() dto: CreateApplicationDto) {
-    return this.applicationsService.createApplication(dto);
+  async createApplication(
+    @Req() req: Request,
+    @Body() dto: CreateApplicationDto,
+  ) {
+    const result = await this.applicationsService.createApplication(dto);
+
+    // Set session for auto-login
+    if (result.session && req.session) {
+      (req.session as any).user = {
+        id: result.session.userId,
+        name: dto.name,
+        email: dto.email,
+        role: result.session.role,
+        orgId: result.session.orgId,
+        status: 'PENDING_APPROVAL',
+      };
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+    }
+
+    return result;
   }
 
   /**
@@ -250,5 +276,81 @@ export class ApplicationsController {
       throw new BadRequestException('Rejection reason is required.');
     }
     return this.applicationsService.rejectApplication(id, body.reason);
+  }
+
+  // ── Dashboard: Free Signup + Completion ────────────────────────────────────
+
+  /**
+   * POST /api/v1/applications/complete-assessment
+   * AUTHENTICATED — Talent completes assessment from dashboard.
+   * Updates application with assessment data, triggers AI pre-screen.
+   */
+  @Post('complete-assessment')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(SessionAuthGuard)
+  async completeAssessment(
+    @CurrentUser() user: SessionUser,
+    @Body() dto: CompleteAssessmentDto,
+  ) {
+    if (!user) throw new BadRequestException('User not authenticated.');
+    return this.applicationsService.completeAssessment(user.email, dto);
+  }
+
+  /**
+   * POST /api/v1/applications/complete-references
+   * AUTHENTICATED — Talent completes references from dashboard.
+   * Updates application with references, triggers cross-verification.
+   */
+  @Post('complete-references')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(SessionAuthGuard)
+  async completeReferences(
+    @CurrentUser() user: SessionUser,
+    @Body() dto: CompleteReferencesDto,
+  ) {
+    if (!user) throw new BadRequestException('User not authenticated.');
+    return this.applicationsService.completeReferences(user.email, dto);
+  }
+
+  /**
+   * GET /api/v1/applications/completion-status
+   * AUTHENTICATED — Get completion status for current user's application.
+   * Used by dashboard to show checklist and enable/disable payment button.
+   */
+  @Get('completion-status')
+  @UseGuards(SessionAuthGuard)
+  async getCompletionStatus(@CurrentUser() user: SessionUser) {
+    if (!user) throw new BadRequestException('User not authenticated.');
+    return this.applicationsService.getCompletionStatus(user.email);
+  }
+
+  /**
+   * POST /api/v1/applications/initiate-unlock
+   * AUTHENTICATED — Initiate "unlock matching" payment from dashboard.
+   * Company → Razorpay order. Talent → Stripe session.
+   * Only allowed when all required steps are complete.
+   */
+  @Post('initiate-unlock')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(SessionAuthGuard)
+  async initiateUnlockPayment(@CurrentUser() user: SessionUser) {
+    if (!user) throw new BadRequestException('User not authenticated.');
+    return this.applicationsService.initiateUnlockPayment(user.email);
+  }
+
+  /**
+   * POST /api/v1/applications/verify-unlock
+   * PUBLIC — Verify Razorpay payment for unlock-matching flow.
+   * Called after Razorpay modal success callback during unlock.
+   */
+  @Post('verify-unlock')
+  @HttpCode(HttpStatus.OK)
+  async verifyUnlockPayment(@Body() dto: UnlockMatchingRazorpayDto) {
+    return this.applicationsService.verifyUnlockPayment({
+      applicationId: dto.applicationId,
+      razorpayOrderId: dto.razorpayOrderId,
+      razorpayPaymentId: dto.razorpayPaymentId,
+      razorpaySignature: dto.razorpaySignature,
+    });
   }
 }

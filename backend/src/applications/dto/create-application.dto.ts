@@ -308,4 +308,20 @@ export class CreateApplicationDto {
   @IsArray()
   @IsString({ each: true })
   preferredStructures?: string[];
+
+  // ── Free signup flow control ────────────────────────────────────
+
+  @IsOptional()
+  @IsString()
+  @MinLength(8, { message: 'Password must be at least 8 characters.' })
+  @MaxLength(100)
+  password?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  assessmentSkipped?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  referencesSkipped?: boolean;
 }

@@ -896,6 +896,7 @@ enum ApplicationStatus {
   PENDING_PAYMENT
   PAYMENT_FAILED
   SUBMITTED
+  AWAITING_COMPLETION    // Talent account created but refs/assessment incomplete
   UNDER_REVIEW
   // Company workflow
   DIAGNOSIS_GENERATED
@@ -970,6 +971,14 @@ model Application {
   rateExpectationMax Int?
   rateCurrency      String?           @default("USD")
   preferredStructures String[]
+
+  // Signup flow control — free signup with optional completion
+  assessmentSkipped   Boolean           @default(false)
+  referencesSkipped   Boolean           @default(false)
+  assessmentCompletedAt DateTime?
+  referencesCompletedAt DateTime?
+  matchingUnlocked    Boolean           @default(false)
+  matchingUnlockedAt  DateTime?
 
   // Payment
   paymentProvider   PaymentProvider?

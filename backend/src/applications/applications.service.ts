@@ -13,6 +13,7 @@ import { CrossVerifyService } from '../ai/cross-verify.service';
 import { CreateApplicationDto, ApplicationTypeDto } from './dto/create-application.dto';
 import { ApplicationStatus, PaymentProvider, MembershipRole, OrgType, UserStatus } from '@prisma/client';
 import { randomBytes } from 'crypto';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class ApplicationsService {
@@ -29,18 +30,19 @@ export class ApplicationsService {
 
   /**
    * Fee in minor units (paisa for INR, cents for USD).
-   * Company: ₹15,000 = 1,500,000 paisa. Talent: $50 = 5,000 cents.
+   * Company: ₹8,500 = 850,000 paisa. Talent: $50 = 5,000 cents.
+   * Paid for "unlock matching" from dashboard, not at signup (free signup).
    */
   private getFeeMinor(type: ApplicationTypeDto): { amount: number; currency: string; provider: PaymentProvider } {
     if (type === ApplicationTypeDto.COMPANY) {
-      return { amount: 1500000, currency: 'INR', provider: PaymentProvider.RAZORPAY };
+      return { amount: 850000, currency: 'INR', provider: PaymentProvider.RAZORPAY };
     }
     return { amount: 5000, currency: 'USD', provider: PaymentProvider.STRIPE };
   }
 
   /** @deprecated use getFeeMinor */
   private getFeeAmount(type: ApplicationTypeDto): number {
-    return type === ApplicationTypeDto.COMPANY ? 15000 : 50;
+    return type === ApplicationTypeDto.COMPANY ? 100 : 50;
   }
 
   private isDummyMode(): boolean {
@@ -48,11 +50,16 @@ export class ApplicationsService {
   }
 
   /**
-   * Create a new application and initiate payment.
-   * Returns payment initiation data for the frontend to drive the checkout flow.
+   * Create a new application with free signup (no payment at signup).
+   * Returns session data for auto-login + application details.
    *
-   * Company → Razorpay order (modal flow)
-   * Talent  → Stripe Checkout session URL (redirect flow)
+   * Flow:
+   * 1. Create application record (SUBMITTED or AWAITING_COMPLETION)
+   * 2. Provision user account immediately
+   * 3. Trigger internal matching (companies) or AI pre-screen (talent)
+   * 4. Return session token for auto-login
+   *
+   * Payment (unlock matching) happens later from the dashboard via initiateUnlockPayment().
    */
   async createApplication(dto: CreateApplicationDto) {
     const fee = this.getFeeMinor(dto.type);
@@ -71,6 +78,15 @@ export class ApplicationsService {
         'An application with this email was already submitted recently. Please check your inbox or try again later.',
       );
     }
+
+    // Determine status based on type and skipped steps
+    const isTalent = dto.type === ApplicationTypeDto.TALENT;
+    const assessmentSkipped = isTalent && (dto.assessmentSkipped ?? false);
+    const referencesSkipped = isTalent && (dto.referencesSkipped ?? false);
+
+    const initialStatus = (isTalent && (assessmentSkipped || referencesSkipped))
+      ? ApplicationStatus.AWAITING_COMPLETION
+      : ApplicationStatus.SUBMITTED;
 
     const applicationData = {
       type: dto.type,
@@ -128,102 +144,67 @@ export class ApplicationsService {
       rateCurrency: dto.rateCurrency ?? 'USD',
       preferredStructures: dto.preferredStructures ?? [],
 
-      // Payment meta
+      // Signup flow control
+      assessmentSkipped,
+      referencesSkipped,
+      assessmentCompletedAt: (isTalent && !assessmentSkipped && dto.caseStudyResponse) ? new Date() : undefined,
+      referencesCompletedAt: (isTalent && !referencesSkipped && dto.references?.length >= 2) ? new Date() : undefined,
+
+      // Payment meta (stored for later unlock — no payment at signup)
       paymentProvider: fee.provider,
       feeAmountMinor: fee.amount,
       feeCurrency: fee.currency,
       feeAmountUsd: this.getFeeAmount(dto.type),
     };
 
-    // Create application as PENDING_PAYMENT
+    // Create application with correct initial status (NOT PENDING_PAYMENT)
     const application = await this.prisma.application.create({
-      data: { ...applicationData, status: ApplicationStatus.PENDING_PAYMENT },
+      data: { ...applicationData, status: initialStatus },
     });
 
-    this.logger.log(`Application ${application.id} created (PENDING_PAYMENT) for ${dto.email}`);
+    this.logger.log(`Application ${application.id} created (${initialStatus}) for ${dto.email} — FREE SIGNUP`);
 
-    // ── Company → Razorpay order ──────────────────────────────────────────────
-    if (dto.type === ApplicationTypeDto.COMPANY) {
-      const order = await this.razorpay.createOrder({
-        amountPaisa: fee.amount,
-        currency: fee.currency,
-        receipt: application.id.slice(0, 40),
-        notes: { applicationId: application.id, applicantEmail: dto.email },
-      });
-
-      // Persist orderId in stripeSessionId field (reuse for lookup)
-      await this.prisma.application.update({
-        where: { id: application.id },
-        data: { stripeSessionId: order.id },
-      });
-
-      return {
-        applicationId: application.id,
-        status: ApplicationStatus.PENDING_PAYMENT,
-        provider: 'RAZORPAY',
-        keyId: this.razorpay.publishableKeyId,
-        orderId: order.id,
-        amount: fee.amount,
-        currency: fee.currency,
-        prefill: { name: dto.name, email: dto.email.toLowerCase() },
-        dummyMode: this.isDummyMode(),
-      };
-    }
-
-    // ── Talent → Stripe Checkout (dummy session for now) ─────────────────────
-    const dummySessionId = `cs_test_dummy_${Date.now()}`;
-    const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3001');
-
-    await this.prisma.application.update({
-      where: { id: application.id },
-      data: { stripeSessionId: dummySessionId },
-    });
-
-    // In dummy mode: skip Stripe redirect and auto-confirm immediately
-    if (this.isDummyMode()) {
-      await this.prisma.application.update({
-        where: { id: application.id },
-        data: {
-          status: ApplicationStatus.SUBMITTED,
-          paidAt: new Date(),
-          stripePaymentId: `dummy_pi_${Date.now()}`,
-        },
-      });
-
-      this.emailService
-        .sendApplicationReceived({
-          id: application.id,
-          name: application.name,
-          email: application.email,
-          type: application.type,
-        })
-        .catch((err) => this.logger.error(`Failed to send confirmation email: ${err.message}`));
-
-      this.provisionAccount({
+    // Send confirmation email
+    this.emailService
+      .sendApplicationReceived({
         id: application.id,
         name: application.name,
         email: application.email,
         type: application.type,
-        companyName: null,
-      });
+      })
+      .catch((err) => this.logger.error(`Failed to send confirmation email: ${err.message}`));
 
-      return {
-        applicationId: application.id,
-        status: ApplicationStatus.SUBMITTED,
-        provider: 'STRIPE',
-        checkoutUrl: null,
-        dummyMode: true,
-      };
+    // Provision account immediately (user + org + membership)
+    const sessionData = await this.provisionAccountWithPassword({
+      id: application.id,
+      name: application.name,
+      email: application.email,
+      type: application.type,
+      companyName: dto.companyName ?? null,
+      password: dto.password,
+    });
+
+    // For companies: trigger internal matching in background
+    if (dto.type === ApplicationTypeDto.COMPANY) {
+      this.triggerInternalMatching(application.id).catch((err) =>
+        this.logger.error(`Failed to trigger internal matching: ${err.message}`),
+      );
+    }
+
+    // For talent with assessment data: trigger AI pre-screen
+    if (isTalent && !assessmentSkipped && dto.caseStudyResponse) {
+      this.aiWorkflow
+        .generatePreScreenForApplication(application.id)
+        .catch((err) => this.logger.error(`Failed to trigger pre-screen: ${err.message}`));
     }
 
     return {
       applicationId: application.id,
-      status: ApplicationStatus.PENDING_PAYMENT,
-      provider: 'STRIPE',
-      checkoutUrl: `${frontendUrl}/for-talent/apply/pay?session=${dummySessionId}`,
-      amount: fee.amount,
-      currency: fee.currency,
-      dummyMode: false,
+      status: initialStatus,
+      provider: 'NONE',
+      dummyMode: this.isDummyMode(),
+      // Session data for auto-login
+      session: sessionData,
     };
   }
 
@@ -500,6 +481,168 @@ export class ApplicationsService {
   }
 
   /**
+   * Provision a User + Organization + Membership during FREE signup.
+   * Hashes password if provided. Returns session data for auto-login.
+   * Idempotent: if user exists, returns existing data.
+   */
+  private async provisionAccountWithPassword(application: {
+    id: string;
+    name: string;
+    email: string;
+    type: string;
+    companyName?: string | null;
+    password?: string;
+  }): Promise<{ userId: string; orgId: string; role: string } | null> {
+    try {
+      const existing = await this.prisma.user.findUnique({
+        where: { email: application.email },
+      });
+
+      if (existing) {
+        // Account already exists — return existing data for session
+        const membership = await this.prisma.membership.findFirst({
+          where: { userId: existing.id },
+        });
+        return {
+          userId: existing.id,
+          orgId: membership?.orgId ?? '',
+          role: membership?.membershipRole ?? 'OPERATOR',
+        };
+      }
+
+      const isCompany = application.type === 'COMPANY';
+      const orgType: OrgType = isCompany ? OrgType.STARTUP : OrgType.OPERATOR_ENTITY;
+      const orgName = isCompany
+        ? (application.companyName ?? `${application.name}'s Company`)
+        : `${application.name} (Operator)`;
+      const membershipRole: MembershipRole = isCompany
+        ? MembershipRole.STARTUP_ADMIN
+        : MembershipRole.OPERATOR;
+
+      // Hash password if provided
+      const passwordHash = application.password
+        ? await bcrypt.hash(application.password, 10)
+        : null;
+
+      const result = await this.prisma.$transaction(async (tx) => {
+        const org = await tx.organization.create({
+          data: { name: orgName, orgType, country: isCompany ? 'IN' : undefined },
+        });
+
+        const user = await tx.user.create({
+          data: {
+            name: application.name,
+            email: application.email,
+            passwordHash,
+            status: UserStatus.PENDING_APPROVAL,
+          },
+        });
+
+        await tx.membership.create({
+          data: {
+            userId: user.id,
+            orgId: org.id,
+            membershipRole,
+            status: 'ACTIVE', // Active immediately (not PENDING — no payment gate)
+          },
+        });
+
+        return { userId: user.id, orgId: org.id, role: membershipRole };
+      });
+
+      this.logger.log(`Account provisioned (free signup) for ${application.email} (${application.type})`);
+
+      // Cross-verify references if talent provided them
+      this.runCrossVerifyForApplication(application.id).catch((err) =>
+        this.logger.error(`Cross-verify pipeline failed: ${err.message}`),
+      );
+
+      return result;
+    } catch (err: any) {
+      this.logger.error(`Failed to provision account for ${application.email}: ${err.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Trigger internal matching for a company application.
+   * Creates a StartupProfile from the application data, then runs the matching algorithm.
+   * Results are stored but NOT revealed until payment.
+   */
+  private async triggerInternalMatching(applicationId: string): Promise<void> {
+    const app = await this.prisma.application.findUnique({
+      where: { id: applicationId },
+    });
+    if (!app || app.type !== 'COMPANY') return;
+
+    // Check if a startup profile already exists for this company's org
+    const user = await this.prisma.user.findUnique({
+      where: { email: app.email },
+      include: { memberships: { include: { organization: true } } },
+    });
+    if (!user) return;
+
+    const org = user.memberships[0]?.organization;
+    if (!org) return;
+
+    // Check if startup profile already exists
+    const existingProfile = await this.prisma.startupProfile.findUnique({
+      where: { startupId: org.id },
+    });
+
+    if (existingProfile) {
+      this.logger.log(`Startup profile already exists for org ${org.id} — skipping creation`);
+      return;
+    }
+
+    // Map application data to startup profile fields
+    const targetMarketMap: Record<string, string> = {
+      'EU': 'EU', 'US': 'US', 'UK': 'EU', 'Australia': 'AU', 'AU': 'AU',
+      'Middle East': 'REST_OF_WORLD', 'Southeast Asia': 'REST_OF_WORLD',
+      'Rest of World': 'REST_OF_WORLD', 'RoW': 'REST_OF_WORLD',
+    };
+
+    const targetMarkets = (app.targetMarkets?.split(',') ?? [])
+      .map(m => targetMarketMap[m.trim()] ?? 'REST_OF_WORLD')
+      .filter((v, i, arr) => arr.indexOf(v) === i) as any[];
+
+    const stageMap: Record<string, string> = {
+      'Pre-Seed': 'PRE_SEED', 'Seed': 'SEED', 'Series A': 'SERIES_A',
+      'Series B+': 'SERIES_B_PLUS', 'Bootstrapped': 'BOOTSTRAPPED',
+    };
+
+    const budgetMap: Record<string, string> = {
+      '$2,000–$5,000': 'TWO_TO_5K', '$5,000–$10,000': 'FIVE_TO_10K',
+      '$10,000–$25,000': 'ABOVE_10K', '$25,000+': 'ABOVE_10K',
+    };
+
+    const motionMap: Record<string, string> = {
+      'Outbound': 'OUTBOUND', 'Inbound': 'INBOUND', 'Partner-led': 'PARTNER_LED',
+      'Product-led': 'PRODUCT_LED', 'Blended': 'BLENDED',
+    };
+
+    try {
+      const profile = await this.prisma.startupProfile.create({
+        data: {
+          startupId: org.id,
+          industry: app.needArea ?? 'General',
+          stage: (stageMap[app.companyStage ?? ''] ?? 'BOOTSTRAPPED') as any,
+          targetMarkets: targetMarkets.length > 0 ? targetMarkets : ['REST_OF_WORLD'],
+          salesMotion: (motionMap[app.salesMotion ?? ''] ?? 'OUTBOUND') as any,
+          budgetBand: (budgetMap[app.budgetRange ?? ''] ?? 'TWO_TO_5K') as any,
+          hasDeck: app.hasDeck ?? false,
+          hasProductDemo: app.hasDemo ?? false,
+          status: 'SUBMITTED',
+        },
+      });
+
+      this.logger.log(`StartupProfile created (${profile.id}) from application ${applicationId}`);
+    } catch (err: any) {
+      this.logger.error(`Failed to create startup profile from application: ${err.message}`);
+    }
+  }
+
+  /**
    * Run cross-verification on a talent application's references and
    * persist the result onto the talentPreScreen row (created lazily if it
    * does not yet exist). Always non-blocking and never throws.
@@ -650,6 +793,18 @@ export class ApplicationsService {
         needDiagnosis: true,
         opportunityBrief: true,
         talentPreScreen: true,
+        startupProfile: {
+          include: {
+            shortlists: {
+              include: {
+                candidates: {
+                  take: 5, // Show first 5 candidates (blurred)
+                },
+              },
+              take: 1, // Latest shortlist
+            },
+          },
+        },
       },
     });
 
@@ -786,5 +941,280 @@ export class ApplicationsService {
       );
 
     return updated;
+  }
+
+  // ── Dashboard: Completion & Unlock Matching ────────────────────────────────
+
+  /**
+   * Complete assessment for a talent application (from dashboard).
+   * Updates the application with assessment data and marks assessmentSkipped = false.
+   */
+  async completeAssessment(
+    email: string,
+    dto: any, // CompleteAssessmentDto but avoiding circular import
+  ) {
+    const application = await this.prisma.application.findFirst({
+      where: { email: email.toLowerCase(), type: 'TALENT' },
+    });
+    if (!application) throw new NotFoundException('No talent application found.');
+
+    const updated = await this.prisma.application.update({
+      where: { id: application.id },
+      data: {
+        caseStudyResponse: dto.caseStudyResponse,
+        availabilityHours: dto.availabilityHours as any,
+        earliestStart: dto.earliestStart ? new Date(dto.earliestStart) : undefined,
+        rateExpectationMin: dto.rateExpectationMin,
+        rateExpectationMax: dto.rateExpectationMax,
+        rateCurrency: dto.rateCurrency ?? 'USD',
+        preferredStructures: dto.preferredStructures ?? [],
+        assessmentSkipped: false,
+        assessmentCompletedAt: new Date(),
+        // If references are also complete, move to SUBMITTED
+        status: application.referencesCompletedAt
+          ? ApplicationStatus.SUBMITTED
+          : ApplicationStatus.AWAITING_COMPLETION,
+      },
+    });
+
+    this.logger.log(`Assessment completed for application ${application.id}`);
+
+    // Trigger AI pre-screen now that assessment is available
+    this.aiWorkflow
+      .generatePreScreenForApplication(application.id)
+      .catch((err) => this.logger.error(`Failed to trigger pre-screen: ${err.message}`));
+
+    return { applicationId: updated.id, status: updated.status };
+  }
+
+  /**
+   * Complete references for a talent application (from dashboard).
+   * Updates the application with reference data and marks referencesSkipped = false.
+   */
+  async completeReferences(
+    email: string,
+    dto: any, // CompleteReferencesDto but avoiding circular import
+  ) {
+    const application = await this.prisma.application.findFirst({
+      where: { email: email.toLowerCase(), type: 'TALENT' },
+    });
+    if (!application) throw new NotFoundException('No talent application found.');
+
+    const updated = await this.prisma.application.update({
+      where: { id: application.id },
+      data: {
+        references: dto.references as any,
+        referencesSkipped: false,
+        referencesCompletedAt: new Date(),
+        // If assessment is also complete, move to SUBMITTED
+        status: application.assessmentCompletedAt
+          ? ApplicationStatus.SUBMITTED
+          : ApplicationStatus.AWAITING_COMPLETION,
+      },
+    });
+
+    this.logger.log(`References completed for application ${application.id}`);
+
+    // Trigger cross-verification
+    this.runCrossVerifyForApplication(application.id).catch((err) =>
+      this.logger.error(`Cross-verify pipeline failed: ${err.message}`),
+    );
+
+    return { applicationId: updated.id, status: updated.status };
+  }
+
+  /**
+   * Get the completion status for the current user's application.
+   * Used by the dashboard to show the checklist and enable/disable the payment button.
+   */
+  async getCompletionStatus(email: string) {
+    const application = await this.prisma.application.findFirst({
+      where: { email: email.toLowerCase() },
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        assessmentSkipped: true,
+        referencesSkipped: true,
+        assessmentCompletedAt: true,
+        referencesCompletedAt: true,
+        matchingUnlocked: true,
+        matchingUnlockedAt: true,
+        feeAmountMinor: true,
+        feeCurrency: true,
+        paymentProvider: true,
+      },
+    });
+    if (!application) throw new NotFoundException('No application found.');
+
+    const isTalent = application.type === 'TALENT';
+    const assessmentComplete = !isTalent || !!application.assessmentCompletedAt;
+    const referencesComplete = !isTalent || !!application.referencesCompletedAt;
+    const canPay = assessmentComplete && referencesComplete && !application.matchingUnlocked;
+
+    return {
+      ...application,
+      assessmentComplete,
+      referencesComplete,
+      canPay,
+    };
+  }
+
+  /**
+   * Initiate the "unlock matching" payment.
+   * Company → Razorpay order. Talent → Stripe checkout session.
+   * Only allowed when all required steps are complete.
+   */
+  async initiateUnlockPayment(email: string) {
+    const application = await this.prisma.application.findFirst({
+      where: { email: email.toLowerCase() },
+    });
+    if (!application) throw new NotFoundException('No application found.');
+
+    if (application.matchingUnlocked) {
+      throw new BadRequestException('Matching is already unlocked.');
+    }
+
+    // For talent: check that assessment and references are complete
+    if (application.type === 'TALENT') {
+      if (!application.assessmentCompletedAt) {
+        throw new BadRequestException('Please complete your assessment before unlocking matching.');
+      }
+      if (!application.referencesCompletedAt) {
+        throw new BadRequestException('Please complete your references before unlocking matching.');
+      }
+    }
+
+    const fee = this.getFeeMinor(application.type as ApplicationTypeDto);
+
+    // ── Company → Razorpay order ──────────────────────────────────
+    if (application.type === 'COMPANY') {
+      // In dummy mode: auto-confirm
+      if (this.isDummyMode()) {
+        await this.unlockMatching(application.id);
+        return {
+          applicationId: application.id,
+          provider: 'RAZORPAY',
+          dummyMode: true,
+          unlocked: true,
+        };
+      }
+
+      const order = await this.razorpay.createOrder({
+        amountPaisa: fee.amount,
+        currency: fee.currency,
+        receipt: `unlock_${application.id.slice(0, 30)}`,
+        notes: { applicationId: application.id, purpose: 'unlock_matching' },
+      });
+
+      // Store order ID for verification
+      await this.prisma.application.update({
+        where: { id: application.id },
+        data: { razorpayOrderId: order.id },
+      });
+
+      return {
+        applicationId: application.id,
+        provider: 'RAZORPAY',
+        keyId: this.razorpay.publishableKeyId,
+        orderId: order.id,
+        amount: fee.amount,
+        currency: fee.currency,
+        prefill: { name: application.name, email: application.email },
+        dummyMode: false,
+      };
+    }
+
+    // ── Talent → Stripe ───────────────────────────────────────────
+    if (this.isDummyMode()) {
+      await this.unlockMatching(application.id);
+      return {
+        applicationId: application.id,
+        provider: 'STRIPE',
+        dummyMode: true,
+        unlocked: true,
+      };
+    }
+
+    // TODO: Create real Stripe Checkout session when Stripe is fully integrated
+    const dummySessionId = `cs_unlock_${Date.now()}`;
+    await this.prisma.application.update({
+      where: { id: application.id },
+      data: { stripeSessionId: dummySessionId },
+    });
+
+    const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3001');
+    return {
+      applicationId: application.id,
+      provider: 'STRIPE',
+      checkoutUrl: `${frontendUrl}/dashboard/unlock?session=${dummySessionId}`,
+      amount: fee.amount,
+      currency: fee.currency,
+      dummyMode: false,
+    };
+  }
+
+  /**
+   * Verify Razorpay payment for unlock-matching flow.
+   * Similar to verifyRazorpayPayment but calls unlockMatching instead of provisionAccount.
+   */
+  async verifyUnlockPayment(params: {
+    applicationId: string;
+    razorpayOrderId: string;
+    razorpayPaymentId: string;
+    razorpaySignature: string;
+  }) {
+    const application = await this.prisma.application.findUnique({
+      where: { id: params.applicationId },
+    });
+    if (!application) throw new NotFoundException('Application not found.');
+
+    if (application.matchingUnlocked) {
+      return { success: true, applicationId: params.applicationId, unlocked: true };
+    }
+
+    const isValid = this.razorpay.verifyPaymentSignature({
+      orderId: params.razorpayOrderId,
+      paymentId: params.razorpayPaymentId,
+      signature: params.razorpaySignature,
+    });
+
+    if (!isValid) {
+      throw new BadRequestException('Payment verification failed — invalid signature.');
+    }
+
+    // Store payment ID
+    await this.prisma.application.update({
+      where: { id: params.applicationId },
+      data: { razorpayPaymentId: params.razorpayPaymentId },
+    });
+
+    await this.unlockMatching(params.applicationId);
+
+    return { success: true, applicationId: params.applicationId, unlocked: true };
+  }
+
+  /**
+   * Mark matching as unlocked after payment is confirmed.
+   * This is the "moment of truth" — reveals match data.
+   */
+  private async unlockMatching(applicationId: string): Promise<void> {
+    const updated = await this.prisma.application.update({
+      where: { id: applicationId },
+      data: {
+        matchingUnlocked: true,
+        matchingUnlockedAt: new Date(),
+        paidAt: new Date(),
+      },
+    });
+
+    this.logger.log(`Matching unlocked for application ${applicationId}`);
+
+    // For companies: trigger full AI diagnosis now
+    if (updated.type === 'COMPANY') {
+      this.aiWorkflow
+        .generateDiagnosisForApplication(applicationId)
+        .catch((err) => this.logger.error(`Failed to trigger diagnosis: ${err.message}`));
+    }
   }
 }

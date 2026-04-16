@@ -5,9 +5,61 @@ import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import styles from './dashboard.module.css';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import { BlurredMatchCard } from '@/components/BlurredMatchCard';
+import { UnlockMatchingCTA } from '@/components/UnlockMatchingCTA';
+
+type MatchData = {
+  applicationId: string;
+  status: string;
+  matchingUnlocked: boolean;
+  matchingUnlockedAt?: string;
+  feeAmountMinor: number;
+  feeCurrency: string;
+  paymentProvider: string;
+  startupProfile?: {
+    shortlists: Array<{
+      candidates: Array<{
+        id: string;
+        matchScore?: number;
+        region?: string;
+        lane?: string;
+        yearsExperience?: number;
+      }>;
+    }>;
+  };
+};
+
+type CompletionStatus = {
+  matchingUnlocked: boolean;
+  canPay: boolean;
+  feeCurrency: string;
+  paymentProvider: string;
+};
 
 function StartupDashboardContent() {
   const { user } = useAuth();
+  const [matchData, setMatchData] = useState<MatchData | null>(null);
+  const [completionStatus, setCompletionStatus] = useState<CompletionStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      const [appRes, statusRes] = await Promise.allSettled([
+        fetch('/api/v1/applications/my-application', { credentials: 'include' }),
+        fetch('/api/v1/applications/completion-status', { credentials: 'include' }),
+      ]);
+
+      if (appRes.status === 'fulfilled' && appRes.value.ok) {
+        setMatchData(await appRes.value.json());
+      }
+      if (statusRes.status === 'fulfilled' && statusRes.value.ok) {
+        setCompletionStatus(await statusRes.value.json());
+      }
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
 
   const nextActions = [
     { id: 'readiness', icon: '📊', label: 'View Readiness Score', href: '/startup/profile', status: 'Pending', badgeClass: 'badge-amber' },
@@ -41,6 +93,63 @@ function StartupDashboardContent() {
             <span className={styles.statNote}>{s.note}</span>
           </div>
         ))}
+      </div>
+
+      <div className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Your top matches</h2>
+          <p className={styles.sectionSubtitle}>
+            {completionStatus?.matchingUnlocked
+              ? 'You\'ve unlocked full match details.'
+              : 'Unlock to see operator profiles, track records, and book discovery calls.'}
+          </p>
+        </div>
+
+        {(() => {
+          const candidates = matchData?.startupProfile?.shortlists?.[0]?.candidates ?? [];
+          const locked = !completionStatus?.matchingUnlocked;
+
+          return candidates.length > 0 ? (
+            <div className={styles.matchesGrid}>
+              {candidates.slice(0, 3).map((c, i) => (
+                <BlurredMatchCard
+                  key={c.id ?? i}
+                  matchScore={c.matchScore ?? 80 + i * 5}
+                  region={c.region ?? 'EU / UK'}
+                  lane={c.lane ?? 'General'}
+                  yearsExperience={c.yearsExperience ?? 5}
+                  locked={locked}
+                />
+              ))}
+            </div>
+          ) : (
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+              We&apos;re preparing your matches. Check back soon.
+            </p>
+          );
+        })()}
+
+        {completionStatus && !completionStatus.matchingUnlocked && (
+          <UnlockMatchingCTA
+            canPay={completionStatus.canPay}
+            amount={completionStatus.feeCurrency === 'INR' ? '₹8,500' : '$100'}
+            provider={completionStatus.paymentProvider ?? 'RAZORPAY'}
+            onUnlock={async () => {
+              const res = await fetch('/api/v1/applications/initiate-unlock', {
+                method: 'POST',
+                credentials: 'include',
+              });
+              const data = await res.json();
+              if (data.dummyMode && data.unlocked) {
+                window.location.reload();
+                return;
+              }
+              // TODO: open Razorpay modal with data.orderId / data.keyId
+              alert('Payment flow coming soon. Set DUMMY_PAYMENT_MODE=true in dev.');
+            }}
+            reason={!completionStatus.canPay ? 'Complete all required steps first.' : undefined}
+          />
+        )}
       </div>
 
       <div className={styles.section}>

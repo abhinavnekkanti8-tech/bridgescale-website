@@ -2,7 +2,6 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import styles from './apply.module.css';
 
 // ── Constants ─────────────────────────────────────────────────────
@@ -60,7 +59,7 @@ type ReferenceRow = { name: string; title: string; company: string; relationship
 
 type FormState = {
   // Step 1 — Profile
-  name: string; email: string; linkedInUrl: string;
+  name: string; email: string; password: string; linkedInUrl: string;
   currentRole: string; currentEmployer: string; employmentStatus: string;
   location: string; yearsExperience: string; seniorityLevel: string; talentCategory: string;
   // Step 2 — Track record
@@ -80,7 +79,7 @@ const EMPTY_DEAL: DealRow = { company: '', dealSizeRange: '', geography: '', out
 const EMPTY_REF: ReferenceRow = { name: '', title: '', company: '', relationship: '', email: '', linkedIn: '' };
 
 const INITIAL: FormState = {
-  name: '', email: '', linkedInUrl: '',
+  name: '', email: '', password: '', linkedInUrl: '',
   currentRole: '', currentEmployer: '', employmentStatus: '',
   location: '', yearsExperience: '', seniorityLevel: '', talentCategory: '',
   dealHistory: [{ ...EMPTY_DEAL }, { ...EMPTY_DEAL }, { ...EMPTY_DEAL }],
@@ -100,7 +99,6 @@ const CASE_STUDY_PROMPT = `Scenario: An Indian B2B SaaS company (30 employees, $
 In 300–500 words, describe: (1) How you would approach the first 30 days — what would you do, in what order, and why. (2) How you would identify and qualify the first 10 target accounts. (3) One risk you foresee and how you'd mitigate it.`;
 
 export default function TalentApplyPage() {
-  const router = useRouter();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(INITIAL);
   const [error, setError] = useState('');
@@ -158,11 +156,14 @@ export default function TalentApplyPage() {
 
   function validateStep(): string | null {
     if (step === 0) {
-      if (!form.name || !form.email || !form.linkedInUrl ||
+      if (!form.name || !form.email || !form.password || !form.linkedInUrl ||
           !form.currentRole || !form.employmentStatus ||
           !form.location || !form.yearsExperience ||
           !form.seniorityLevel || !form.talentCategory) {
         return 'Please fill in all required fields.';
+      }
+      if (form.password.length < 8) {
+        return 'Password must be at least 8 characters.';
       }
     }
     if (step === 2) {
@@ -207,6 +208,7 @@ export default function TalentApplyPage() {
         type: 'TALENT',
         name: form.name,
         email: form.email,
+        password: form.password,
         linkedInUrl: form.linkedInUrl,
         currentRole: form.currentRole,
         currentEmployer: form.currentEmployer || undefined,
@@ -240,18 +242,11 @@ export default function TalentApplyPage() {
         throw new Error(msg || 'Submission failed. Please try again.');
       }
 
-      if (data.status === 'SUBMITTED') {
-        // Dummy mode: backend auto-confirmed payment, go straight to status
-        setSubmitted(true);
-        setTimeout(() => router.push(`/application/status?id=${data.applicationId}`), 1500);
-      } else if (data.checkoutUrl) {
-        // Live Stripe mode: redirect to Stripe Checkout
-        window.location.href = data.checkoutUrl;
-      } else {
-        // Fallback: show success and redirect
-        setSubmitted(true);
-        setTimeout(() => router.push(`/application/status?id=${data.applicationId}`), 1500);
-      }
+      // Auto-login: account created with session data
+      setSubmitted(true);
+      setTimeout(() => {
+        window.location.href = '/operator/dashboard';
+      }, 1500);
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.');
     } finally {
@@ -264,8 +259,8 @@ export default function TalentApplyPage() {
       <div className={styles.page}>
         <div className={styles.successCard}>
           <div className={styles.successIcon}>✓</div>
-          <h2>Application received</h2>
-          <p>We'll review your application and be in touch within 3–5 business days. Check your email for next steps.</p>
+          <h2>Account created</h2>
+          <p>Your account is ready. We're vetting your profile and preparing your dashboard. You'll see company matches when they're ready.</p>
         </div>
       </div>
     );
@@ -286,9 +281,9 @@ export default function TalentApplyPage() {
           </p>
 
           <div className={styles.feeCard}>
-            <div className={styles.feeLabel}>Application fee</div>
-            <div className={styles.feeAmount}>$50</div>
-            <div className={styles.feeNote}>One-time. Covers the cost of our vetting process. Non-refundable.</div>
+            <div className={styles.feeLabel}>Account</div>
+            <div className={styles.feeAmount}>Free</div>
+            <div className={styles.feeNote}>Create your free account. Pay $50 only when you're ready to unlock company matches.</div>
           </div>
 
           {/* Step progress */}
@@ -323,6 +318,13 @@ export default function TalentApplyPage() {
                   <Field label="Email address" req>
                     <input type="email" required value={form.email} onChange={e => set('email', e.target.value)}
                       placeholder="priya@example.com" disabled={loading} />
+                  </Field>
+                </div>
+
+                <div className={styles.fieldRow}>
+                  <Field label="Password" req>
+                    <input type="password" required value={form.password} onChange={e => set('password', e.target.value)}
+                      placeholder="At least 8 characters" disabled={loading} />
                   </Field>
                 </div>
 
@@ -586,14 +588,14 @@ export default function TalentApplyPage() {
                 </button>
               ) : (
                 <button type="submit" className={styles.submitBtn} disabled={loading}>
-                  {loading ? 'Submitting...' : 'Submit application →'}
+                  {loading ? 'Creating account…' : 'Create free account →'}
                 </button>
               )}
             </div>
 
             {step === STEPS.length - 1 && (
               <p className={styles.submitNote}>
-                After submitting, you'll be asked to pay the $50 application fee before your pre-screen begins.
+                You'll be signed in automatically. Pay $50 only when you're ready to unlock company matches.
               </p>
             )}
           </form>

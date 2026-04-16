@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { operatorsApi, OperatorProfile, SupplyQualityScore } from '@/lib/api-client';
+import { CompletionChecklist } from '@/components/CompletionChecklist';
+import { UnlockMatchingCTA } from '@/components/UnlockMatchingCTA';
 import styles from './page.module.css';
 
 const TIER_CONFIG: Record<string, { label: string; class: string }> = {
@@ -24,9 +26,18 @@ const COMPONENT_META = [
   { key: 'responsiveness', label: 'Responsiveness', max: 10 },
 ];
 
+type CompletionStatus = {
+  assessmentComplete: boolean;
+  referencesComplete: boolean;
+  canPay: boolean;
+  matchingUnlocked: boolean;
+  matchingUnlockedAt?: string;
+};
+
 function DashboardContent() {
   const [profile, setProfile] = useState<OperatorProfile | null>(null);
   const [score, setScore] = useState<SupplyQualityScore | null>(null);
+  const [completion, setCompletion] = useState<CompletionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [polling, setPolling] = useState(false);
 
@@ -39,6 +50,17 @@ function DashboardContent() {
         setPolling(false);
       } else if (prof) {
         setPolling(true);
+      }
+
+      // Fetch completion status for freemium flow
+      try {
+        const res = await fetch('/api/v1/applications/completion-status');
+        if (res.ok) {
+          const compData = await res.json();
+          setCompletion(compData);
+        }
+      } catch (err) {
+        // Completion status not available for old applications
       }
     } catch { /* no profile yet */ }
     setLoading(false);
@@ -65,6 +87,22 @@ function DashboardContent() {
 
   const tierConf = TIER_CONFIG[profile.tier] || TIER_CONFIG.UNVERIFIED;
 
+  const checklistItems = [
+    { key: 'profile', label: 'Profile basics', complete: !!profile, actionLabel: 'Complete profile', actionHref: '/operator/profile' },
+    { key: 'assessment', label: 'Assessment', complete: completion?.assessmentComplete ?? false, actionLabel: 'Complete now', actionHref: '/operator/dashboard/complete-assessment' },
+    { key: 'references', label: 'References', complete: completion?.referencesComplete ?? false, actionLabel: 'Complete now', actionHref: '/operator/dashboard/complete-references' },
+  ];
+
+  const unlockReason = completion && !completion.canPay
+    ? (!completion.assessmentComplete && !completion.referencesComplete)
+      ? 'Complete your references and assessment to unlock matching.'
+      : !completion.assessmentComplete
+      ? 'Complete your assessment to unlock matching.'
+      : !completion.referencesComplete
+      ? 'Complete your references to unlock matching.'
+      : undefined
+    : undefined;
+
   return (
     <div className={styles.page} id="operator-dashboard">
       <div className={styles.header}>
@@ -74,6 +112,32 @@ function DashboardContent() {
         </div>
         <Link href="/operator/profile" className="btn btn-secondary">Edit Profile</Link>
       </div>
+
+      {completion && !completion.matchingUnlocked && (
+        <>
+          <CompletionChecklist items={checklistItems} title="Profile completion" />
+          <UnlockMatchingCTA
+            canPay={completion.canPay}
+            amount="$50"
+            provider="STRIPE"
+            onUnlock={async () => {
+              const res = await fetch('/api/v1/applications/initiate-unlock', {
+                method: 'POST',
+                credentials: 'include',
+              });
+              const data = await res.json();
+              if (data.dummyMode && data.unlocked) {
+                window.location.reload();
+                return;
+              }
+              if (data.checkoutUrl) {
+                window.location.href = data.checkoutUrl;
+              }
+            }}
+            reason={unlockReason}
+          />
+        </>
+      )}
 
       <div className={styles.statRow}>
         <div className={styles.stat}>

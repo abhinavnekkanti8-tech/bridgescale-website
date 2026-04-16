@@ -193,7 +193,7 @@ export default function ForTalentPage() {
         <Reveal>
           <div className={styles.container}>
             <h2 className={styles.ctaTitle}>Ready to put your expertise to work?</h2>
-            <p className={styles.ctaDesc}>Join BridgeScale — $50 one-time application fee covers your vetting and onboarding into the network.</p>
+            <p className={styles.ctaDesc}>Join BridgeScale for free — create your account and get vetted. Pay $50 only when you're ready to unlock company matches.</p>
             <Link href="/for-talent/apply" className="btn btn-primary">Join as fractional talent &rarr;</Link>
           </div>
         </Reveal>
