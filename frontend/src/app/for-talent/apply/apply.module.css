@@ -290,9 +290,9 @@
 
 .chipSelected {
   border-color: var(--color-accent);
-  background: var(--color-accent-bg);
+  background: transparent;
   color: var(--color-accent);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 /* ── Deal history rows ── */
@@ -444,8 +444,8 @@
 .nextBtn {
   flex: 1;
   padding: 14px;
-  background: var(--color-text-primary);
-  color: var(--color-bg);
+  background: var(--color-accent);
+  color: #fff;
   font-family: var(--font-body);
   font-size: 14px;
   font-weight: 500;

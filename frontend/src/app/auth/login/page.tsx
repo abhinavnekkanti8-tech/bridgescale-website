@@ -141,11 +141,11 @@ function LoginPage() {
           </div>
 
           <div className={styles.registerLinks}>
-            <Link href="/startup/apply" className="btn btn-secondary" style={{ flex: 1 }}>
+            <Link href="/for-companies/apply" className="btn btn-secondary" style={{ flex: 1 }}>
               Apply as Startup
             </Link>
-            <Link href="/operator/apply" className="btn btn-secondary" style={{ flex: 1 }}>
-              Join as Operator
+            <Link href="/for-talent/apply" className="btn btn-secondary" style={{ flex: 1 }}>
+              Apply as Talent
             </Link>
           </div>
         </div>

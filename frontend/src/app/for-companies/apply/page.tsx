@@ -49,6 +49,7 @@ type FormState = {
   industry: string;
   companyStage: string;
   targetMarkets: string[];
+  restOfWorldDetail: string;
   needArea: string;
   budgetRange: string;
   urgency: string;
@@ -67,7 +68,7 @@ type FormState = {
 const INITIAL: FormState = {
   name: '', email: '', password: '',
   companyName: '', companyWebsite: '', industry: '', companyStage: '',
-  targetMarkets: [], needArea: '', budgetRange: '', urgency: '',
+  targetMarkets: [], restOfWorldDetail: '', needArea: '', budgetRange: '', urgency: '',
   engagementModel: '', notes: '',
   salesMotion: '', teamStructure: '',
   hasDeck: null, hasDemo: null, hasCrm: null,
@@ -117,12 +118,16 @@ export default function CompanyApplyPage() {
   }
 
   function toggleMarket(m: string) {
-    setForm(prev => ({
-      ...prev,
-      targetMarkets: prev.targetMarkets.includes(m)
-        ? prev.targetMarkets.filter(x => x !== m)
-        : [...prev.targetMarkets, m],
-    }));
+    setForm(prev => {
+      const isRemoving = prev.targetMarkets.includes(m);
+      return {
+        ...prev,
+        targetMarkets: isRemoving
+          ? prev.targetMarkets.filter(x => x !== m)
+          : [...prev.targetMarkets, m],
+        ...(m === 'Rest of World' && isRemoving ? { restOfWorldDetail: '' } : {}),
+      };
+    });
   }
 
   function toggleTriBool(field: 'hasDeck' | 'hasDemo' | 'hasCrm', val: boolean) {
@@ -157,7 +162,11 @@ export default function CompanyApplyPage() {
         companyWebsite: form.companyWebsite || undefined,
         companyStage: form.companyStage,
         needArea: form.needArea,
-        targetMarkets: form.targetMarkets.join(', '),
+        targetMarkets: form.targetMarkets
+          .map(m => m === 'Rest of World' && form.restOfWorldDetail
+            ? `Rest of World (${form.restOfWorldDetail})`
+            : m)
+          .join(', '),
         engagementModel: form.engagementModel || undefined,
         budgetRange: form.budgetRange,
         urgency: form.urgency,
@@ -328,6 +337,16 @@ export default function CompanyApplyPage() {
                       onClick={() => toggleMarket(m)}>{m}</button>
                   ))}
                 </div>
+                {form.targetMarkets.includes('Rest of World') && (
+                  <input
+                    type="text"
+                    placeholder="Please specify which markets (e.g. Latin America, Africa…)"
+                    value={form.restOfWorldDetail}
+                    onChange={e => set('restOfWorldDetail', e.target.value)}
+                    disabled={loading}
+                    style={{ marginTop: '0.5rem' }}
+                  />
+                )}
               </div>
 
               <div className={styles.fieldRow}>

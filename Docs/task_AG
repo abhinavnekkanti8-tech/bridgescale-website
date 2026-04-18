@@ -1,0 +1,94 @@
+# Task Checklist — Semi-Automated Vetting & Matching
+
+## Phase 1: Database Schema ✅
+- [x] Add `DiagnosisStatus` enum to `schema.prisma`
+- [x] Add `PaymentGateway` enum to `schema.prisma`
+- [x] Add company intake fields: `companyUsp`, `companyGtmChallenge`, `companyIcp`, `companySalesMotion`, `companyKeyMetrics`
+- [x] Add vetting/diagnosis fields: `aiNeedDiagnosis`, `diagnosisStatus`, `clientComments`, `opportunityBrief`
+- [x] Add talent fields: `talentBuyerPersona`, `talentDealSize`, `talentNotableAchievement`
+- [x] Add AI pre-screen field: `aiPreScreenScore` (Json)
+- [x] Add payment fields: `paymentGateway`, `paymentCurrency`
+- [ ] **⚠️ ACTION NEEDED — Run migration:**
+  ```
+  cd backend
+  npx prisma migrate dev --name add_vetting_fields
+  ```
+  This regenerates `@prisma/client` so all new types are available. All `as any` casts in `applications.service.ts` will resolve cleanly after this.
+
+---
+
+## Phase 2: Backend — Mock AI & Vetting Service ✅
+- [x] `dto/create-application.dto.ts` — new company + talent optional fields added
+- [x] `ai/vetting.service.ts` — **created** with 3 methods:
+  - `generateNeedDiagnosis()` — rule-based scoring on ICP, GTM challenge, USP, budget
+  - `generateOpportunityBrief()` — auto-generates matching brief on client approval
+  - `preScreenTalent()` — email domain check, mock LinkedIn lookup per reference, overall risk score
+- [x] `ai/ai.module.ts` — exports `VettingService` globally
+- [x] `applications/applications.module.ts` — provides `VettingService`
+- [x] `applications/applications.service.ts` — rewired:
+  - `createApplication()` auto-triggers AI processing async after submission
+  - `approveDiagnosisAsAdmin()` → sets `COMPLETED_INTERNAL_REVIEW` + emails client
+  - `approveByClient()` → sets `CLIENT_APPROVED` + generates Opportunity Brief
+  - Payment routing: COMPANY → Razorpay/INR, TALENT → Stripe/USD
+- [x] `applications/applications.controller.ts` — new endpoints:
+  - `PATCH /:id/diagnosis/admin-approve`
+  - `PATCH /:id/diagnosis/client-approve`
+  - `POST /webhook` — handles both Stripe + Razorpay events
+- [x] `email/templates.ts` — `diagnosisReadyEmail()` added
+- [x] `email/email.service.ts` — `sendDiagnosisReady()` added
+
+---
+
+## Phase 3: Backend — SoW Templates & Payments ✅
+- [x] `sow/sow-templates.constant.ts` — **created** with 3 templates: `PIPELINE_SPRINT`, `BD_SPRINT`, `FRACTIONAL_RETAINER` (full scope/deliverables/timeline text)
+- [x] `.env.example` — Razorpay keys added (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `DUMMY_PAYMENT_MODE`)
+- [x] `applications.service.ts` — `getFeeConfig()` routes COMPANY → ₹15,000/Razorpay, TALENT → $50/Stripe
+
+---
+
+## Phase 4: Frontend — Application Form Updates ✅
+- [x] `frontend/src/app/page.tsx` — company "AI Deep Dive" section added:
+  - USP textarea, GTM Challenge textarea, ICP textarea, Sales Motion dropdown, Key Metrics input
+  - All tagged "Optional — but recommended" with amber highlight
+- [x] `frontend/src/app/page.tsx` — talent "AI Pre-Screen" section added:
+  - Buyer Persona input, Average ACV dropdown, Notable Achievement textarea
+  - All tagged "Optional — boosts your score"
+- [x] LinkedIn URL field marked as required (`*`)
+- [x] Form disclaimer updated to show ₹15,000 (Razorpay) for companies and $50 (Stripe) for talent
+- [x] Success message updated to mention AI processing has started
+
+---
+
+## Phase 5: Frontend — Admin AI Diagnosis Review Drawer ✅
+- [x] `frontend/src/app/admin/applications/page.tsx` — rebuilt with:
+  - `DiagnosisPanel` component — shows AI Need Diagnosis, readiness flags, suggested actions, recommended package. Admin button: "Mark Internal Review Complete & Notify Client"
+  - `PreScreenPanel` component — shows overall risk badge, reference-by-reference flag list, domain + LinkedIn verdict
+  - Company deep-dive fields (USP, GTM Challenge, ICP) visible in drawer
+  - Payment gateway + currency shown per application
+  - `awaitingClient` stat counter on the stats bar
+  - All new diagnosis statuses in badge map
+
+---
+
+## Phase 6: Frontend — Client Dashboard Diagnosis View ✅
+- [x] **[NEW]** `frontend/src/app/startup/diagnosis/page.tsx`
+  - Protected route (`AuthProvider` + `ProtectedLayout`)
+  - Fetches all applications, filters to most recent COMPANY app matching session user email
+  - 5-step `StatusTimeline` component (animated, shows current stage)
+  - Application ref chip with ID, company name, and submit date
+  - `PendingCard` — shown while AI is processing (with float animation)
+  - `awaitingReviewBanner` — shown when diagnosis exists but admin hasn't approved yet
+  - `DiagnosisCard` — rich card with summary, recommended package, primary gap, readiness flags, suggested actions, model note
+  - Client comments textarea + `Approve` button → `PATCH /:id/diagnosis/client-approve`
+  - `approved` badge once submitted; approval form hides post-approval
+  - `OpportunityBriefCard` — revealed only after `CLIENT_APPROVED` with full brief content
+  - `briefGeneratingBanner` — shown while brief is still being created
+- [x] **[NEW]** `frontend/src/app/startup/diagnosis/page.module.css` — full premium CSS
+- [x] **[MODIFY]** `frontend/src/app/startup/dashboard/page.tsx` — added 🧠 "Review Your Need Diagnosis" as first action card
+
+---
+
+## Post-Migration Cleanup (after `prisma migrate dev` runs)
+- [ ] Remove the local `DiagnosisStatus` / `PaymentGateway` const blocks from `applications.service.ts`
+- [ ] Replace `as any` Prisma update casts with proper typed calls
+- [ ] Add `paymentGateway`, `paymentCurrency`, `diagnosisStatus` back to `getApplicationStatus()` select

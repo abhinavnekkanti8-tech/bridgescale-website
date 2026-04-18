@@ -59,7 +59,7 @@
 .active .progressDot {
   border-color: var(--color-accent-violet);
   color: var(--color-accent-violet);
-  box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.15);
+  box-shadow: 0 0 0 4px rgba(153, 8, 31, 0.12);
 }
 
 .active .progressLabel { color: var(--color-text-primary); }
@@ -90,7 +90,7 @@
 
 .input:focus, .select:focus, .textarea:focus {
   border-color: var(--color-accent-violet);
-  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12);
+  box-shadow: 0 0 0 3px rgba(153, 8, 31, 0.12);
 }
 
 .select { cursor: pointer; }
@@ -118,9 +118,10 @@
 
 .checkCard:hover { border-color: var(--color-accent-violet); }
 .checkCardSelected {
-  background: rgba(168, 85, 247, 0.08);
+  background: transparent;
   border-color: var(--color-accent-violet);
   color: var(--color-accent-violet);
+  font-weight: 600;
 }
 
 /* ── Readiness check list ── */
@@ -140,7 +141,7 @@
 }
 
 .checkRow input { width: 16px; height: 16px; accent-color: var(--color-accent-violet); }
-.checkRowSelected { background: rgba(168, 85, 247, 0.06); border-color: var(--color-accent-violet); }
+.checkRowSelected { background: transparent; border-color: var(--color-accent-violet); }
 
 /* ── Review ── */
 .reviewGrid { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; }

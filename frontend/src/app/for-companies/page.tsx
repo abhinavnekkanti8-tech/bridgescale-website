@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import { MarketingNav } from '@/components/MarketingNav';
+import FaqSection from '@/components/FaqSection';
+import { companiesFaqGroups } from '@/content/faq';
 import styles from './companies.module.css';
 
 /* ── Scroll-reveal hook ── */
@@ -162,6 +164,9 @@ export default function ForCompaniesPage() {
         </Reveal>
       </section>
 
+      {/* ── FAQ ── */}
+      <FaqSection groups={companiesFaqGroups} />
+
       {/* ── GUARANTEE ── */}
       <section className={styles.guaranteeSection}>
         <Reveal>
@@ -182,7 +187,7 @@ export default function ForCompaniesPage() {
         <Reveal>
           <div className={styles.container}>
             <h2 className={styles.ctaTitle}>Ready to find your fractional commercial team?</h2>
-            <p className={styles.ctaDesc}>Apply as a company — $200 one-time activation fee covers your full intake, diagnosis, and curated talent matching.</p>
+            <p className={styles.ctaDesc}>Create your free account and get a curated talent shortlist. Pay only when you&apos;re ready to unlock matches.</p>
             <Link href="/for-companies/apply" className="btn btn-primary">Apply as a company &rarr;</Link>
           </div>
         </Reveal>
