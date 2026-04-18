@@ -30,7 +30,6 @@ export function MarketingNav() {
             </Link>
           ))}
           <Link href="/auth/login" className={styles.link}>Log in</Link>
-          <Link href="/#signup" className={styles.cta}>Request Early Access</Link>
         </div>
       </div>
     </nav>

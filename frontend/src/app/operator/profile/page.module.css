@@ -13,7 +13,7 @@
   border-radius: var(--radius-md); color: var(--color-text-primary);
   font-size: 0.9375rem; font-family: inherit; transition: border-color 0.2s; outline: none;
 }
-.input:focus, .textarea:focus { border-color: var(--color-accent-violet); box-shadow: 0 0 0 3px rgba(168,85,247,0.12); }
+.input:focus, .textarea:focus { border-color: var(--color-accent-violet); box-shadow: 0 0 0 3px rgba(153,8,31,0.12); }
 .textarea { resize: vertical; min-height: 120px; }
 
 .checkGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-3); }
@@ -24,7 +24,7 @@
   transition: all 0.18s; text-align: center; user-select: none;
 }
 .checkCard:hover { border-color: var(--color-accent-violet); }
-.selected { background: rgba(168,85,247,0.08); border-color: var(--color-accent-violet); color: var(--color-accent-violet); }
+.selected { background: transparent; border-color: var(--color-accent-violet); color: var(--color-accent-violet); font-weight: 600; }
 
 .errorBox { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4); background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: var(--radius-md); font-size: 0.875rem; color: #fca5a5; }
 .nav { display: flex; justify-content: flex-end; gap: var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--color-border); }

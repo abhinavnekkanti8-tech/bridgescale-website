@@ -15,19 +15,22 @@
   --color-border:       #d9d4cc;
   --color-border-hover: #c4beb6;
 
-  /* Accent — steel blue */
-  --color-accent:       #7E93B5;
-  --color-accent-hover: #6a80a3;
-  --color-accent-light: #92a8c8;
-  --color-accent-bg:    #eef2f7;
+  /* Accent — crimson family */
+  --color-accent:       #99081F;
+  --color-accent-hover: #660013;
+  --color-accent-light: #D63A56;
+  --color-accent-bg:    #E8E4DE;
+  --color-accent-text:  #BA0C2F;
 
-  /* Legacy aliases (internal dashboard pages) */
-  --color-accent-amber:  #7E93B5;
-  --color-accent-teal:   #5a9e91;
-  --color-accent-violet: #7E93B5;
-  --grad-primary:        #7E93B5;
-  --shadow-glow-amber:   0 4px 20px rgba(126,147,181,0.15);
+  /* Legacy aliases → remapped to crimson */
+  --color-accent-amber:  #99081F;
+  --color-accent-teal:   #99081F;
+  --color-accent-violet: #99081F;
+  --color-accent-blue:   #99081F;
+  --grad-primary:        #99081F;
+  --shadow-glow-amber:   0 4px 20px rgba(153,8,31,0.15);
   --shadow-card:         0 1px 3px rgba(0,0,0,0.06);
+  --muted-bg:            #E8E4DE;
 
   /* Dark (inverted section, footer) */
   --color-dark:         #111111;
@@ -107,8 +110,8 @@ a {
 }
 
 .btn-primary {
-  background: var(--color-text-primary);
-  color: var(--color-bg);
+  background: var(--color-accent);
+  color: #fff;
 }
 
 .btn-primary:hover {
@@ -117,13 +120,14 @@ a {
 
 .btn-secondary {
   background: transparent;
-  color: var(--color-text-primary);
-  border: 1.5px solid var(--color-text-primary);
+  color: var(--color-accent);
+  border: 1.5px solid var(--color-accent);
 }
 
 .btn-secondary:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  background: var(--color-accent-hover);
+  color: #fff;
+  border-color: var(--color-accent-hover);
 }
 
 /* ── Legacy utility classes (internal pages) ── */
@@ -142,7 +146,7 @@ a {
 }
 .badge-amber  { border-color: var(--color-accent); color: var(--color-accent); }
 .badge-violet { border-color: var(--color-accent); color: var(--color-accent); }
-.badge-teal   { border-color: var(--color-accent-teal); color: var(--color-accent-teal); }
+.badge-teal   { border-color: var(--color-accent); color: var(--color-accent); }
 
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 6px; }

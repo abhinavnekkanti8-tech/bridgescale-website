@@ -6,16 +6,16 @@
 .field { display: flex; flex-direction: column; gap: var(--space-2); }
 .label { font-size: 0.875rem; font-weight: 500; color: var(--color-text-secondary); }
 .input { width: 100%; padding: var(--space-3) var(--space-4); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text-primary); font-size: 0.9375rem; font-family: inherit; outline: none; transition: border-color 0.2s; }
-.input:focus { border-color: var(--color-accent-violet); box-shadow: 0 0 0 3px rgba(168,85,247,0.12); }
+.input:focus { border-color: var(--color-accent-violet); box-shadow: 0 0 0 3px rgba(153,8,31,0.12); }
 
 .slotGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: var(--space-2); }
 .slot { padding: var(--space-3); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); cursor: pointer; font-size: 0.9375rem; font-weight: 600; transition: all 0.18s; color: var(--color-text-primary); font-family: var(--font-body); }
 .slot:hover { border-color: var(--color-accent-violet); }
-.slotActive { background: rgba(168,85,247,0.08); border-color: var(--color-accent-violet); color: var(--color-accent-violet); }
+.slotActive { background: transparent; border-color: var(--color-accent-violet); color: var(--color-accent-violet); font-weight: 600; }
 
 .errorBox { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4); background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: var(--radius-md); font-size: 0.875rem; color: #fca5a5; }
 .nav { display: flex; justify-content: flex-end; padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
 
-.infoCard { padding: var(--space-6); background: linear-gradient(135deg, rgba(20,184,166,0.06), rgba(168,85,247,0.06)); border: 1px solid var(--color-border-hover); border-radius: var(--radius-lg); }
+.infoCard { padding: var(--space-6); background: var(--color-surface-alt); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
 .infoCard h3 { margin-bottom: var(--space-3); }
 .infoCard ul { display: flex; flex-direction: column; gap: var(--space-2); list-style: none; color: var(--color-text-secondary); font-size: 0.9375rem; }

@@ -161,7 +161,7 @@
 /* ── Unlock CTA ── */
 .unlockCTA {
   padding: var(--space-6);
-  background: linear-gradient(135deg, rgba(158, 127, 90, 0.1) 0%, rgba(126, 147, 181, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(153, 8, 31, 0.05) 0%, rgba(153, 8, 31, 0.03) 100%);
   border: 1px solid var(--color-border);
   border-radius: 0.75rem;
   display: flex;

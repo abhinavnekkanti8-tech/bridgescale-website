@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BridgeScale — Model 1 Color Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* PRIMARY — crimson family, no pink tints */
+    --primary:         #99081F;   /* button fills, solid badges */
+    --primary-text:    #BA0C2F;   /* typography highlights, accent links */
+    --primary-hover:   #660013;   /* button hover / pressed */
+    --primary-light:   #D63A56;   /* highlight on dark bg */
+
+    /* Base */
+    --bg:              #F5F3EF;
+    --surface:         #FFFFFF;
+    --text:            #0F0F0F;
+    --text-muted:      #706B65;
+    --border:          #D9D4CC;
+    --muted-bg:        #E8E4DE;   /* warm neutral — for info badges, progress tracks */
+
+    /* Semantic error — distinct from brand red */
+    --error:           #EF4444;
+    --error-bg:        rgba(239, 68, 68, 0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 3rem 2rem; }
+  .container { max-width: 900px; margin: 0 auto; }
+  .section { margin-bottom: 4rem; }
+  .label { font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 1rem; font-weight: 500; }
+  h1 { font-family: 'Playfair Display', serif; font-size: 3.25rem; font-weight: 700; line-height: 1.1; letter-spacing: -0.01em; }
+  .accent { color: var(--primary-text); }
+  p.sub { color: var(--text-muted); font-size: 1.0625rem; margin-top: 1rem; max-width: 620px; line-height: 1.55; }
+
+  /* Buttons */
+  .btn-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+  .btn { font-family: inherit; padding: 0.75rem 1.5rem; font-size: 0.9375rem; font-weight: 500; border: 1px solid transparent; cursor: pointer; transition: all 150ms ease; }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-secondary { background: transparent; color: var(--primary); border-color: var(--primary); }
+  .btn-secondary:hover { background: var(--primary-hover); color: white; border-color: var(--primary-hover); }
+  .btn-ghost { background: transparent; color: var(--text-muted); }
+  .btn-ghost:hover { color: var(--primary); }
+
+  /* Chips */
+  .chip-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .chip { padding: 0.5rem 1rem; border: 1px solid var(--border); font-size: 0.875rem; cursor: pointer; transition: all 150ms; background: transparent; color: var(--text); }
+  .chip:hover { border-color: var(--primary); }
+  .chip.selected { background: transparent; border-color: var(--primary); color: var(--primary); font-weight: 600; }
+
+  /* Info badges */
+  .badge { display: inline-block; padding: 0.25rem 0.625rem; font-size: 0.75rem; font-weight: 500; letter-spacing: 0.02em; }
+  .badge-info { background: var(--muted-bg); color: var(--text); }
+  .badge-primary { background: transparent; color: var(--primary); border: 1px solid var(--primary); font-weight: 600; }
+
+  /* Form */
+  .field { display: flex; flex-direction: column; gap: 0.375rem; margin-bottom: 1rem; max-width: 360px; }
+  .field label { font-size: 0.8125rem; font-weight: 500; }
+  .field input { padding: 0.625rem 0.875rem; border: 1px solid var(--border); font-family: inherit; font-size: 0.9375rem; background: var(--surface); }
+  .field input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(153, 8, 31, 0.12); }
+
+  /* Link */
+  a.link { color: var(--primary-text); text-decoration: underline; text-underline-offset: 3px; }
+  a.link-muted { color: var(--text-muted); }
+
+  /* Progress */
+  .progress { height: 6px; background: var(--muted-bg); overflow: hidden; max-width: 360px; }
+  .progress-bar { height: 100%; width: 65%; background: var(--primary); }
+
+  /* Error */
+  .alert { padding: 0.875rem 1rem; background: var(--error-bg); color: var(--error); font-size: 0.875rem; border-left: 3px solid var(--error); max-width: 500px; }
+
+  /* Swatches */
+  .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
+  .swatch { display: flex; flex-direction: column; }
+  .swatch-color { height: 80px; border: 1px solid var(--border); }
+  .swatch-name { font-size: 0.75rem; font-weight: 500; margin-top: 0.5rem; }
+  .swatch-hex { font-size: 0.75rem; color: var(--text-muted); font-family: ui-monospace, monospace; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="section">
+    <div class="label">Mono-accent preview — Crimson family only (#99081F fills + #BA0C2F text) · Neutrals for utility UI</div>
+    <h1>Growth isn't strategy. It's <span class="accent">senior talent</span> with the networks to open it.</h1>
+    <p class="sub">Fractional diaspora senior talent for Indian startups scaling into global markets.</p>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <div class="label">Buttons — three-tier hierarchy: primary fill · outlined inversion · ghost</div>
+    <div class="btn-row">
+      <button class="btn btn-primary">Apply as a company &rarr;</button>
+      <button class="btn btn-secondary">Learn more</button>
+      <button class="btn btn-ghost">Maybe later</button>
+    </div>
+    <p class="sub" style="font-size:0.8125rem;">The <strong>Learn more</strong> button now uses a crimson inversion: red text + red border on cream by default, flips to a solid crimson fill with white text on hover — keeps everything in the red family.</p>
+  </div>
+
+  <div class="section">
+    <div class="label">Target market chips — selected = red accent</div>
+    <div class="chip-row">
+      <button class="chip">EU</button>
+      <button class="chip selected">US</button>
+      <button class="chip">AU / New Zealand</button>
+      <button class="chip">UK</button>
+      <button class="chip selected">Singapore / SEA</button>
+      <button class="chip">UAE / Middle East</button>
+      <button class="chip">Canada</button>
+      <button class="chip">Rest of World</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="label">Form — red focus ring (click into a field to see the crimson border + soft red halo)</div>
+    <div class="field">
+      <label>Your email</label>
+      <input type="email" placeholder="you@company.com" autofocus>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" placeholder="••••••••">
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="label">Badges — red outline = status/brand, neutral fill = info/meta</div>
+    <span class="badge badge-primary">Unlock required</span>
+    &nbsp;
+    <span class="badge badge-info">In review</span>
+    &nbsp;
+    <span class="badge badge-info">Step 2 of 4</span>
+    &nbsp;
+    <span class="badge badge-primary">New match</span>
+  </div>
+
+  <div class="section">
+    <div class="label">Progress indicator — crimson fill on warm neutral track</div>
+    <div class="progress"><div class="progress-bar"></div></div>
+    <p class="sub" style="margin-top:0.5rem; font-size:0.8125rem;">Profile 65% complete</p>
+  </div>
+
+  <div class="section">
+    <div class="label">Links</div>
+    <p>Primary link: <a href="#" class="link">Read how matching works</a> &nbsp;&nbsp; Muted link: <a href="#" class="link link-muted">View platform docs</a></p>
+  </div>
+
+  <div class="section">
+    <div class="label">Error alert — distinct bright red, separate from brand crimson</div>
+    <div class="alert">Please fill in all required fields before submitting.</div>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <div class="label">Full token palette</div>
+    <div class="swatches">
+      <div class="swatch"><div class="swatch-color" style="background:#99081F"></div><div class="swatch-name">primary (fill)</div><div class="swatch-hex">#99081F</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#BA0C2F"></div><div class="swatch-name">primary-text</div><div class="swatch-hex">#BA0C2F</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#660013"></div><div class="swatch-name">primary-hover</div><div class="swatch-hex">#660013</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#D63A56"></div><div class="swatch-name">primary-light</div><div class="swatch-hex">#D63A56</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#0F0F0F"></div><div class="swatch-name">text</div><div class="swatch-hex">#0F0F0F</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#706B65"></div><div class="swatch-name">text-muted</div><div class="swatch-hex">#706B65</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#E8E4DE"></div><div class="swatch-name">muted-bg</div><div class="swatch-hex">#E8E4DE</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#D9D4CC"></div><div class="swatch-name">border</div><div class="swatch-hex">#D9D4CC</div></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

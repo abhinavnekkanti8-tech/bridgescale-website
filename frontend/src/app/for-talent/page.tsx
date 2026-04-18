@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import { MarketingNav } from '@/components/MarketingNav';
+import FaqSection from '@/components/FaqSection';
+import { talentFaqGroups } from '@/content/faq';
 import styles from './talent.module.css';
 
 /* ── Scroll-reveal hook ── */
@@ -187,6 +189,9 @@ export default function ForTalentPage() {
           </div>
         </Reveal>
       </section>
+
+      {/* ── FAQ ── */}
+      <FaqSection groups={talentFaqGroups} />
 
       {/* ── CTA ── */}
       <section className={styles.ctaSection}>

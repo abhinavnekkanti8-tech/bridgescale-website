@@ -1,0 +1,73 @@
+# Semi-Automated Vetting & Matching Implementation Plan
+
+Based on the agreed workflows, this document outlines the concrete inputs we will add, the architecture for the Mock AI (built to be easily swapped with a real LLM later), and the exact breakdown of tasks.
+
+## 1. Additional Inputs & Changes
+
+### A. Company Intake (To Generate a Quality Need Diagnosis)
+To give an LLM the best context, we will collect a mix of structured and unstructured data.
+**Existing Mandatory Inputs:**
+`Founder Name`, `Email`, `Company Name`, `Company Stage`, `Primary Need Area`, `Target Markets`, `Budget Range`, `Urgency`.
+
+**New Optional Inputs (Templates/Text Areas):**
+1. **Value Proposition (USP):** *"In 1-2 sentences, why do customers choose you over competitors?"*
+2. **Current Go-To-Market (GTM) Challenge:** *"What is the biggest bottleneck in your sales process right now? (e.g., not enough top-of-funnel leads, low conversion rates, long sales cycles)."*
+3. **Ideal Customer Profile (ICP):** *"Who is the exact buyer persona you are trying to reach? (e.g., VP of Engineering at Series B Healthcare SaaS)."*
+4. **Current Sales Motion:** *"Is your sales currently Founder-led? Do you have an existing SDR/AE team?"*
+5. **Key Traction Metrics (Optional):** *"Current ARR, Average Deal Size (ACV), and average sales cycle length."*
+
+### B. Talent Application inputs (To allow AI to Pre-Screen effectively)
+**Existing Mandatory Inputs:**
+`Name`, `Email`, `Location`, `Seniority`, `LinkedIn URL`, `CV Upload`, `References (Name, Company, Email)`.
+
+**New Mandatory/Optional Inputs:**
+1. **Target Buyer Persona Expertise:** *"Who are you best at selling to? (e.g., Enterprise CIOs)"*
+2. **Average Deal Size Experience (ACV):** *"e.g., $50k-$250k"*
+3. **Notable Achievement:** *"e.g., Closed $2M in ARR in 2023 at previous company."*
+
+---
+
+## 2. Updated Workflows & Architectural Changes
+
+### A. Company Intake Workflow
+1. **Apply:** Company submits the form with the new rich inputs.
+2. **AI Diagnosis (Mock):** A dedicated backend service interface `mock-ai.service.ts` processes the payload. It will be built using standard prompt templating, so when you are ready to add OpenAI/Claude, you just swap the API key and endpoint.
+3. **Internal Review:** Admin reviews the AI Diagnosis via the Admin Dashboard. Admin sets status to `COMPLETED_INTERNAL_REVIEW`.
+4. **Client Notification & Comments:** The backend triggers a transactional email (using Resend/Nodemailer) sending a secure link to the Client. The Client logs in, views the Diagnosis, and can add comments or approve it.
+5. **Opportunity Brief Generation:** Once Client-approved, the mock AI generates an Opportunity Brief that can be used directly for talent matching.
+
+### B. Talent Vetting Workflow (Mock APIs)
+1. **Apply:** Talent submits form with LinkedIn and References.
+2. **AI Pre-Screen (Mock):**
+   - **Email Domain Verification:** Script extracts the `@domain.com` from references. If it equals `gmail.com`, `yahoo.com`, it flags as: *"Warning: Personal email used for professional reference."*
+   - **Mock LinkedIn Scraper API:** We will create a mock service that "calls" an external API with the provided LinkedIn URL. It will return a mock success response (e.g. `{"exists": true, "company_match": true}`).
+3. **Human Vetting:** Platform admin reviews the flags on the dashboard and approves the candidate.
+
+### C. SoW and Payments
+- **SoW Templates:** Hardcode industry standard template text (e.g. Sales Sprint, Fractional BD) into the backend constants that populate when spinning up a new Statement of Work.
+- **Payments:** Mock the Stripe ($50) and Razorpay (₹15,000) checkout sessions. We will create environment variables `STRIPE_API_KEY` and `RAZORPAY_KEY_ID`. You can drop your real keys in the `.env` file when ready.
+
+---
+
+## 3. Implementation Task Breakdown
+
+> [!NOTE]
+> We will execute these tasks sequentially. Each phase must be tested before moving to the next.
+
+*   **Phase 1: Database Schema & Core Entities**
+    *   Update Prisma schema to include the new Application fields (e.g., `companyGtmChallenge`, `clientComments`, `aiPreScreenFlags`).
+    *   Add Enums for `DiagnosisStatus` and `PaymentGateway`.
+    *   Run Prisma migrations.
+*   **Phase 2: Mock AI & Vetting Services (Backend)**
+    *   Create `vetting.service.ts` to house the Mock LLM logic for Need Diagnosis and Opportunity Briefs.
+    *   Create logic to parse domains from references and mock the LinkedIn API validations.
+*   **Phase 3: Company Intake & Dashboard Updates (Frontend)**
+    *   Update `app/(public)/apply/company/page.tsx` with the new optional template queries.
+    *   Build the Admin view to review the AI Need Diagnosis.
+    *   Build the Client Dashboard view to allow the client to read the diagnosis and add comments.
+*   **Phase 4: Talent Vetting & Dashboard Updates (Frontend)**
+    *   Update `app/(public)/apply/operator/page.tsx` with the new talent queries.
+    *   Build the Admin view to read the AI Pre-Screen flags (e.g., Domain warnings, LinkedIn mock success).
+*   **Phase 5: Payments & SoW Templates**
+    *   Build out `STRIPE` and `RAZORPAY` mock checkout flow redirects based on the $50 / ₹15,000 rules.
+    *   Populate the SoW endpoints with standard boilerplate text.
