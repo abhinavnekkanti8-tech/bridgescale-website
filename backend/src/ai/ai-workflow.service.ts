@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { AiService } from './ai.service';
+import { TalentPreScreenService } from '../talent-pre-screen/talent-pre-screen.service';
 
 /**
  * AI Workflow Service: Orchestrates AI-driven workflows such as diagnosis generation.
@@ -15,6 +16,7 @@ export class AiWorkflowService {
     private readonly prisma: PrismaService,
     private readonly aiService: AiService,
     private readonly emailService: EmailService,
+    private readonly talentPreScreen: TalentPreScreenService,
   ) {}
 
   /**
@@ -115,6 +117,16 @@ export class AiWorkflowService {
       // Non-blocking — log error but don't throw
       this.logger.error(
         `Failed to generate diagnosis for application ${applicationId}: ${err.message}`,
+      );
+    }
+  }
+
+  async generatePreScreenForApplication(applicationId: string): Promise<void> {
+    try {
+      await this.talentPreScreen.generatePreScreen(applicationId);
+    } catch (err: any) {
+      this.logger.error(
+        `Failed to generate pre-screen for application ${applicationId}: ${err.message}`,
       );
     }
   }
