@@ -8,7 +8,7 @@ import { engagementsApi, closeoutApi, Engagement, CloseoutReport, EngagementRati
 import styles from './page.module.css';
 import Link from 'next/link';
 
-export function CloseoutContent() {
+function CloseoutContent() {
   const pathname = usePathname();
   // Expecting /startup/engagements/[id]/closeout or /operator/engagements/[id]/closeout
   const segments = pathname.split('/');
@@ -164,7 +164,7 @@ export function CloseoutContent() {
                     <strong>{r.reviewer?.firstName} {r.reviewer?.lastName}</strong>
                     <span className={styles.stars}>{'★'.repeat(r.score)}{'☆'.repeat(5 - r.score)}</span>
                   </div>
-                  <p className={styles.ratingComment}>"{r.comments}"</p>
+                  <p className={styles.ratingComment}>&quot;{r.comments}&quot;</p>
                 </div>
               ))}
             </div>

@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 export default function UnlockMatchingPage() {
   const router = useRouter();
   const { user } = useAuth();

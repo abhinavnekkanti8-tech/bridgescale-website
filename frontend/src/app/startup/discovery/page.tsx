@@ -91,7 +91,7 @@ function ScheduleContent() {
         <ul>
           <li>📞 A meeting link will be generated automatically</li>
           <li>📝 After the call, notes are captured and summarized by AI</li>
-          <li>📦 You'll receive an AI-recommended service package</li>
+          <li>📦 You&apos;ll receive an AI-recommended service package</li>
         </ul>
       </div>
     </div>

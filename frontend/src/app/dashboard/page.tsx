@@ -96,7 +96,7 @@ export default function DashboardPage() {
           </div>
           <div style={styles.content}>
             {app.status === 'PENDING_APPROVAL' && (
-              <p>Your account is being reviewed. You'll receive a confirmation email once approved.</p>
+              <p>Your account is being reviewed. You&apos;ll receive a confirmation email once approved.</p>
             )}
             {app.status === 'SUBMITTED' && (
               <p>Your application has been received. Our team is generating your needs diagnosis.</p>
@@ -105,13 +105,13 @@ export default function DashboardPage() {
               <p>Your diagnosis is ready for review. You can approve it to proceed to matching.</p>
             )}
             {app.status === 'DIAGNOSIS_APPROVED' && (
-              <p>Great! We're now preparing your opportunity brief and matching you with potential talent.</p>
+              <p>Great! We&apos;re now preparing your opportunity brief and matching you with potential talent.</p>
             )}
             {app.status === 'APPROVED' && (
               <p>Congratulations! Your application has been approved. You can now start engaging with matched talent.</p>
             )}
             {app.status === 'REJECTED' && (
-              <p>After review, we're unable to accept your application at this time. You're welcome to reapply in the future.</p>
+              <p>After review, we&apos;re unable to accept your application at this time. You&apos;re welcome to reapply in the future.</p>
             )}
           </div>
         </div>

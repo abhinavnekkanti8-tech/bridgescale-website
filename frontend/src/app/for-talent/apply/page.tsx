@@ -260,7 +260,7 @@ export default function TalentApplyPage() {
         <div className={styles.successCard}>
           <div className={styles.successIcon}>✓</div>
           <h2>Account created</h2>
-          <p>Your account is ready. We're vetting your profile and preparing your dashboard. You'll see company matches when they're ready.</p>
+          <p>Your account is ready. We&apos;re vetting your profile and preparing your dashboard. You&apos;ll see company matches when they&apos;re ready.</p>
         </div>
       </div>
     );
@@ -283,7 +283,7 @@ export default function TalentApplyPage() {
           <div className={styles.feeCard}>
             <div className={styles.feeLabel}>Account</div>
             <div className={styles.feeAmount}>Free</div>
-            <div className={styles.feeNote}>Create your free account. Pay $50 only when you're ready to unlock company matches.</div>
+            <div className={styles.feeNote}>Create your free account. Pay $50 only when you&apos;re ready to unlock company matches.</div>
           </div>
 
           {/* Step progress */}
@@ -390,7 +390,7 @@ export default function TalentApplyPage() {
               <>
                 <div className={styles.sectionTitle}>Deal & engagement history</div>
                 <p className={styles.sectionHint}>
-                  Share up to 3 deals, projects, or engagements you've led. Company names can be anonymised.
+                  Share up to 3 deals, projects, or engagements you&apos;ve led. Company names can be anonymised.
                 </p>
 
                 {form.dealHistory.map((deal, i) => (
@@ -595,7 +595,7 @@ export default function TalentApplyPage() {
 
             {step === STEPS.length - 1 && (
               <p className={styles.submitNote}>
-                You'll be signed in automatically. Pay $50 only when you're ready to unlock company matches.
+                You&apos;ll be signed in automatically. Pay $50 only when you&apos;re ready to unlock company matches.
               </p>
             )}
           </form>

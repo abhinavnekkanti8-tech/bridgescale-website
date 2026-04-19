@@ -20,7 +20,8 @@ export class ApplicationMatchingService {
    * Create a shortlist for a company application.
    * Shortlists group potential talent matches for a specific opportunity.
    */
-  async createShortlist(companyApplicationId: string) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async createShortlist(companyApplicationId: string, _params: { name: string }) {
     const company = await this.prisma.application.findUnique({
       where: { id: companyApplicationId },
     });

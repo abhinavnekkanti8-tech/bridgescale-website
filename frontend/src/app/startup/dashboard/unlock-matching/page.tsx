@@ -1,11 +1,19 @@
 'use client';
 
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-const UPLOADS_DIR = process.cwd();
+export const dynamic = 'force-dynamic';
+
+export default function UnlockMatchingPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading…</div>}>
+      <UnlockMatchingContent />
+    </Suspense>
+  );
+}
 
 function loadRazorpay(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -18,7 +26,7 @@ function loadRazorpay(): Promise<void> {
   });
 }
 
-export default function UnlockMatchingPage() {
+function UnlockMatchingContent() {
   const router = useRouter();
   const { user } = useAuth();
   const searchParams = useSearchParams();
