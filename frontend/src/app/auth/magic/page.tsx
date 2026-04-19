@@ -1,11 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 type Phase = 'verifying' | 'success' | 'error';
 
 export default function MagicLoginPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--color-bg, #0a0a0a)' }} />}>
+      <MagicLoginContent />
+    </Suspense>
+  );
+}
+
+function MagicLoginContent() {
   const router = useRouter();
   const params = useSearchParams();
   const [phase, setPhase] = useState<Phase>('verifying');

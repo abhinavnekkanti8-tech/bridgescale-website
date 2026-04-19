@@ -28,7 +28,7 @@ export class EmailService {
     if (!this.isDummy) {
       // Dynamic import to avoid crash if resend package is not installed
       try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { Resend } = require('resend');
         this.resend = new Resend(apiKey);
         this.logger.log('Email service initialized with Resend provider.');

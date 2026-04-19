@@ -3,9 +3,7 @@ import {
   IsInt,
   IsEnum,
   Min,
-  IsOptional,
   IsDateString,
-  IsNumber,
 } from 'class-validator';
 
 export enum PaymentPlanTypeDto {

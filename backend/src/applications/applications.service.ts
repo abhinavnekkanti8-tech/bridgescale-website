@@ -148,7 +148,7 @@ export class ApplicationsService {
       assessmentSkipped,
       referencesSkipped,
       assessmentCompletedAt: (isTalent && !assessmentSkipped && dto.caseStudyResponse) ? new Date() : undefined,
-      referencesCompletedAt: (isTalent && !referencesSkipped && dto.references?.length >= 2) ? new Date() : undefined,
+      referencesCompletedAt: (isTalent && !referencesSkipped && (dto.references?.length ?? 0) >= 2) ? new Date() : undefined,
 
       // Payment meta (stored for later unlock — no payment at signup)
       paymentProvider: fee.provider,
@@ -793,23 +793,27 @@ export class ApplicationsService {
         needDiagnosis: true,
         opportunityBrief: true,
         talentPreScreen: true,
+      },
+    });
+
+    if (!application) throw new NotFoundException('No application found for this email.');
+
+    // StartupProfile lives on Organization, not Application — fetch separately
+    const org = await this.prisma.organization.findFirst({
+      where: { memberships: { some: { user: { email: email.toLowerCase() } } } },
+      include: {
         startupProfile: {
           include: {
             shortlists: {
-              include: {
-                candidates: {
-                  take: 5, // Show first 5 candidates (blurred)
-                },
-              },
-              take: 1, // Latest shortlist
+              include: { candidates: { take: 5 } },
+              take: 1,
             },
           },
         },
       },
     });
 
-    if (!application) throw new NotFoundException('No application found for this email.');
-    return application;
+    return { ...application, startupProfile: org?.startupProfile ?? null };
   }
 
   /**

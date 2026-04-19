@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, FormEvent, Suspense } from 'react';
-import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth, AuthProvider } from '@/contexts/AuthContext';
@@ -18,7 +17,7 @@ const ROLE_ROUTES: Record<string, string> = {
 };
 
 // Prevent static prerendering (needs auth context + search params)
-export const dynamicMode = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 
 function LoginPage() {
   const [email, setEmail] = useState('');

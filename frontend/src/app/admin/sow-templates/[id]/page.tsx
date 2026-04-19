@@ -68,7 +68,7 @@ export default function EditSowTemplatePage() {
     const regex = /\{\{(\w+)\}\}/g;
     const matches = text.matchAll(regex);
     const placeholders = Array.from(matches, (m) => m[1]);
-    setExtractedPlaceholders([...new Set(placeholders)]);
+    setExtractedPlaceholders(Array.from(new Set(placeholders)));
   };
 
   const handleContentChange = (value: string) => {

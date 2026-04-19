@@ -14,8 +14,6 @@ import { DiagnosesService } from './diagnoses.service';
 import { SessionAuthGuard } from '../common/guards/session-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { SessionUser } from '../common/types/session.types';
 import { MembershipRole, DiagnosisStatus } from '@prisma/client';
 
 /**
@@ -126,7 +124,6 @@ export class DiagnosesController {
   async clientApproveDiagnosis(
     @Param('id') id: string,
     @Body('applicationId') applicationId: string,
-    @CurrentUser() _user: SessionUser,
   ) {
     return this.diagnosesService.clientApproveDiagnosis(id, applicationId);
   }
@@ -142,7 +139,6 @@ export class DiagnosesController {
   async clientRequestRevision(
     @Param('id') id: string,
     @Body() body: { applicationId: string; notes: string },
-    @CurrentUser() _user: SessionUser,
   ) {
     return this.diagnosesService.clientRequestRevision(
       id,

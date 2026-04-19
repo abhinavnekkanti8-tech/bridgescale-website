@@ -178,7 +178,7 @@ function DashboardContent() {
           </div>
           <div className={styles.breakdown}>
             {COMPONENT_META.map((c) => {
-              const val = (score.scoreBreakdown as Record<string, number>)[c.key] ?? 0;
+              const val = (score.scoreBreakdown as unknown as Record<string, number>)[c.key] ?? 0;
               const pct = (val / c.max) * 100;
               const barColor = pct >= 75 ? '#14b8a6' : pct >= 50 ? '#f59e0b' : '#ef4444';
               return (

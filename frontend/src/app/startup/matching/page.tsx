@@ -96,7 +96,7 @@ function ShortlistContent() {
               <summary>Score Breakdown</summary>
               <div className={styles.breakdown}>
                 {SCORE_COMPONENTS.map((comp) => {
-                  const val = (c.scoreBreakdown as Record<string, number>)[comp.key] ?? 0;
+                  const val = (c.scoreBreakdown as unknown as Record<string, number>)[comp.key] ?? 0;
                   const pct = (val / comp.max) * 100;
                   return (
                     <div key={comp.key} className={styles.breakdownRow}>
