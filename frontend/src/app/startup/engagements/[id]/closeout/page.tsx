@@ -8,7 +8,7 @@ import { engagementsApi, closeoutApi, Engagement, CloseoutReport, EngagementRati
 import styles from './page.module.css';
 import Link from 'next/link';
 
-export function CloseoutContent() {
+function CloseoutContent() {
   const pathname = usePathname();
   // Expecting /startup/engagements/[id]/closeout or /operator/engagements/[id]/closeout
   const segments = pathname.split('/');
