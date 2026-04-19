@@ -233,14 +233,14 @@ export default function CompanyApplyPage() {
           <div className={styles.leftLabel}>Company application</div>
           <h1 className={styles.leftTitle}>Tell us what you need.</h1>
           <p className={styles.leftSub}>
-            We'll use this information to generate a needs diagnosis — a structured
+            We&apos;ll use this information to generate a needs diagnosis — a structured
             analysis of your commercial gap and what fractional talent could move the needle.
           </p>
 
           <div className={styles.feeCard}>
             <div className={styles.feeLabel}>Matching fee</div>
             <div className={styles.feeAmount}>₹8,500</div>
-            <div className={styles.feeNote}>One-time. Pay when you're ready to unlock matches. Fully credited if we can't find a match.</div>
+            <div className={styles.feeNote}>One-time. Pay when you&apos;re ready to unlock matches. Fully credited if we can&apos;t find a match.</div>
           </div>
 
           <div className={styles.steps}>
@@ -397,7 +397,7 @@ export default function CompanyApplyPage() {
                 <div className={styles.optionalFields}>
                   <div className={styles.optionalHint}>
                     Answering these questions helps our AI generate a more specific diagnosis.
-                    All are optional — skip anything you'd rather not share.
+                    All are optional — skip anything you&apos;d rather not share.
                   </div>
 
                   <div className={styles.field}>
@@ -462,7 +462,7 @@ export default function CompanyApplyPage() {
             </button>
 
             <p className={styles.submitNote}>
-              You'll be signed in automatically. View match previews and pay only when you're ready to unlock.
+              You&apos;ll be signed in automatically. View match previews and pay only when you&apos;re ready to unlock.
             </p>
           </form>
         </div>

@@ -164,7 +164,7 @@ function CloseoutContent() {
                     <strong>{r.reviewer?.firstName} {r.reviewer?.lastName}</strong>
                     <span className={styles.stars}>{'★'.repeat(r.score)}{'☆'.repeat(5 - r.score)}</span>
                   </div>
-                  <p className={styles.ratingComment}>"{r.comments}"</p>
+                  <p className={styles.ratingComment}>&quot;{r.comments}&quot;</p>
                 </div>
               ))}
             </div>

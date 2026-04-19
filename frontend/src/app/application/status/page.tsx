@@ -218,7 +218,7 @@ function ApplicationStatusContent() {
               lineHeight: 1.6,
               textAlign: 'center',
             }}>
-              Check your inbox — we'll send you a login link once your application is reviewed.
+              Check your inbox — we&apos;ll send you a login link once your application is reviewed.
             </p>
           </>
         )}

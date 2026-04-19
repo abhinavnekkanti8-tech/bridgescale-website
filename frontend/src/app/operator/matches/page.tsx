@@ -84,7 +84,7 @@ function OperatorMatchesContent() {
                   </button>
                 </div>
               )}
-              {c.status === 'SELECTED' && <div className={styles.selectedTag}>🎉 You've been selected!</div>}
+              {c.status === 'SELECTED' && <div className={styles.selectedTag}>🎉 You&apos;ve been selected!</div>}
             </div>
           ))}
         </div>
