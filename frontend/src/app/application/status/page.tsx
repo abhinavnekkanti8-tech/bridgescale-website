@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+
+export const dynamic = 'force-dynamic';
 
 type ApplicationData = {
   id: string;
@@ -58,6 +60,14 @@ function formatFee(amount: number | null, currency: string | null): string {
 }
 
 export default function ApplicationStatusPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--color-bg, #0a0a0a)' }} />}>
+      <ApplicationStatusContent />
+    </Suspense>
+  );
+}
+
+function ApplicationStatusContent() {
   const params = useSearchParams();
   const id = params.get('id');
   const [data, setData] = useState<ApplicationData | null>(null);
