@@ -1,5 +1,5 @@
 import { IsString, IsNumber, IsEnum, Min, Max, IsBoolean, IsOptional, IsObject } from 'class-validator';
-import { CloseoutStatus, RenewalType } from '@prisma/client';
+import { CloseoutStatus } from '@prisma/client';
 
 export class GenerateCloseoutDto {
   @IsBoolean()

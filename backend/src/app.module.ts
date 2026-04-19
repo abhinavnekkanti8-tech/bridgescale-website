@@ -38,7 +38,7 @@ import { SowModule } from './sow/sow.module';
     LoggerModule.forRoot({
       pinoHttp: {
         genReqId: (req) => {
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
           const { v4: uuidv4 } = require('uuid');
           return req.headers['x-correlation-id'] || uuidv4();
         },

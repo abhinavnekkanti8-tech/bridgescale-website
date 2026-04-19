@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateEscalationDto, UpdateEscalationDto, CreateNudgeDto, UpdateHealthScoreDto } from './dto/health.dto';
+import { CreateEscalationDto, UpdateEscalationDto, CreateNudgeDto } from './dto/health.dto';
 import { AiService } from '../ai/ai.service'; // Assuming AI service can generate commentary if needed later
 
 @Injectable()

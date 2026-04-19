@@ -3,7 +3,6 @@ import {
   Post,
   Get,
   Body,
-  Query,
   Req,
   Res,
   HttpCode,

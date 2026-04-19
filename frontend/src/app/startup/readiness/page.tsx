@@ -136,7 +136,7 @@ function ReadinessContent() {
         <h2 className={styles.sectionTitle}>Score Breakdown</h2>
         <div className={styles.breakdown}>
           {COMPONENT_META.map((c) => {
-            const val = (score.scoreBreakdown as Record<string, number>)[c.key] ?? 0;
+            const val = (score.scoreBreakdown as unknown as Record<string, number>)[c.key] ?? 0;
             const pct = (val / c.max) * 100;
             const barColor = pct >= 75 ? '#14b8a6' : pct >= 50 ? '#f59e0b' : '#ef4444';
             return (
@@ -171,7 +171,7 @@ function ReadinessContent() {
       {score.eligibility !== 'INELIGIBLE' && (
         <div className={styles.ctaCard}>
           <h3>Ready to find your operator?</h3>
-          <p>You're eligible for a structured sprint engagement. Schedule your discovery call to get matched.</p>
+          <p>You&apos;re eligible for a structured sprint engagement. Schedule your discovery call to get matched.</p>
           <Link href="/startup/discovery" id="schedule-discovery-cta" className="btn btn-primary">
             Schedule Discovery Call →
           </Link>

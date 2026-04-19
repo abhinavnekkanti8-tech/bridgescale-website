@@ -16,8 +16,8 @@ function StartupBillingContent() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (user?.organizationId) {
-      paymentsApi.getStartupInvoices(user.organizationId)
+    if (user?.orgId) {
+      paymentsApi.getStartupInvoices(user.orgId)
         .then(setInvoices)
         .catch(() => setError('Could not load invoices.'))
         .finally(() => setLoading(false));

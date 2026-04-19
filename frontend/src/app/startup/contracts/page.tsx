@@ -20,8 +20,8 @@ function StartupContractsContent() {
   const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.organizationId) {
-      contractsApi.findByStartup(user.organizationId)
+    if (user?.orgId) {
+      contractsApi.findByStartup(user.orgId)
         .then(setSows)
         .catch(() => setError('Could not load contracts.'))
         .finally(() => setLoading(false));
@@ -37,8 +37,8 @@ function StartupContractsContent() {
       await contractsApi.signStartup(contractId, fakeSignatureId, idempotencyKey);
       
       // Refresh list
-      if (user?.organizationId) {
-        const updated = await contractsApi.findByStartup(user.organizationId);
+      if (user?.orgId) {
+        const updated = await contractsApi.findByStartup(user.orgId);
         setSows(updated);
       }
       alert('Contract digitally signed locally (dummy workflow).');

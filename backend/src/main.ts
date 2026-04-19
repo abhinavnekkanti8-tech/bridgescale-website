@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import * as session from 'express-session';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
@@ -55,8 +56,6 @@ async function bootstrap() {
   });
 
   // ── Serve uploaded files statically ──
-  const { join } = require('path');
-  const { NestExpressApplication } = require('@nestjs/platform-express');
   (app as any).useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
 
   const port = config.get<number>('BACKEND_PORT', 4000);

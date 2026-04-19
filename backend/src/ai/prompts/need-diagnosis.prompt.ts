@@ -38,9 +38,8 @@ export interface NeedDiagnosisOutput {
  * Deterministic mock used when OPENAI_API_KEY is a dummy value.
  * Keeps dev/test loops fast and avoids hitting the live API.
  */
-export function mockNeedDiagnosis(
-  _applicationData: Record<string, unknown>,
-): NeedDiagnosisOutput {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function mockNeedDiagnosis(_input: Record<string, unknown>): NeedDiagnosisOutput {
   return {
     analysis:
       'This company needs structured commercial motion to enter new markets. With current stage and budget, a fractional BD/sales leader can validate markets and establish initial partnerships.',

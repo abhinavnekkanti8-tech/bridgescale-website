@@ -72,7 +72,7 @@ export class AiWorkflowService {
       const diagnosis = await this.aiService.generateNeedsDiagnosis(appData);
 
       // Persist diagnosis record
-      const needDiagnosis = await this.prisma.needDiagnosis.create({
+      await this.prisma.needDiagnosis.create({
         data: {
           applicationId,
           status: 'DRAFT_AI',
