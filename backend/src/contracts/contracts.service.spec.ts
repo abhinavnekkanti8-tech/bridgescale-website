@@ -147,7 +147,7 @@ describe('ContractsService — equity path', () => {
     };
 
     beforeEach(() => {
-      prisma.statementOfWork.create.mockResolvedValue({ id: 'sow_new', ...BASE_SOW });
+      prisma.statementOfWork.create.mockResolvedValue({ ...BASE_SOW, id: 'sow_new' });
       prisma.sowVersion.create.mockResolvedValue({ id: 'ver_001' });
     });
 

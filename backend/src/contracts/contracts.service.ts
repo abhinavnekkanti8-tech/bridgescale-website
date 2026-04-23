@@ -182,9 +182,7 @@ export class ContractsService {
         vestingSchedule: dto.vestingSchedule,
         equityCliffMonths: dto.equityCliffMonths ?? 6,
         equityVestingMonths: dto.equityVestingMonths ?? 36,
-        equityKpiMilestones: dto.equityKpiMilestones
-          ? (dto.equityKpiMilestones as object[])
-          : null,
+        equityKpiMilestones: dto.equityKpiMilestones ?? undefined,
         equityReviewRequired: reviewRequired,
         promptVersion: 'equity_sow_v1.0',
         modelName: this.aiService.getModelName(),
