@@ -3,7 +3,6 @@ import {
   IsInt,
   IsOptional,
   IsEnum,
-  IsBoolean,
   IsNumber,
   IsArray,
   IsUrl,

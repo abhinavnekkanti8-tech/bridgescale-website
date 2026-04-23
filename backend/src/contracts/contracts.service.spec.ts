@@ -22,11 +22,7 @@ import { ConfigService } from '@nestjs/config';
 import { ContractsService } from './contracts.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
-import {
-  NotFoundException,
-  BadRequestException,
-  ConflictException,
-} from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { EquityTypeDto } from './dto/contracts.dto';
 
 // ── Mock factories ────────────────────────────────────────────────────────────
@@ -338,7 +334,7 @@ describe('ContractsService — equity path', () => {
     });
 
     it('sets equityReviewApprovedAt to a Date', async () => {
-      const result = await service.approveEquityReview('sow_001');
+      await service.approveEquityReview('sow_001');
 
       const updateCall = prisma.statementOfWork.update.mock.calls[0][0];
       expect(updateCall.data.equityReviewApprovedAt).toBeInstanceOf(Date);
@@ -534,7 +530,7 @@ describe('ContractsService — equity path', () => {
     });
 
     it('transitions to LAPSED and retains vestedPct', async () => {
-      const result = await service.lapseEquityGrant('contract_001', {
+      await service.lapseEquityGrant('contract_001', {
         notes: 'Engagement terminated by startup',
       });
 
