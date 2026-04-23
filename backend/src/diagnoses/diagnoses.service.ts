@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { AiWorkflowService } from '../ai/ai-workflow.service';
 import { DiagnosisStatus } from '@prisma/client';
 
 @Injectable()
@@ -15,6 +16,7 @@ export class DiagnosesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly aiWorkflow: AiWorkflowService,
   ) {}
 
   /**
@@ -274,6 +276,14 @@ export class DiagnosesService {
     });
 
     this.logger.log(`Diagnosis ${diagnosisId} client-approved → APPROVED`);
+
+    // Fire-and-forget: generate opportunity brief in the background.
+    // Does not block the response — errors are caught and logged inside
+    // AiWorkflowService.generateBriefForApplication().
+    this.aiWorkflow.generateBriefForApplication(applicationId).catch(() => {
+      // already logged inside generateBriefForApplication; suppress unhandled-rejection
+    });
+
     return updated;
   }
 

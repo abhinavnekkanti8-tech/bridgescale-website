@@ -40,11 +40,6 @@ export class ApplicationsService {
     return { amount: 5000, currency: 'USD', provider: PaymentProvider.STRIPE };
   }
 
-  /** @deprecated use getFeeMinor */
-  private getFeeAmount(type: ApplicationTypeDto): number {
-    return type === ApplicationTypeDto.COMPANY ? 100 : 50;
-  }
-
   private isDummyMode(): boolean {
     return this.config.get<string>('DUMMY_PAYMENT_MODE', 'true') === 'true';
   }
@@ -154,7 +149,7 @@ export class ApplicationsService {
       paymentProvider: fee.provider,
       feeAmountMinor: fee.amount,
       feeCurrency: fee.currency,
-      feeAmountUsd: this.getFeeAmount(dto.type),
+      feeAmountUsd: dto.type === ApplicationTypeDto.COMPANY ? 100 : 50,
     };
 
     // Create application with correct initial status (NOT PENDING_PAYMENT)
@@ -206,278 +201,6 @@ export class ApplicationsService {
       // Session data for auto-login
       session: sessionData,
     };
-  }
-
-  /**
-   * Verify a Razorpay payment and mark the application as SUBMITTED.
-   * Called by frontend after the Razorpay modal success callback.
-   */
-  async verifyRazorpayPayment(params: {
-    applicationId: string;
-    razorpayOrderId: string;
-    razorpayPaymentId: string;
-    razorpaySignature: string;
-  }) {
-    const application = await this.prisma.application.findUnique({
-      where: { id: params.applicationId },
-    });
-
-    if (!application) throw new NotFoundException('Application not found.');
-
-    if (application.status !== ApplicationStatus.PENDING_PAYMENT) {
-      return { success: true, applicationId: params.applicationId, status: application.status };
-    }
-
-    const isValid = this.razorpay.verifyPaymentSignature({
-      orderId: params.razorpayOrderId,
-      paymentId: params.razorpayPaymentId,
-      signature: params.razorpaySignature,
-    });
-
-    if (!isValid) {
-      throw new BadRequestException('Payment verification failed — invalid signature.');
-    }
-
-    const updated = await this.prisma.application.update({
-      where: { id: params.applicationId },
-      data: {
-        status: ApplicationStatus.SUBMITTED,
-        stripePaymentId: params.razorpayPaymentId,
-        paidAt: new Date(),
-      },
-    });
-
-    this.logger.log(`Application ${params.applicationId} Razorpay verified — status → SUBMITTED`);
-
-    this.emailService
-      .sendApplicationReceived({ id: updated.id, name: updated.name, email: updated.email, type: updated.type })
-      .catch((err) => this.logger.error(`Failed to send confirmation email: ${err.message}`));
-
-    // Provision user account
-    this.provisionAccount({
-      id: updated.id,
-      name: updated.name,
-      email: updated.email,
-      type: updated.type,
-      companyName: (updated as any).companyName,
-    });
-
-    // Trigger diagnosis generation (non-blocking, fire-and-forget)
-    this.aiWorkflow
-      .generateDiagnosisForApplication(updated.id)
-      .catch((err) => this.logger.error(`Failed to trigger diagnosis: ${err.message}`));
-
-    return { success: true, applicationId: updated.id, status: updated.status };
-  }
-
-  /**
-   * Dummy payment confirm — marks PENDING_PAYMENT → SUBMITTED instantly.
-   * Only available when DUMMY_PAYMENT_MODE=true.
-   */
-  async dummyConfirmPayment(applicationId: string) {
-    if (!this.isDummyMode()) {
-      throw new BadRequestException('Dummy confirm is disabled in production.');
-    }
-
-    const application = await this.prisma.application.findUnique({ where: { id: applicationId } });
-    if (!application) throw new NotFoundException('Application not found.');
-
-    if (application.status !== ApplicationStatus.PENDING_PAYMENT) {
-      return { success: true, applicationId, status: application.status };
-    }
-
-    const updated = await this.prisma.application.update({
-      where: { id: applicationId },
-      data: {
-        status: ApplicationStatus.SUBMITTED,
-        paidAt: new Date(),
-        stripePaymentId: `dummy_pi_${Date.now()}`,
-      },
-    });
-
-    this.logger.log(`[DUMMY] Application ${applicationId} confirmed — status → SUBMITTED`);
-
-    this.emailService
-      .sendApplicationReceived({ id: updated.id, name: updated.name, email: updated.email, type: updated.type })
-      .catch((err) => this.logger.error(`Failed to send confirmation email: ${err.message}`));
-
-    this.provisionAccount({
-      id: updated.id,
-      name: updated.name,
-      email: updated.email,
-      type: updated.type,
-      companyName: (updated as any).companyName,
-    });
-
-    // Trigger diagnosis generation (non-blocking, fire-and-forget)
-    this.aiWorkflow
-      .generateDiagnosisForApplication(updated.id)
-      .catch((err) => this.logger.error(`Failed to trigger diagnosis: ${err.message}`));
-
-    return { success: true, applicationId: updated.id, status: updated.status };
-  }
-
-  /**
-   * Handle Razorpay webhook: payment.captured event.
-   */
-  async handleRazorpayWebhook(rawBody: string, signature: string, payload: any) {
-    if (!this.razorpay.verifyWebhookSignature(rawBody, signature)) {
-      throw new BadRequestException('Invalid Razorpay webhook signature.');
-    }
-
-    if (payload.event !== 'payment.captured') return { received: true };
-
-    const paymentEntity = payload.payload?.payment?.entity;
-    if (!paymentEntity?.order_id) return { received: true };
-
-    const application = await this.prisma.application.findFirst({
-      where: { stripeSessionId: paymentEntity.order_id },
-    });
-
-    if (!application || application.status !== ApplicationStatus.PENDING_PAYMENT) {
-      return { received: true };
-    }
-
-    await this.prisma.application.update({
-      where: { id: application.id },
-      data: {
-        status: ApplicationStatus.SUBMITTED,
-        stripePaymentId: paymentEntity.id,
-        paidAt: new Date(),
-      },
-    });
-
-    this.logger.log(`Razorpay webhook: Application ${application.id} → SUBMITTED`);
-
-    this.emailService
-      .sendApplicationReceived({ id: application.id, name: application.name, email: application.email, type: application.type })
-      .catch((err) => this.logger.error(`Failed to send confirmation email: ${err.message}`));
-
-    this.provisionAccount({
-      id: application.id,
-      name: application.name,
-      email: application.email,
-      type: application.type,
-      companyName: (application as any).companyName,
-    });
-
-    // Trigger diagnosis generation (non-blocking, fire-and-forget)
-    this.aiWorkflow
-      .generateDiagnosisForApplication(application.id)
-      .catch((err) => this.logger.error(`Failed to trigger diagnosis: ${err.message}`));
-
-    return { received: true, applicationId: application.id };
-  }
-
-  /**
-   * Handle Stripe webhook: checkout.session.completed
-   */
-  async handleCheckoutCompleted(stripeSessionId: string, paymentIntentId: string) {
-    const application = await this.prisma.application.findUnique({ where: { stripeSessionId } });
-
-    if (!application) {
-      this.logger.warn(`No application for Stripe session ${stripeSessionId}`);
-      return { received: true };
-    }
-
-    if (application.status !== ApplicationStatus.PENDING_PAYMENT) return { received: true };
-
-    await this.prisma.application.update({
-      where: { id: application.id },
-      data: { status: ApplicationStatus.SUBMITTED, stripePaymentId: paymentIntentId, paidAt: new Date() },
-    });
-
-    this.logger.log(`Stripe webhook: Application ${application.id} → SUBMITTED`);
-
-    this.emailService
-      .sendApplicationReceived({ id: application.id, name: application.name, email: application.email, type: application.type })
-      .catch((err) => this.logger.error(`Failed to send confirmation email: ${err.message}`));
-
-    this.provisionAccount({
-      id: application.id,
-      name: application.name,
-      email: application.email,
-      type: application.type,
-      companyName: (application as any).companyName,
-    });
-
-    // Trigger diagnosis generation (non-blocking, fire-and-forget)
-    this.aiWorkflow
-      .generateDiagnosisForApplication(application.id)
-      .catch((err) => this.logger.error(`Failed to trigger diagnosis: ${err.message}`));
-
-    return { received: true, applicationId: application.id };
-  }
-
-  /**
-   * Provision a User + Organization + Membership after payment is confirmed.
-   * Idempotent: if a user with the same email already exists, returns the existing user.
-   * Sends a magic-link login email so the applicant can access their dashboard.
-   */
-  private async provisionAccount(application: {
-    id: string;
-    name: string;
-    email: string;
-    type: string;
-    companyName?: string | null;
-  }): Promise<void> {
-    try {
-      const existing = await this.prisma.user.findUnique({
-        where: { email: application.email },
-      });
-
-      if (existing) {
-        // Account already provisioned — just refresh the magic link
-        await this.issueAndSendMagicLink(existing.id, application.name, application.email);
-        return;
-      }
-
-      const isCompany = application.type === 'COMPANY';
-      const orgType: OrgType = isCompany ? OrgType.STARTUP : OrgType.OPERATOR_ENTITY;
-      const orgName = isCompany
-        ? (application.companyName ?? `${application.name}'s Company`)
-        : `${application.name} (Operator)`;
-      const membershipRole: MembershipRole = isCompany
-        ? MembershipRole.STARTUP_ADMIN
-        : MembershipRole.OPERATOR;
-
-      await this.prisma.$transaction(async (tx) => {
-        const org = await tx.organization.create({
-          data: { name: orgName, orgType, country: isCompany ? 'IN' : undefined },
-        });
-
-        const user = await tx.user.create({
-          data: {
-            name: application.name,
-            email: application.email,
-            status: UserStatus.PENDING_APPROVAL,
-          },
-        });
-
-        await tx.membership.create({
-          data: {
-            userId: user.id,
-            orgId: org.id,
-            membershipRole,
-            status: 'PENDING',
-          },
-        });
-
-        await this.issueAndSendMagicLink(user.id, application.name, application.email);
-      });
-
-      this.logger.log(`Account provisioned for ${application.email} (${application.type})`);
-
-      // Fire-and-forget cross-verification of any references on the source
-      // application. Result is persisted on the talentPreScreen if/when one
-      // exists, so this only runs for talent.
-      this.runCrossVerifyForApplication(application.id).catch((err) =>
-        this.logger.error(`Cross-verify pipeline failed: ${err.message}`),
-      );
-    } catch (err: any) {
-      // Non-blocking — don't fail payment confirmation if provisioning fails
-      this.logger.error(`Failed to provision account for ${application.email}: ${err.message}`);
-    }
   }
 
   /**
@@ -1160,7 +883,8 @@ export class ApplicationsService {
 
   /**
    * Verify Razorpay payment for unlock-matching flow.
-   * Similar to verifyRazorpayPayment but calls unlockMatching instead of provisionAccount.
+   * Verify Razorpay payment for the unlock-matching flow (dashboard pay-wall).
+   * Calls unlockMatching() on success — does not provision accounts (already done at free signup).
    */
   async verifyUnlockPayment(params: {
     applicationId: string;

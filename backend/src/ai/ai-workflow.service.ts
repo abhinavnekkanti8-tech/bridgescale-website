@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { AiService } from './ai.service';
 import { TalentPreScreenService } from '../talent-pre-screen/talent-pre-screen.service';
+import { OpportunityBriefsService } from '../opportunity-briefs/opportunity-briefs.service';
 
 /**
  * AI Workflow Service: Orchestrates AI-driven workflows such as diagnosis generation.
@@ -17,6 +18,7 @@ export class AiWorkflowService {
     private readonly aiService: AiService,
     private readonly emailService: EmailService,
     private readonly talentPreScreen: TalentPreScreenService,
+    private readonly opportunityBriefs: OpportunityBriefsService,
   ) {}
 
   /**
@@ -127,6 +129,26 @@ export class AiWorkflowService {
     } catch (err: any) {
       this.logger.error(
         `Failed to generate pre-screen for application ${applicationId}: ${err.message}`,
+      );
+    }
+  }
+
+  /**
+   * Generate an opportunity brief for a company application.
+   * Called after the client approves the diagnosis (DIAGNOSIS_APPROVED).
+   * Non-blocking — errors are logged and don't fail the approval response.
+   *
+   * OpportunityBriefsService.generateBrief() is idempotent: if a brief
+   * already exists for this application it returns the existing record
+   * without calling AI again.
+   */
+  async generateBriefForApplication(applicationId: string): Promise<void> {
+    try {
+      await this.opportunityBriefs.generateBrief(applicationId);
+      this.logger.log(`Opportunity brief generated for application ${applicationId}`);
+    } catch (err: any) {
+      this.logger.error(
+        `Failed to generate opportunity brief for application ${applicationId}: ${err.message}`,
       );
     }
   }

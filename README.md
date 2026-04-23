@@ -81,6 +81,7 @@ Double-click `START.bat` to run the above steps automatically.
 | `DATABASE_URL` | Postgres connection string | `postgresql://platform:platform_dev@localhost:5432/platform_dev` |
 | `SESSION_SECRET` | express-session secret | change in production |
 | `OPENAI_API_KEY` | OpenAI key — prefix `sk-dummy-` to use mock AI | `sk-dummy-...` |
+| `DUMMY_AI_MODE` | `true` forces mock AI responses without a real API key | `false` |
 | `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | Company payments (INR) | dummy values |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Talent payments (USD) | dummy values |
 | `FRONTEND_URL` | Used in magic-link emails and Stripe redirects | `http://localhost:3001` |

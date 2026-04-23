@@ -10,7 +10,6 @@ import {
   OPPORTUNITY_BRIEF_PROMPT_VERSION,
   OpportunityBriefInput,
   OpportunityBriefOutput,
-  mockOpportunityBrief,
 } from '../ai/prompts/opportunity-brief.prompt';
 
 @Injectable()
@@ -168,7 +167,8 @@ export class OpportunityBriefsService {
 
   /**
    * Generate internal brief content using AI.
-   * Delegates to the dedicated opportunity-brief prompt module.
+   * Live path: OpenAI call via AiService.generateOpportunityBrief().
+   * Mock path: triggered automatically when DUMMY_AI_MODE=true or API key is a placeholder.
    */
   private async generateInternalContent(
     briefData: Record<string, any>,
@@ -183,10 +183,7 @@ export class OpportunityBriefsService {
     };
 
     try {
-      // Currently always returns the deterministic mock — when a real
-      // OpenAI call is wired up here it will use the prompt builders
-      // exported from ../ai/prompts/opportunity-brief.prompt.ts.
-      return mockOpportunityBrief(input);
+      return await this.aiService.generateOpportunityBrief(input);
     } catch (err: any) {
       this.logger.error(`Failed to generate internal brief: ${err.message}`);
       return {

@@ -312,6 +312,7 @@ Full schema: `backend/prisma/schema.prisma`
 | `NeedDiagnosis` | Company needs analysis; AI draft → human review → client approval |
 | `OpportunityBrief` | Matched opportunity scope; internal + client-facing versions |
 | `TalentPreScreen` | AI talent qualification; `recommendation` (STRONG_PASS\|PASS\|CONDITIONAL\|FAIL), red flags, probe questions |
+| `EquityGrant` | HYBRID_EQUITY vesting record; linked 1:1 to `Contract`; tracks `equityType` (FAST\|DIRECT), `vestedPct`, `status` (PENDING→ACTIVE→FULLY_VESTED\|LAPSED\|ACCELERATED), `vestingStartDate`, cliff/vesting months |
 
 ---
 
@@ -386,11 +387,12 @@ POST /api/v1/applications
 - **Flow:**
   1. `POST /api/v1/applications/initiate-unlock` → creates Razorpay order, returns `{ orderId, key }`
   2. Frontend opens `window.Razorpay` modal
-  3. On success → `POST /api/v1/applications/payment/razorpay/verify`
+  3. On success → `POST /api/v1/applications/verify-unlock`
      - Verifies HMAC-SHA256 signature
      - Sets `Application.matchingUnlocked = true`, `Application.paidAt`
-     - Triggers opportunity brief generation (AI, background)
 - **Dummy mode:** orders starting with `pay_dummy_*` auto-confirm when `RAZORPAY_KEY_ID=rzp_test_dummy`
+
+> **Note:** Opportunity brief generation is triggered by **diagnosis approval** (not payment). By the time the company pays, the brief is already prepared. See [ADR-001](ADR-001-diagnosis-brief-shortlist-lifecycle.md).
 
 ### Stripe (talent, USD)
 
@@ -418,7 +420,7 @@ Contract (FULLY_SIGNED)
 
 **Provider:** OpenAI `gpt-4o` (configurable via `OPENAI_MODEL`)
 
-**Mock mode:** Set `OPENAI_API_KEY=sk-dummy-anything` — all AI functions return heuristic-based mock responses derived from input data. Useful for local dev and CI.
+**Mock mode:** Set `OPENAI_API_KEY=sk-dummy-anything` **or** `DUMMY_AI_MODE=true` — all AI functions return deterministic mock responses derived from input data. Useful for local dev and CI. Tests always run in mock mode via `backend/test/load-env.ts` (Jest `setupFiles`).
 
 All AI tasks run as background fire-and-forget operations — they never block HTTP responses. Errors are logged and don't interrupt request flow.
 
@@ -472,9 +474,14 @@ Scores each operator against the startup profile and outputs: `matchScore`, `sco
 
 #### Opportunity brief
 
-`generateOpportunityBrief(startupId, operatorId)` → `OpportunityBrief`
+`generateBriefForApplication(applicationId)` → `OpportunityBrief`
 
-Generates client-facing + internal scope briefs post-payment. Suggests an appropriate `SowTemplate`.
+Triggered automatically (fire-and-forget) when a company client-approves their diagnosis (`POST /api/v1/diagnoses/:id/client-approve`). Generates two versions of the opportunity scope:
+
+- **`internalContent`** — full AI output including risk factors and growth potential (admin/ops visible)
+- **`clientFacingContent`** — curated subset shown to matched talent (summary, responsibilities, success metrics, timeline)
+
+Suggests an appropriate `SowTemplate`. See [ADR-001](ADR-001-diagnosis-brief-shortlist-lifecycle.md) for the full lifecycle and failure-mode analysis.
 
 #### Health monitoring
 
@@ -527,10 +534,8 @@ All routes prefixed `/api/v1/`. Authenticated routes require the `platform.sid` 
 | `GET` | `/applications/completion-status` | Yes | What's left to complete |
 | `POST` | `/applications/complete-assessment` | Yes | Submit assessment (talent) |
 | `POST` | `/applications/complete-references` | Yes | Submit references (talent) |
-| `POST` | `/applications/initiate-unlock` | Yes | Create payment order |
-| `POST` | `/applications/payment/razorpay/verify` | Yes | Verify Razorpay payment |
-| `POST` | `/applications/payment/dummy-confirm` | Yes | Dev: auto-confirm payment |
-| `POST` | `/applications/payment/razorpay/webhook` | No | Razorpay webhook |
+| `POST` | `/applications/initiate-unlock` | Yes | Create Razorpay/Stripe payment order |
+| `POST` | `/applications/verify-unlock` | No | Verify Razorpay signature and unlock matching |
 
 ### Profiles
 
@@ -553,10 +558,27 @@ All routes prefixed `/api/v1/`. Authenticated routes require the `platform.sid` 
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `GET` | `/contracts/:id` | Yes | Get contract |
-| `POST` | `/contracts/:id/sign` | Yes | Sign contract |
-| `GET` | `/sow/:id` | Yes | Get SOW |
-| `PATCH` | `/sow/:id` | Yes | Update SOW |
+| `POST` | `/contracts/sow` | Admin | Generate standard SOW |
+| `POST` | `/contracts/sow/equity` | Admin | Generate HYBRID_EQUITY SOW with equity terms |
+| `GET` | `/contracts/sow/:id` | Yes | Get SOW with version history |
+| `GET` | `/contracts/sow/:id/versions` | Yes | SOW version history |
+| `PATCH` | `/contracts/sow/:id` | Yes | Edit SOW (creates new version) |
+| `PATCH` | `/contracts/sow/:id/submit` | Yes | Submit SOW for review |
+| `PATCH` | `/contracts/sow/:id/approve` | Admin | Approve SOW, auto-create Contract |
+| `POST` | `/contracts/sow/:id/acknowledge-legal` | Yes | Party acknowledges equity legal risk (HYBRID_EQUITY gate) |
+| `POST` | `/contracts/sow/:id/request-equity-review` | Yes | Request mandatory admin equity review |
+| `POST` | `/contracts/sow/:id/approve-equity-review` | Admin/DealDesk | Approve equity review, unblocking SOW approval |
+| `GET` | `/contracts/:id` | Yes | Get contract (includes `equityGrant` if present) |
+| `POST` | `/contracts/:id/sign/startup` | Startup/Admin | Startup signs contract |
+| `POST` | `/contracts/:id/sign/operator` | Operator/Admin | Operator signs contract |
+| `PATCH` | `/contracts/:id/unlock-contacts` | Admin | Unlock contacts after full signature |
+| `PATCH` | `/contracts/:id/equity-doc` | Admin/DealDesk | Set external FAST agreement URL |
+| `GET` | `/contracts/:id/equity-grant` | Yes | Get equity grant status and vesting |
+| `POST` | `/contracts/:id/equity-grant/activate` | Admin | Activate vesting (PENDING → ACTIVE) |
+| `POST` | `/contracts/:id/equity-grant/vest` | Admin | Record vesting checkpoint (cumulative %) |
+| `POST` | `/contracts/:id/equity-grant/lapse` | Admin | Lapse unvested equity on termination |
+| `POST` | `/contracts/:id/equity-grant/accelerate` | Admin | Accelerate full vest (acquisition/IPO) |
+| `POST` | `/contracts/:id/equity-grant/dummy-vest` | Yes | Dev only: simulate cliff vesting |
 
 ### Engagements
 
@@ -605,6 +627,7 @@ SESSION_MAX_AGE_MS=86400000
 # AI
 OPENAI_API_KEY=sk-dummy-replace-with-real-key
 OPENAI_MODEL=gpt-4o
+DUMMY_AI_MODE=false            # true = force mock AI regardless of API key (always true in tests)
 
 # Stripe (talent, USD)
 STRIPE_SECRET_KEY=sk_test_dummy
@@ -696,22 +719,25 @@ npx prisma db push --accept-data-loss
 - Company and talent intake forms (multi-step, validation, Rest-of-World detail input)
 - Free signup flow — single API call creates user + org + membership + application
 - Auto-login after signup, redirect to dashboard
-- Payment unlock flow (Razorpay for companies, Stripe for talent)
+- Payment unlock flow (Razorpay for companies `POST /verify-unlock`; Stripe for talent via `PaymentsModule`)
 - Full database schema (30+ models, complete lifecycle)
-- AI integrations (demand scoring, supply scoring, diagnosis, pre-screen, matching, brief generation, health, closeout)
+- AI integrations: demand scoring, supply scoring, diagnosis, **pre-screen** (live OpenAI, not mocked), **brief generation** (live OpenAI, triggered on diagnosis approval — see ADR-001), matching, health monitoring, closeout
+- Diagnosis → brief automation wired: `clientApproveDiagnosis()` fires `AiWorkflowService.generateBriefForApplication()` as fire-and-forget
+- **HYBRID_EQUITY engagement** — first-class schema, SOW generation, legal-ack gates, equity review workflow, `EquityGrant` model with full vesting state machine (PENDING → ACTIVE → FULLY_VESTED / LAPSED / ACCELERATED); FAST-only at launch with DIRECT scaffolded; dummy vest endpoint for local testing
 - 20+ backend modules with full service/controller/DTO layers
+- Jest test stubs for `OpportunityBriefsService` and `TalentPreScreenService` (6 tests each, mock AI mode)
 - Docker Compose dev environment
 - Marketing pages (landing, for-companies, for-talent, about, blog)
 - FAQ accordion sections on marketing pages
 - Crimson color system across all frontend CSS
 - Admin application review, interview scheduling, approve/reject
+- `BlurredMatchCard`, `UnlockMatchingCTA`, `CompletionChecklist` frontend components (with CSS modules)
+- `ApplicationStatus.PENDING_PAYMENT` deprecated (kept for historical rows only; no new application uses it); `PAYMENT_FAILED` removed from enum
 
 ### In progress / pending
 
 | Area | What's needed |
 |---|---|
-| Company dashboard | Match display (`BlurredMatchCard`), `UnlockMatchingCTA`, application status timeline |
-| Talent dashboard | `CompletionChecklist`, match notifications, unlock CTA |
 | Matching UI | Shortlist browsing, candidate selection, interest flow |
 | Contract signing | SOW review UI, e-signature integration (DocuSign API is stubbed) |
 | Engagement workspace | Milestone tracking UI, workspace notes, health score display |

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
@@ -30,10 +30,29 @@ function ShortlistContent() {
   const [selecting, setSelecting] = useState<string | null>(null);
 
   const fetchShortlist = useCallback(async () => {
-    if (!shortlistId) { setError('No shortlist ID.'); setLoading(false); return; }
     try {
-      const sl = await matchingApi.findOne(shortlistId);
-      setShortlist(sl);
+      if (shortlistId) {
+        // Direct lookup by ID (e.g. from admin link)
+        const sl = await matchingApi.findOne(shortlistId);
+        setShortlist(sl);
+      } else {
+        // No ID in URL — auto-load the user's own shortlist via their application
+        const appRes = await fetch('/api/v1/applications/my-application', { credentials: 'include' });
+        if (!appRes.ok) { setError('Could not load your application.'); setLoading(false); return; }
+        const app = await appRes.json();
+        const startupProfileId = app?.startupProfile?.id;
+        if (!startupProfileId) { setError('No startup profile found. Complete your application first.'); setLoading(false); return; }
+
+        const shortlists = await matchingApi.findByStartup(startupProfileId);
+        if (!shortlists || shortlists.length === 0) {
+          setError('No shortlist available yet. Check back after your application is reviewed.');
+          setLoading(false);
+          return;
+        }
+        // Prefer published; fall back to most recent
+        const published = shortlists.find(s => s.status === 'PUBLISHED');
+        setShortlist(published ?? shortlists[shortlists.length - 1]);
+      }
     } catch { setError('Could not load shortlist.'); }
     setLoading(false);
   }, [shortlistId]);
@@ -130,7 +149,9 @@ export default function StartupMatchingPage() {
   return (
     <AuthProvider>
       <ProtectedLayout>
-        <ShortlistContent />
+        <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading…</div>}>
+          <ShortlistContent />
+        </Suspense>
       </ProtectedLayout>
     </AuthProvider>
   );
