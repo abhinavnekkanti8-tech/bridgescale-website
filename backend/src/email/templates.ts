@@ -90,6 +90,74 @@ export function applicationReceivedEmail(data: {
 
 // ── Magic Link ────────────────────────────────────────────────────────────
 
+export function emailVerificationEmail(data: {
+  name: string;
+  verifyUrl: string;
+  expiryMinutes: number;
+}): { subject: string; html: string } {
+  const body = `
+    <h1 style="font-size:24px;font-weight:700;margin:0 0 16px;font-family:'Plus Jakarta Sans',sans-serif;">
+      Verify your email
+    </h1>
+    <p style="font-size:15px;line-height:1.7;color:#94a3b8;margin:0 0 24px;">
+      Hi ${data.name}, confirm your email address to continue with your BridgeScale account.
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td align="center">
+          <a href="${data.verifyUrl}" style="display:inline-block;padding:14px 32px;background:${BRAND_GRADIENT};color:#fff;font-weight:700;font-size:15px;text-decoration:none;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;">
+            Verify email â†’
+          </a>
+        </td>
+      </tr>
+    </table>
+    <p style="font-size:13px;line-height:1.7;color:#64748b;margin:0 0 12px;">
+      This link expires in <strong>${data.expiryMinutes} minutes</strong>.
+    </p>
+    <p style="font-size:12px;color:#475569;word-break:break-all;">
+      Or copy this URL: ${data.verifyUrl}
+    </p>`;
+
+  return {
+    subject: 'BridgeScale â€” verify your email',
+    html: baseLayout('Verify your email', body),
+  };
+}
+
+export function passwordResetEmail(data: {
+  name: string;
+  resetUrl: string;
+  expiryMinutes: number;
+}): { subject: string; html: string } {
+  const body = `
+    <h1 style="font-size:24px;font-weight:700;margin:0 0 16px;font-family:'Plus Jakarta Sans',sans-serif;">
+      Reset your password
+    </h1>
+    <p style="font-size:15px;line-height:1.7;color:#94a3b8;margin:0 0 24px;">
+      Hi ${data.name}, we received a request to reset your BridgeScale password.
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td align="center">
+          <a href="${data.resetUrl}" style="display:inline-block;padding:14px 32px;background:${BRAND_GRADIENT};color:#fff;font-weight:700;font-size:15px;text-decoration:none;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;">
+            Reset password â†’
+          </a>
+        </td>
+      </tr>
+    </table>
+    <p style="font-size:13px;line-height:1.7;color:#64748b;margin:0 0 12px;">
+      This link expires in <strong>${data.expiryMinutes} minutes</strong>. If you did not request this, you can ignore this email.
+    </p>
+    <p style="font-size:12px;color:#475569;word-break:break-all;">
+      Or copy this URL: ${data.resetUrl}
+    </p>`;
+
+  return {
+    subject: 'BridgeScale â€” reset your password',
+    html: baseLayout('Reset your password', body),
+  };
+}
+
 export function magicLinkEmail(data: {
   name: string;
   magicUrl: string;

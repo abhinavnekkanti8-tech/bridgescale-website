@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
+import { RecordAccessService } from '../common/services/record-access.service';
+import { SessionUser } from '../common/types/session.types';
 import {
   OPPORTUNITY_BRIEF_PROMPT_VERSION,
   OpportunityBriefInput,
@@ -20,13 +22,15 @@ export class OpportunityBriefsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiService: AiService,
+    private readonly recordAccess: RecordAccessService,
   ) {}
 
   /**
    * Get an opportunity brief by application ID.
    * Returns internal + client-facing content.
    */
-  async getBriefByApplicationId(applicationId: string) {
+  async getBriefByApplicationId(user: SessionUser, applicationId: string) {
+    await this.recordAccess.assertStartupApplicationAccess(user, applicationId);
     const brief = await this.prisma.opportunityBrief.findUnique({
       where: { applicationId },
       include: { application: true },

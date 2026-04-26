@@ -5,6 +5,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RecordAccessService } from '../common/services/record-access.service';
+import { SessionUser } from '../common/types/session.types';
 import {
   UpdateEngagementStatusDto,
   CreateMilestoneDto,
@@ -16,7 +18,10 @@ import {
 export class EngagementsService {
   private readonly logger = new Logger(EngagementsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly recordAccess: RecordAccessService,
+  ) {}
 
   // ── Core Engagement ────────────────────────────────────────────────────────
 
@@ -52,7 +57,8 @@ export class EngagementsService {
     return engagement;
   }
 
-  async getEngagement(id: string) {
+  async getEngagement(user: SessionUser, id: string) {
+    await this.recordAccess.assertEngagementAccess(user, id);
     const eng = await this.prisma.engagement.findUnique({
       where: { id },
       include: {
@@ -64,7 +70,8 @@ export class EngagementsService {
     return eng;
   }
 
-  async getWorkspaceData(engagementId: string) {
+  async getWorkspaceData(user: SessionUser, engagementId: string) {
+    await this.recordAccess.assertEngagementAccess(user, engagementId);
     const milestones = await this.prisma.engagementMilestone.findMany({
       where: { engagementId },
       orderBy: { dueDate: 'asc' },
@@ -84,14 +91,16 @@ export class EngagementsService {
     return { milestones, notes, logs };
   }
 
-  async findByStartup(startupId: string) {
+  async findForStartup(user: SessionUser) {
+    const startupId = await this.recordAccess.getStartupProfileIdForUser(user);
     return this.prisma.engagement.findMany({
       where: { startupId },
       include: { contract: { select: { sow: { select: { title: true } } } } },
     });
   }
 
-  async findByOperator(operatorId: string) {
+  async findForOperator(user: SessionUser) {
+    const operatorId = await this.recordAccess.getOperatorProfileIdForUser(user);
     return this.prisma.engagement.findMany({
       where: { operatorId },
       include: { startup: { select: { industry: true } }, contract: { select: { sow: { select: { title: true } } } } },
@@ -112,7 +121,8 @@ export class EngagementsService {
 
   // ── Milestones ─────────────────────────────────────────────────────────────
 
-  async createMilestone(engagementId: string, dto: CreateMilestoneDto, actorId: string) {
+  async createMilestone(engagementId: string, dto: CreateMilestoneDto, actor: SessionUser) {
+    await this.recordAccess.assertEngagementAccess(actor, engagementId);
     const ms = await this.prisma.engagementMilestone.create({
       data: {
         engagementId,
@@ -121,13 +131,12 @@ export class EngagementsService {
         dueDate: new Date(dto.dueDate),
       },
     });
-    await this.logActivity(engagementId, actorId, 'MILESTONE_ADDED', `Added milestone: ${dto.title}`);
+    await this.logActivity(engagementId, actor.id, 'MILESTONE_ADDED', `Added milestone: ${dto.title}`);
     return ms;
   }
 
-  async updateMilestone(milestoneId: string, dto: UpdateMilestoneDto, actorId: string) {
-    const existing = await this.prisma.engagementMilestone.findUnique({ where: { id: milestoneId } });
-    if (!existing) throw new NotFoundException('Milestone not found');
+  async updateMilestone(milestoneId: string, dto: UpdateMilestoneDto, actor: SessionUser) {
+    const existing = await this.recordAccess.assertMilestoneAccess(actor, milestoneId);
 
     const ms = await this.prisma.engagementMilestone.update({
       where: { id: milestoneId },
@@ -140,7 +149,7 @@ export class EngagementsService {
 
     await this.logActivity(
       existing.engagementId,
-      actorId,
+      actor.id,
       'MILESTONE_UPDATED',
       `Updated milestone "${existing.title}": ${dto.status}`
     );
@@ -149,9 +158,10 @@ export class EngagementsService {
 
   // ── Notes & Messages ───────────────────────────────────────────────────────
 
-  async addNote(engagementId: string, dto: CreateNoteDto, authorId: string) {
+  async addNote(engagementId: string, dto: CreateNoteDto, author: SessionUser) {
+    await this.recordAccess.assertEngagementAccess(author, engagementId);
     return this.prisma.workspaceNote.create({
-      data: { engagementId, authorId, content: dto.content },
+      data: { engagementId, authorId: author.id, content: dto.content },
       include: { author: { select: { name: true, email: true } } }
     });
   }

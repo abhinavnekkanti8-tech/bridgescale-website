@@ -6,18 +6,33 @@
  */
 
 import { PrismaClient, OrgType, MembershipRole, MembershipStatus, UserStatus, SowTemplateType } from '@prisma/client';
-import * as crypto from 'crypto';
+import * as bcrypt from 'bcryptjs';
+import { resolveSeedPolicy } from '../src/config/seed-policy';
 
 const prisma = new PrismaClient();
 
 // Simple hash for MVP dev — NOT for production use
-function hashPassword(password: string): string {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
+const BCRYPT_SALT_ROUNDS = 10;
 
 async function main() {
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@platform.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123!';
+  const policy = resolveSeedPolicy({
+    nodeEnv: process.env.NODE_ENV,
+    allowNonDevSeed: process.env.ALLOW_NON_DEV_SEED,
+    includeDemoUsers: process.env.SEED_INCLUDE_DEMO_USERS,
+  });
+
+  const adminEmail =
+    process.env.ADMIN_EMAIL ||
+    (!policy.requireExplicitCredentials ? 'admin@platform.local' : undefined);
+  const adminPassword =
+    process.env.ADMIN_PASSWORD ||
+    (!policy.requireExplicitCredentials ? 'LocalAdminChangeMe!123' : undefined);
+
+  if (!adminEmail || !adminPassword) {
+    throw new Error(
+      'ADMIN_EMAIL and ADMIN_PASSWORD are required when seeding outside local/dev/test.',
+    );
+  }
 
   console.log('🌱 Seeding database...');
 
@@ -27,7 +42,7 @@ async function main() {
     return;
   }
 
-  const passwordHash = hashPassword(adminPassword);
+  const passwordHash = await bcrypt.hash(adminPassword, BCRYPT_SALT_ROUNDS);
 
   // Create the platform organisation
   const platformOrg = await prisma.organization.create({
@@ -54,61 +69,62 @@ async function main() {
     },
   });
 
-  // Seed a demo Startup user
-  const startupOrg = await prisma.organization.create({
-    data: {
-      orgType: OrgType.STARTUP,
-      name: 'AcmeTech Hyderabad',
-      country: 'IN',
-      website: 'https://acmetech.example.com',
-    },
-  });
+  if (policy.includeDemoUsers) {
+    const startupOrg = await prisma.organization.create({
+      data: {
+        orgType: OrgType.STARTUP,
+        name: 'AcmeTech Hyderabad',
+        country: 'IN',
+        website: 'https://acmetech.example.com',
+      },
+    });
 
-  await prisma.user.create({
-    data: {
-      name: 'Ravi Founder',
-      email: 'ravi@acmetech.com',
-      passwordHash: hashPassword('Startup@123'),
-      status: UserStatus.ACTIVE,
-      memberships: {
-        create: {
-          orgId: startupOrg.id,
-          membershipRole: MembershipRole.STARTUP_ADMIN,
-          status: MembershipStatus.ACTIVE,
+    await prisma.user.create({
+      data: {
+        name: 'Ravi Founder',
+        email: 'ravi@acmetech.local',
+        passwordHash: await bcrypt.hash('LocalStartupChangeMe!123', BCRYPT_SALT_ROUNDS),
+        status: UserStatus.ACTIVE,
+        memberships: {
+          create: {
+            orgId: startupOrg.id,
+            membershipRole: MembershipRole.STARTUP_ADMIN,
+            status: MembershipStatus.ACTIVE,
+          },
         },
       },
-    },
-  });
+    });
 
-  // Seed a demo Operator user
-  const operatorOrg = await prisma.organization.create({
-    data: {
-      orgType: OrgType.OPERATOR_ENTITY,
-      name: 'DiasporaSales EU',
-      country: 'DE',
-    },
-  });
+    const operatorOrg = await prisma.organization.create({
+      data: {
+        orgType: OrgType.OPERATOR_ENTITY,
+        name: 'DiasporaSales EU',
+        country: 'DE',
+      },
+    });
 
-  await prisma.user.create({
-    data: {
-      name: 'Priya Operator',
-      email: 'priya@diasporasales.com',
-      passwordHash: hashPassword('Operator@123'),
-      status: UserStatus.ACTIVE,
-      memberships: {
-        create: {
-          orgId: operatorOrg.id,
-          membershipRole: MembershipRole.OPERATOR,
-          status: MembershipStatus.ACTIVE,
+    await prisma.user.create({
+      data: {
+        name: 'Priya Operator',
+        email: 'priya@diasporasales.local',
+        passwordHash: await bcrypt.hash('LocalOperatorChangeMe!123', BCRYPT_SALT_ROUNDS),
+        status: UserStatus.ACTIVE,
+        memberships: {
+          create: {
+            orgId: operatorOrg.id,
+            membershipRole: MembershipRole.OPERATOR,
+            status: MembershipStatus.ACTIVE,
+          },
         },
       },
-    },
-  });
+    });
 
-  console.log(`Admin created: ${admin.email} / ${adminPassword}`);
-  console.log(`Demo Startup: ravi@acmetech.com / Startup@123`);
-  console.log(`Demo Operator: priya@diasporasales.com / Operator@123`);
-  console.log(`Change passwords before production!`);
+    console.log(`Local admin created: ${admin.email}`);
+    console.log('Local demo users seeded. These accounts are for local/dev use only.');
+  } else {
+    console.log(`Admin created: ${admin.email}`);
+    console.log('Demo startup/operator accounts were skipped for this environment.');
+  }
 
   // ── Seed SoW Templates ─────────────────────────────────────────────
   await seedSowTemplates();

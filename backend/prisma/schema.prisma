@@ -41,6 +41,23 @@ enum MembershipStatus {
   INACTIVE
 }
 
+enum OnboardingStage {
+  ONBOARDING
+  PENDING_APPROVAL
+  ACTIVE
+}
+
+enum AuthProvider {
+  GOOGLE
+  MICROSOFT
+  APPLE
+}
+
+enum EmailActionType {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
 // ─────────────────────────────────────────────
 // CORE IDENTITY MODELS (Artifact 2)
 // ─────────────────────────────────────────────
@@ -53,22 +70,62 @@ model User {
   status           UserStatus   @default(ACTIVE)
   lastLoginAt      DateTime?
   // Magic-link auth
-  magicLinkToken   String?      @unique
-  magicLinkExpiry  DateTime?
+  emailVerifiedAt  DateTime?
+  privacyAcceptedAt DateTime?
+  termsAcceptedAt   DateTime?
+  noticeVersion     String?
+  onboardingStage  OnboardingStage @default(ACTIVE)
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
-  memberships     Membership[]
-  notes           WorkspaceNote[]
-  activityLogs    ActivityLog[]
-  nudges          SystemNudge[]
-  escalations     EscalationCase[]
-  ratingsGiven    EngagementRating[] @relation("RatingReviewer")
-  ratingsReceived EngagementRating[] @relation("RatingReviewee")
+  memberships       Membership[]
+  authIdentities    OAuthIdentity[]
+  emailActionTokens EmailActionToken[]
+  notes             WorkspaceNote[]
+  activityLogs      ActivityLog[]
+  nudges            SystemNudge[]
+  escalations       EscalationCase[]
+  ratingsGiven      EngagementRating[] @relation("RatingReviewer")
+  ratingsReceived   EngagementRating[] @relation("RatingReviewee")
 
   @@index([email])
-  @@index([magicLinkToken])
+  @@index([onboardingStage])
   @@map("users")
+}
+
+model OAuthIdentity {
+  id                String       @id @default(cuid())
+  userId            String
+  provider          AuthProvider
+  providerAccountId String
+  providerEmail     String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_identities")
+}
+
+model EmailActionToken {
+  id         String          @id @default(cuid())
+  userId     String?
+  email      String
+  tokenHash  String          @unique
+  type       EmailActionType
+  metadata   Json?
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email, type])
+  @@index([expiresAt])
+  @@map("email_action_tokens")
 }
 
 model Organization {
@@ -513,6 +570,7 @@ model DocumentLog {
   performedBy String
   ipAddress   String?
   userAgent   String?
+  metadata    Json?
   createdAt   DateTime @default(now())
 
   contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
@@ -893,6 +951,7 @@ enum ApplicationType {
 }
 
 enum ApplicationStatus {
+  EMAIL_VERIFICATION_PENDING
   PENDING_PAYMENT
   PAYMENT_FAILED
   SUBMITTED
@@ -910,6 +969,16 @@ enum ApplicationStatus {
   REJECTED
 }
 
+enum DataRequestType {
+  EXPORT
+  DELETE
+}
+
+enum DataRequestStatus {
+  COMPLETED
+  REJECTED
+}
+
 model Application {
   id                String            @id @default(cuid())
   type              ApplicationType
@@ -919,6 +988,9 @@ model Application {
   name              String
   email             String
   notes             String?           @db.Text
+  privacyAcceptedAt DateTime?
+  termsAcceptedAt   DateTime?
+  noticeVersion     String?
 
   // Company — mandatory
   companyName       String?
@@ -1011,6 +1083,24 @@ model Application {
   @@index([email])
   @@index([status])
   @@map("applications")
+}
+
+model DataSubjectRequest {
+  id           String            @id @default(cuid())
+  type         DataRequestType
+  status       DataRequestStatus @default(COMPLETED)
+  subjectEmail String
+  subjectUserId String?
+  requestedBy  String
+  reason       String?           @db.Text
+  notes        String?           @db.Text
+  metadata     Json?
+  createdAt    DateTime          @default(now())
+  completedAt  DateTime?
+
+  @@index([subjectEmail])
+  @@index([requestedBy])
+  @@map("data_subject_requests")
 }
 
 // ── AI Workflow: Need Diagnosis (company) ─────────────────────────

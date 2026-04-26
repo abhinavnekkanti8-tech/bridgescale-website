@@ -14,6 +14,8 @@ import { SessionAuthGuard } from '../common/guards/session-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { MembershipRole } from '@prisma/client';
+import { SessionUser as SessionUserDecorator } from '../auth/session-user.decorator';
+import { SessionUser as SessionUserType } from '../common/types/session.types';
 
 @Controller('contracts')
 export class ContractsController {
@@ -38,29 +40,29 @@ export class ContractsController {
   /** GET /api/v1/contracts/sow/:id — Get SoW with versions */
   @Get('sow/:id')
   @UseGuards(SessionAuthGuard)
-  findOneSow(@Param('id') id: string) {
-    return this.contractsService.findOneSow(id);
+  findOneSow(@Param('id') id: string, @SessionUserDecorator() user: SessionUserType) {
+    return this.contractsService.findOneSow(user, id);
   }
 
   /** GET /api/v1/contracts/sow/:id/versions — Get SoW version history */
   @Get('sow/:id/versions')
   @UseGuards(SessionAuthGuard)
-  getSowVersions(@Param('id') id: string) {
-    return this.contractsService.getSowVersions(id);
+  getSowVersions(@Param('id') id: string, @SessionUserDecorator() user: SessionUserType) {
+    return this.contractsService.getSowVersions(user, id);
   }
 
   /** PATCH /api/v1/contracts/sow/:id — Edit SoW (creates new version) */
   @Patch('sow/:id')
   @UseGuards(SessionAuthGuard)
-  editSow(@Param('id') id: string, @Body() dto: EditSowDto, @Req() req: { user?: { id?: string } }) {
-    return this.contractsService.editSow(id, dto, req.user?.id ?? 'unknown');
+  editSow(@Param('id') id: string, @Body() dto: EditSowDto, @SessionUserDecorator() user: SessionUserType) {
+    return this.contractsService.editSow(id, dto, user);
   }
 
   /** PATCH /api/v1/contracts/sow/:id/submit — Submit for review */
   @Patch('sow/:id/submit')
   @UseGuards(SessionAuthGuard)
-  submitForReview(@Param('id') id: string) {
-    return this.contractsService.submitForReview(id);
+  submitForReview(@Param('id') id: string, @SessionUserDecorator() user: SessionUserType) {
+    return this.contractsService.submitForReview(id, user);
   }
 
   /** PATCH /api/v1/contracts/sow/:id/approve — Approve SoW, create contract */
@@ -74,15 +76,15 @@ export class ContractsController {
   /** GET /api/v1/contracts/sow/startup/:startupProfileId */
   @Get('sow/startup/:startupProfileId')
   @UseGuards(SessionAuthGuard)
-  findByStartup(@Param('startupProfileId') id: string) {
-    return this.contractsService.findByStartup(id);
+  findByStartup(@Param('startupProfileId') id: string, @SessionUserDecorator() user: SessionUserType) {
+    return this.contractsService.findByStartup(user, id);
   }
 
   /** GET /api/v1/contracts/sow/operator/:operatorId */
   @Get('sow/operator/:operatorId')
   @UseGuards(SessionAuthGuard)
-  findByOperator(@Param('operatorId') id: string) {
-    return this.contractsService.findByOperator(id);
+  findByOperator(@Param('operatorId') id: string, @SessionUserDecorator() user: SessionUserType) {
+    return this.contractsService.findByOperator(user, id);
   }
 
   // ── Contract / Signature endpoints ────────────────────────────────────
@@ -90,24 +92,32 @@ export class ContractsController {
   /** GET /api/v1/contracts/:id — Get contract */
   @Get(':id')
   @UseGuards(SessionAuthGuard)
-  findOneContract(@Param('id') id: string) {
-    return this.contractsService.findOneContract(id);
+  findOneContract(@Param('id') id: string, @SessionUserDecorator() user: SessionUserType) {
+    return this.contractsService.findOneContract(user, id);
   }
 
   /** POST /api/v1/contracts/:id/sign/startup — Startup signs */
   @Post(':id/sign/startup')
   @UseGuards(SessionAuthGuard, RolesGuard)
   @Roles(MembershipRole.STARTUP_ADMIN, MembershipRole.PLATFORM_ADMIN)
-  signStartup(@Param('id') id: string, @Body() dto: SignContractDto) {
-    return this.contractsService.signContract(id, 'STARTUP', dto);
+  signStartup(
+    @Param('id') id: string,
+    @Body() dto: SignContractDto,
+    @SessionUserDecorator() user: SessionUserType,
+  ) {
+    return this.contractsService.signContract(id, user, 'STARTUP', dto);
   }
 
   /** POST /api/v1/contracts/:id/sign/operator — Operator signs */
   @Post(':id/sign/operator')
   @UseGuards(SessionAuthGuard, RolesGuard)
   @Roles(MembershipRole.OPERATOR, MembershipRole.PLATFORM_ADMIN)
-  signOperator(@Param('id') id: string, @Body() dto: SignContractDto) {
-    return this.contractsService.signContract(id, 'OPERATOR', dto);
+  signOperator(
+    @Param('id') id: string,
+    @Body() dto: SignContractDto,
+    @SessionUserDecorator() user: SessionUserType,
+  ) {
+    return this.contractsService.signContract(id, user, 'OPERATOR', dto);
   }
 
   /** PATCH /api/v1/contracts/:id/unlock-contacts — Unlock contacts */
@@ -129,7 +139,16 @@ export class ContractsController {
   /** POST /api/v1/contracts/:id/log-download — Log document download */
   @Post(':id/log-download')
   @UseGuards(SessionAuthGuard)
-  logDownload(@Param('id') id: string, @Req() req: { user?: { id?: string }; ip?: string; headers?: Record<string, string> }) {
-    return this.contractsService.logDocumentAction(id, 'DOWNLOAD', req.user?.id ?? 'unknown', req.ip, req.headers?.['user-agent']);
+  logDownload(
+    @Param('id') id: string,
+    @Req() req: { ip?: string; headers?: Record<string, string> },
+    @SessionUserDecorator() user: SessionUserType,
+  ) {
+    return this.contractsService.logDownload(
+      id,
+      user,
+      req.ip,
+      req.headers?.['user-agent'],
+    );
   }
 }

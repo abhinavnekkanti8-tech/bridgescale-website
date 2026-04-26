@@ -121,16 +121,16 @@ if errorlevel 1 (
 echo   Generating Prisma client...
 call npx prisma generate >nul 2>&1
 
-echo   Pushing database schema...
-call npx prisma db push --accept-data-loss >nul 2>&1
+echo   Applying Prisma migrations...
+call npx prisma migrate deploy >nul 2>&1
 if errorlevel 1 (
-    echo WARNING: db push had issues, trying to continue...
+    echo WARNING: migrate deploy had issues, trying to continue...
 )
 
 echo   Seeding database with demo accounts...
 call npm run seed >nul 2>&1
 
-echo OK - Backend ready ^(schema pushed, demo data seeded^)
+echo OK - Backend ready ^(migrations applied, demo data seeded^)
 
 REM ─────────────────────────────────────────────────────────────────
 REM [5/7] Frontend - install dependencies
@@ -251,13 +251,16 @@ echo   /for-companies            Startup marketplace page
 echo   /for-talent               Operator marketplace page
 echo   /blog                     Blog listing
 echo   /auth/login               Login page
-echo   /auth/magic               Magic-link login
+echo   /auth/verify-email        Email verification page
+echo   /auth/forgot-password     Password reset request
+echo   /auth/reset-password      Password reset completion
 echo   /application/status       Application status tracker
 echo.
 echo   [NOTES]
 echo   - Payments run in DUMMY mode (no real Stripe/Razorpay needed)
 echo   - AI features need OPENAI_API_KEY set in backend\.env
-echo   - Email features need EMAIL_API_KEY set in backend\.env
+echo   - In DUMMY email mode, verification/reset links are printed in the Backend window
+echo   - Email features need EMAIL_API_KEY set in backend\.env for real delivery
 echo   - Two extra windows are open: Backend (port 4000), Frontend (port 3000)
 echo ===================================================================
 echo.

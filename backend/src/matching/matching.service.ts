@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
+import { RecordAccessService } from '../common/services/record-access.service';
+import { SessionUser } from '../common/types/session.types';
 
 // ── Match Fit Scoring (7 components) ─────────────────────────────────────────
 export interface MatchScoreBreakdown {
@@ -25,6 +27,7 @@ export class MatchingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiService: AiService,
+    private readonly recordAccess: RecordAccessService,
   ) {}
 
   // ── Generate Shortlist ───────────────────────────────────────────────────
@@ -115,7 +118,7 @@ export class MatchingService {
     }
 
     this.logger.log(`Shortlist ${shortlist.id} generated with ${selected.length} candidates for startup ${startupProfileId}`);
-    return this.findOne(shortlist.id);
+    return this.getShortlistOrThrow(shortlist.id);
   }
 
   private computeMatchScore(startup: Record<string, unknown>, operator: Record<string, unknown>): MatchScoreBreakdown {
@@ -203,21 +206,27 @@ export class MatchingService {
 
   // ── CRUD & Actions ────────────────────────────────────────────────────────
 
-  async findOne(shortlistId: string) {
+  async findOne(user: SessionUser, shortlistId: string) {
+    await this.recordAccess.assertShortlistAccess(user, shortlistId);
+    return this.getShortlistOrThrow(shortlistId);
+  }
+
+  async findByStartup(user: SessionUser, startupProfileId: string) {
+    await this.recordAccess.assertStartupProfileAccess(user, startupProfileId);
+    return this.prisma.matchShortlist.findMany({
+      where: { startupProfileId },
+      orderBy: { createdAt: 'desc' },
+      include: { candidates: { orderBy: { matchScore: 'desc' } } },
+    });
+  }
+
+  private async getShortlistOrThrow(shortlistId: string) {
     const sl = await this.prisma.matchShortlist.findUnique({
       where: { id: shortlistId },
       include: { candidates: { orderBy: { matchScore: 'desc' } } },
     });
     if (!sl) throw new NotFoundException('Shortlist not found.');
     return sl;
-  }
-
-  async findByStartup(startupProfileId: string) {
-    return this.prisma.matchShortlist.findMany({
-      where: { startupProfileId },
-      orderBy: { createdAt: 'desc' },
-      include: { candidates: { orderBy: { matchScore: 'desc' } } },
-    });
   }
 
   async findAll() {
@@ -237,7 +246,13 @@ export class MatchingService {
     });
   }
 
-  async operatorRespond(candidateId: string, interest: 'ACCEPTED' | 'DECLINED', declineReason?: string) {
+  async operatorRespond(
+    user: SessionUser,
+    candidateId: string,
+    interest: 'ACCEPTED' | 'DECLINED',
+    declineReason?: string,
+  ) {
+    await this.recordAccess.assertCandidateAccess(user, candidateId);
     const candidate = await this.prisma.matchCandidate.findUnique({ where: { id: candidateId } });
     if (!candidate) throw new NotFoundException('Candidate not found.');
 
@@ -251,7 +266,8 @@ export class MatchingService {
     });
   }
 
-  async selectOperator(shortlistId: string, candidateId: string) {
+  async selectOperator(user: SessionUser, shortlistId: string, candidateId: string) {
+    await this.recordAccess.assertShortlistAccess(user, shortlistId);
     const candidate = await this.prisma.matchCandidate.findUnique({ where: { id: candidateId } });
     if (!candidate || candidate.shortlistId !== shortlistId) throw new NotFoundException('Candidate not found on shortlist.');
     if (candidate.interest !== 'ACCEPTED') throw new BadRequestException('Cannot select an operator who has not accepted interest.');
@@ -272,6 +288,6 @@ export class MatchingService {
       }),
     ]);
 
-    return this.findOne(shortlistId);
+    return this.getShortlistOrThrow(shortlistId);
   }
 }

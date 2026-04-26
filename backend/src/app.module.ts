@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
+import { AccessControlModule } from './common/access-control.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
@@ -17,6 +18,7 @@ import { EngagementsModule } from './engagements/engagements.module';
 import { CloseoutModule } from './closeout/closeout.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ApplicationsModule } from './applications/applications.module';
+import { ComplianceModule } from './compliance/compliance.module';
 import { EmailModule } from './email/email.module';
 import { DiagnosesModule } from './diagnoses/diagnoses.module';
 import { OpportunityBriefsModule } from './opportunity-briefs/opportunity-briefs.module';
@@ -53,6 +55,7 @@ import { SowModule } from './sow/sow.module';
 
     // ── PrismaModule (global DB client) ──
     PrismaModule,
+    AccessControlModule,
 
     // ── Health check endpoint ──
     HealthModule,
@@ -73,6 +76,7 @@ import { SowModule } from './sow/sow.module';
     CloseoutModule,
     AnalyticsModule,
     ApplicationsModule,
+    ComplianceModule,
     EmailModule,
     DiagnosesModule,
     OpportunityBriefsModule,

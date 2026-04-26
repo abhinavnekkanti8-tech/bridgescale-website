@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { MarketingNav } from '@/components/MarketingNav';
+import { PRIVACY_PATH, TERMS_PATH } from '@/lib/legal';
 import styles from './page.module.css';
 
 /* ── Scroll Reveal Hook ── */
@@ -399,8 +400,8 @@ export default function HomePage() {
             <Link href="/for-talent" className={styles.footerLink}>For Talent</Link>
             <Link href="/about" className={styles.footerLink}>About</Link>
             <Link href="/blog" className={styles.footerLink}>Blog</Link>
-            <a href="#" className={styles.footerLink}>Privacy</a>
-            <a href="#" className={styles.footerLink}>Terms</a>
+            <Link href={PRIVACY_PATH} className={styles.footerLink}>Privacy</Link>
+            <Link href={TERMS_PATH} className={styles.footerLink}>Terms</Link>
           </div>
         </div>
       </footer>

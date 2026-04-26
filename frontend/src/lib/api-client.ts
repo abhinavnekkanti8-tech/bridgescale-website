@@ -43,20 +43,71 @@ export interface SessionUser {
   email: string;
   role: string;
   orgId: string;
+  status: string;
+  stage: 'ONBOARDING' | 'PENDING_APPROVAL' | 'ACTIVE';
+}
+
+export type OAuthProvider = 'google' | 'microsoft' | 'apple';
+
+export interface AuthResponse {
+  user: SessionUser;
+  message: string;
+  nextPath?: string;
+}
+
+export interface TalentSignupPayload {
+  name: string;
+  email: string;
+  password: string;
+  privacyAccepted: boolean;
+  termsAccepted: boolean;
+  noticeVersion: string;
 }
 
 export const authApi = {
-  login: (email: string, password: string) =>
-    apiFetch<{ user: SessionUser; message: string }>('/auth/login', {
+  login: (email: string, password: string, redirect?: string) =>
+    apiFetch<AuthResponse>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, redirect }),
     }),
 
-  register: (data: { name: string; email: string; password: string; role: 'STARTUP_ADMIN' | 'OPERATOR'; orgName?: string; country?: string; industry?: string; linkedIn?: string }) =>
-    apiFetch<{ user: SessionUser; message: string }>('/auth/register', {
+  signupTalent: (data: TalentSignupPayload) =>
+    apiFetch<{ message: string; verificationRequired: boolean }>('/auth/talent/signup', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  verifyEmail: (token: string) =>
+    apiFetch<AuthResponse>('/auth/verify-email/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }),
+
+  resendVerification: (email: string) =>
+    apiFetch<{ message: string }>('/auth/verify-email/resend', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  forgotPassword: (email: string) =>
+    apiFetch<{ message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: (token: string, password: string) =>
+    apiFetch<{ message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    }),
+
+  oauthStartUrl: (provider: OAuthProvider, next?: string) => {
+    const url = new URL(`${API_BASE}/api/v1/auth/oauth/${provider}/start`);
+    if (next) {
+      url.searchParams.set('next', next);
+    }
+    return url.toString();
+  },
 
   logout: () =>
     apiFetch<{ message: string }>('/auth/logout', { method: 'POST' }),

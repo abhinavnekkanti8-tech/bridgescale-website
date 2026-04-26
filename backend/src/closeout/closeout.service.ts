@@ -2,16 +2,23 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
 import { UpdateCloseoutDto, SubmitRatingDto } from './dto/closeout.dto';
+import { RecordAccessService } from '../common/services/record-access.service';
+import { SessionUser } from '../common/types/session.types';
 
 @Injectable()
 export class CloseoutService {
   private readonly logger = new Logger(CloseoutService.name);
 
-  constructor(private prisma: PrismaService, private aiService: AiService) {}
+  constructor(
+    private prisma: PrismaService,
+    private aiService: AiService,
+    private readonly recordAccess: RecordAccessService,
+  ) {}
 
   // ── Closeout Report ───────────────────────────────────────────────────
 
-  async generateReport(engagementId: string) {
+  async generateReport(user: SessionUser, engagementId: string) {
+    await this.recordAccess.assertEngagementAccess(user, engagementId);
     const engagement = await this.prisma.engagement.findUnique({
       where: { id: engagementId },
       include: { milestones: true, logs: true, contract: { include: { sow: true } } },
@@ -35,11 +42,13 @@ export class CloseoutService {
     return report;
   }
 
-  async getReport(engagementId: string) {
+  async getReport(user: SessionUser, engagementId: string) {
+    await this.recordAccess.assertEngagementAccess(user, engagementId);
     return this.prisma.closeoutReport.findUnique({ where: { engagementId } });
   }
 
-  async updateReport(engagementId: string, dto: UpdateCloseoutDto) {
+  async updateReport(user: SessionUser, engagementId: string, dto: UpdateCloseoutDto) {
+    await this.recordAccess.assertEngagementAccess(user, engagementId);
     return this.prisma.closeoutReport.update({
       where: { engagementId },
       data: dto,
@@ -48,7 +57,17 @@ export class CloseoutService {
 
   // ── Ratings ─────────────────────────────────────────────────────────────
 
-  async submitRating(engagementId: string, reviewerId: string, dto: SubmitRatingDto) {
+  async submitRating(
+    user: SessionUser,
+    engagementId: string,
+    reviewerId: string,
+    dto: SubmitRatingDto,
+  ) {
+    await this.recordAccess.assertRatingParticipantAccess(
+      user,
+      engagementId,
+      dto.revieweeId,
+    );
     return this.prisma.engagementRating.create({
       data: {
         engagementId,
@@ -61,7 +80,8 @@ export class CloseoutService {
     });
   }
 
-  async getEngagementRatings(engagementId: string) {
+  async getEngagementRatings(user: SessionUser, engagementId: string) {
+    await this.recordAccess.assertEngagementAccess(user, engagementId);
     return this.prisma.engagementRating.findMany({
       where: { engagementId },
       include: {
@@ -73,7 +93,8 @@ export class CloseoutService {
 
   // ── Renewal Recommendations ─────────────────────────────────────────────
 
-  async generateRenewalRecommendation(engagementId: string) {
+  async generateRenewalRecommendation(user: SessionUser, engagementId: string) {
+    await this.recordAccess.assertEngagementAccess(user, engagementId);
     const engagement = await this.prisma.engagement.findUnique({
       where: { id: engagementId },
       include: {
@@ -104,7 +125,8 @@ export class CloseoutService {
     });
   }
 
-  async getRenewalRecommendation(engagementId: string) {
+  async getRenewalRecommendation(user: SessionUser, engagementId: string) {
+    await this.recordAccess.assertEngagementAccess(user, engagementId);
     return this.prisma.renewalRecommendation.findUnique({ where: { engagementId } });
   }
 }

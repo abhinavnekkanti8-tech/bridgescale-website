@@ -12,7 +12,8 @@ import { SessionAuthGuard } from '../common/guards/session-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { MembershipRole } from '@prisma/client';
-import { SessionUser } from '../auth/session-user.decorator';
+import { SessionUser as SessionUserDecorator } from '../auth/session-user.decorator';
+import { SessionUser as SessionUserType } from '../common/types/session.types';
 import {
   UpdateEngagementStatusDto,
   CreateMilestoneDto,
@@ -35,24 +36,24 @@ export class EngagementsController {
 
   @Get('startup')
   @Roles(MembershipRole.STARTUP_ADMIN, MembershipRole.STARTUP_MEMBER)
-  getForStartup(@SessionUser() user: any) {
-    return this.service.findByStartup(user.organizationId); // Assuming user logic applies, or pass profile ID explicitly
+  getForStartup(@SessionUserDecorator() user: SessionUserType) {
+    return this.service.findForStartup(user);
   }
 
   @Get('operator')
   @Roles(MembershipRole.OPERATOR)
-  getForOperator(@SessionUser() user: any) {
-    return this.service.findByOperator(user.id); // Operator user ID maps to profile
+  getForOperator(@SessionUserDecorator() user: SessionUserType) {
+    return this.service.findForOperator(user);
   }
 
   @Get(':id')
-  getOne(@Param('id') id: string) {
-    return this.service.getEngagement(id);
+  getOne(@Param('id') id: string, @SessionUserDecorator() user: SessionUserType) {
+    return this.service.getEngagement(user, id);
   }
 
   @Get(':id/workspace')
-  getWorkspace(@Param('id') id: string) {
-    return this.service.getWorkspaceData(id);
+  getWorkspace(@Param('id') id: string, @SessionUserDecorator() user: SessionUserType) {
+    return this.service.getWorkspaceData(user, id);
   }
 
   @Patch(':id/status')
@@ -60,7 +61,7 @@ export class EngagementsController {
   updateStatus(
     @Param('id') id: string,
     @Body() dto: UpdateEngagementStatusDto,
-    @SessionUser() user: any,
+    @SessionUserDecorator() user: SessionUserType,
   ) {
     return this.service.updateStatus(id, dto, user.id);
   }
@@ -72,9 +73,9 @@ export class EngagementsController {
   createMilestone(
     @Param('id') id: string,
     @Body() dto: CreateMilestoneDto,
-    @SessionUser() user: any,
+    @SessionUserDecorator() user: SessionUserType,
   ) {
-    return this.service.createMilestone(id, dto, user.id);
+    return this.service.createMilestone(id, dto, user);
   }
 
   @Patch('milestones/:milestoneId')
@@ -82,9 +83,9 @@ export class EngagementsController {
   updateMilestone(
     @Param('milestoneId') milestoneId: string,
     @Body() dto: UpdateMilestoneDto,
-    @SessionUser() user: any,
+    @SessionUserDecorator() user: SessionUserType,
   ) {
-    return this.service.updateMilestone(milestoneId, dto, user.id);
+    return this.service.updateMilestone(milestoneId, dto, user);
   }
 
   // ── Notes ──────────────────────────────────────────────────────────────
@@ -93,8 +94,8 @@ export class EngagementsController {
   addNote(
     @Param('id') id: string,
     @Body() dto: CreateNoteDto,
-    @SessionUser() user: any,
+    @SessionUserDecorator() user: SessionUserType,
   ) {
-    return this.service.addNote(id, dto, user.id);
+    return this.service.addNote(id, dto, user);
   }
 }
