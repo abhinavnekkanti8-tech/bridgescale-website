@@ -3,10 +3,11 @@ import { ContractsController } from './contracts.controller';
 import { ContractsService } from './contracts.service';
 import { SowTemplatesController } from './sow-templates.controller';
 import { SowTemplatesService } from './sow-templates.service';
+import { MsaService } from './msa.service';
 
 @Module({
   controllers: [ContractsController, SowTemplatesController],
-  providers: [ContractsService, SowTemplatesService],
-  exports: [ContractsService, SowTemplatesService],
+  providers: [ContractsService, SowTemplatesService, MsaService],
+  exports: [ContractsService, SowTemplatesService, MsaService],
 })
 export class ContractsModule {}

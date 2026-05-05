@@ -7,9 +7,10 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
-import { GenerateSowDto, EditSowDto, SignContractDto } from './dto/contracts.dto';
+import { CancelSowDto, GenerateSowDto, EditSowDto, SignContractDto } from './dto/contracts.dto';
 import { RecordAccessService } from '../common/services/record-access.service';
 import { SessionUser } from '../common/types/session.types';
+import { MsaService } from './msa.service';
 
 @Injectable()
 export class ContractsService {
@@ -19,6 +20,7 @@ export class ContractsService {
     private readonly prisma: PrismaService,
     private readonly aiService: AiService,
     private readonly recordAccess: RecordAccessService,
+    private readonly msaService: MsaService,
   ) {}
 
   // ── AI-Native SoW Generation ──────────────────────────────────────────────
@@ -94,6 +96,114 @@ export class ContractsService {
       },
     };
     return templates[packageType] ?? templates.PIPELINE_SPRINT;
+  }
+
+  async generateSowFromSummary(summaryId: string) {
+    const summary = await this.prisma.preSowCommercialSummary.findUnique({
+      where: { id: summaryId },
+    });
+    if (!summary) throw new NotFoundException('Pre-SOW Commercial Summary not found.');
+    if (summary.status !== 'CONFIRMED') {
+      throw new BadRequestException('Pre-SOW Summary must be confirmed by both parties before SOW generation.');
+    }
+
+    const serviceTemplate = await this.prisma.serviceTemplate.findUnique({
+      where: { code: summary.serviceTemplate },
+    });
+    if (!serviceTemplate) throw new NotFoundException('Service template not found.');
+
+    const msa = await this.msaService.findOrCreateMsa({
+      startupProfileId: summary.startupProfileId,
+      operatorId: summary.operatorId,
+    });
+
+    if (summary.masterAgreementId !== msa.id) {
+      await this.prisma.preSowCommercialSummary.update({
+        where: { id: summary.id },
+        data: { masterAgreementId: msa.id },
+      });
+    }
+
+    const fallbackPackageType =
+      summary.serviceTemplate === 'PARTNER_CHANNEL_DEVELOPMENT'
+        ? 'BD_SPRINT'
+        : summary.engagementType === 'RETAINER'
+          ? 'FRACTIONAL_RETAINER'
+          : 'PIPELINE_SPRINT';
+
+    const title = `${serviceTemplate.name} - Engagement SOW`;
+    const scope = [
+      serviceTemplate.description,
+      summary.specialTerms ? `Special terms: ${summary.specialTerms}` : undefined,
+      summary.cancellationNote ? `Cancellation note: ${summary.cancellationNote}` : undefined,
+    ].filter(Boolean).join('\n\n');
+    const deliverables = `Deliverables will follow the ${serviceTemplate.name} service template and the confirmed Pre-SOW Commercial Summary (${summary.id}).`;
+    const timeline = summary.durationDays
+      ? `${summary.durationDays} day engagement from agreed start date.`
+      : 'Timeline to be confirmed in the SOW review step.';
+
+    const sow = await this.prisma.statementOfWork.create({
+      data: {
+        shortlistId: summary.callId,
+        startupProfileId: summary.startupProfileId,
+        operatorId: summary.operatorId,
+        masterAgreementId: msa.id,
+        packageType: fallbackPackageType,
+        serviceTemplate: summary.serviceTemplate,
+        engagementType: summary.engagementType,
+        retainerFlavour: summary.retainerFlavour,
+        title,
+        scope,
+        deliverables,
+        timeline,
+        weeklyHours: summary.weeklyHours ?? 10,
+        totalPriceUsd: summary.indicativePrice ?? 0,
+        nonCircumvention: true,
+        promptVersion: 'sow_from_pre_sow_v1.0',
+        modelName: this.aiService.getModelName(),
+      },
+    });
+
+    await this.prisma.sowVersion.create({
+      data: {
+        sowId: sow.id,
+        version: 1,
+        content: {
+          title,
+          scope,
+          deliverables,
+          timeline,
+          weeklyHours: sow.weeklyHours,
+          totalPriceUsd: sow.totalPriceUsd,
+          preSowSummaryId: summary.id,
+          serviceTemplate: summary.serviceTemplate,
+        },
+        changedBy: 'SYSTEM',
+        changeNote: 'Generated from confirmed Pre-SOW Commercial Summary',
+      },
+    });
+
+    return sow;
+  }
+
+  async cancelSow(sowId: string, dto: CancelSowDto) {
+    await this.getSowOrThrow(sowId);
+    const event = await this.prisma.cancellationEvent.create({
+      data: {
+        sowId,
+        party: dto.party,
+        reason: dto.reason,
+        refundAmount: dto.refundAmount,
+        payoutPenalty: dto.payoutPenalty,
+      },
+    });
+
+    await this.prisma.statementOfWork.update({
+      where: { id: sowId },
+      data: { status: 'TERMINATED' },
+    });
+
+    return event;
   }
 
   // ── SoW Editing & Versioning ──────────────────────────────────────────────

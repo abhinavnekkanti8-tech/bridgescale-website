@@ -12,6 +12,7 @@ import {
   CreateMilestoneDto,
   UpdateMilestoneDto,
   CreateNoteDto,
+  ConvertFulltimeDto,
 } from './dto/engagements.dto';
 
 @Injectable()
@@ -63,11 +64,32 @@ export class EngagementsService {
       where: { id },
       include: {
         startup: { select: { industry: true } },
-        contract: { select: { sow: { select: { title: true, deliverables: true, scope: true } } } },
+        contract: {
+          include: {
+            sow: { include: { msa: true } },
+          },
+        },
       },
     });
     if (!eng) throw new NotFoundException('Engagement not found.');
-    return eng;
+
+    // Pre-SOW summaries are keyed off the operator-org id, not the profile id —
+    // resolve it to look up the most recent summary for this (startup, operator) pair.
+    const operatorProfile = await this.prisma.operatorProfile.findUnique({
+      where: { id: eng.operatorId },
+      select: { operatorId: true },
+    });
+    const preSowSummary = operatorProfile
+      ? await this.prisma.preSowCommercialSummary.findFirst({
+          where: {
+            startupProfileId: eng.startupId,
+            operatorId: operatorProfile.operatorId,
+          },
+          orderBy: { updatedAt: 'desc' },
+        })
+      : null;
+
+    return { ...eng, preSowSummary };
   }
 
   async getWorkspaceData(user: SessionUser, engagementId: string) {
@@ -117,6 +139,60 @@ export class EngagementsService {
     });
     await this.logActivity(id, actorId, 'STATUS_CHANGED', `Engagement marked as ${dto.status}`);
     return eng;
+  }
+
+  async convertToFulltime(id: string, dto: ConvertFulltimeDto, actorId: string) {
+    const engagement = await this.prisma.engagement.findUnique({
+      where: { id },
+      include: { contract: { include: { sow: true, paymentPlan: true } } },
+    });
+    if (!engagement) throw new NotFoundException('Engagement not found.');
+
+    const converted = await this.prisma.engagement.update({
+      where: { id },
+      data: { status: 'CONVERTED_TO_FULLTIME', endDate: new Date() },
+    });
+
+    await this.prisma.lifecycleEvent.create({
+      data: {
+        engagementId: id,
+        eventType: 'CONVERTED_TO_FULLTIME',
+        description: dto.description ?? 'Engagement converted to full-time employment.',
+        metadata: {
+          placeholderConversionFeePercent: 25,
+          contractId: engagement.contractId,
+        },
+      },
+    });
+
+    const baseAmount = engagement.contract.sow.totalPriceUsd ?? 0;
+    const conversionFeeAmount = Math.round(baseAmount * 0.25);
+    const paymentPlan = engagement.contract.paymentPlan ?? await this.prisma.paymentPlan.create({
+      data: {
+        contractId: engagement.contractId,
+        planType: 'CONVERSION_FEE',
+        totalAmountUsd: conversionFeeAmount,
+        currency: 'USD',
+        billingCurrency: 'USD',
+      },
+    });
+
+    await this.prisma.invoice.create({
+      data: {
+        paymentPlanId: paymentPlan.id,
+        amountUsd: conversionFeeAmount,
+        description: 'Draft full-time conversion fee placeholder (25%).',
+        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        status: 'DRAFT',
+        metadata: {
+          engagementId: id,
+          source: 'PHASE_2_CONVERSION_PLACEHOLDER',
+        },
+      },
+    });
+
+    await this.logActivity(id, actorId, 'CONVERTED_TO_FULLTIME', 'Engagement converted to full-time.');
+    return converted;
   }
 
   // ── Milestones ─────────────────────────────────────────────────────────────

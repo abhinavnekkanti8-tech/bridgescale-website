@@ -6,6 +6,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import { CancellationParty, EngagementIntentParty } from '@prisma/client';
 
 enum PackageTypeDto {
   PIPELINE_SPRINT = 'PIPELINE_SPRINT',
@@ -43,4 +44,43 @@ export class SignContractDto {
 
   @IsString() @IsOptional()
   idempotencyKey?: string;
+}
+
+export class FindOrCreateMsaDto {
+  @IsString()
+  startupProfileId: string;
+
+  @IsString()
+  operatorId: string;
+}
+
+export class SignMsaDto {
+  @IsEnum(EngagementIntentParty)
+  party: EngagementIntentParty;
+
+  @IsString()
+  signatureId: string;
+}
+
+export class GenerateSowFromSummaryDto {
+  @IsString()
+  summaryId: string;
+}
+
+export class CancelSowDto {
+  @IsEnum(CancellationParty)
+  party: CancellationParty;
+
+  @IsString()
+  reason: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  refundAmount?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  payoutPenalty?: number;
 }

@@ -9,17 +9,29 @@ import {
   Req,
 } from '@nestjs/common';
 import { ContractsService } from './contracts.service';
-import { GenerateSowDto, EditSowDto, SignContractDto } from './dto/contracts.dto';
+import {
+  CancelSowDto,
+  FindOrCreateMsaDto,
+  GenerateSowDto,
+  GenerateSowFromSummaryDto,
+  EditSowDto,
+  SignContractDto,
+  SignMsaDto,
+} from './dto/contracts.dto';
 import { SessionAuthGuard } from '../common/guards/session-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { MembershipRole } from '@prisma/client';
 import { SessionUser as SessionUserDecorator } from '../auth/session-user.decorator';
 import { SessionUser as SessionUserType } from '../common/types/session.types';
+import { MsaService } from './msa.service';
 
 @Controller('contracts')
 export class ContractsController {
-  constructor(private readonly contractsService: ContractsService) {}
+  constructor(
+    private readonly contractsService: ContractsService,
+    private readonly msaService: MsaService,
+  ) {}
 
   /** POST /api/v1/contracts/sow — Generate SoW */
   @Post('sow')
@@ -27,6 +39,14 @@ export class ContractsController {
   @Roles(MembershipRole.PLATFORM_ADMIN)
   generateSow(@Body() dto: GenerateSowDto) {
     return this.contractsService.generateSow(dto);
+  }
+
+  /** POST /api/v1/contracts/sow/from-summary — Generate SOW from confirmed Pre-SOW Summary */
+  @Post('sow/from-summary')
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles(MembershipRole.PLATFORM_ADMIN)
+  generateSowFromSummary(@Body() dto: GenerateSowFromSummaryDto) {
+    return this.contractsService.generateSowFromSummary(dto.summaryId);
   }
 
   /** GET /api/v1/contracts/sow — List all SoWs (admin) */
@@ -71,6 +91,30 @@ export class ContractsController {
   @Roles(MembershipRole.PLATFORM_ADMIN)
   approveSow(@Param('id') id: string) {
     return this.contractsService.approveSow(id);
+  }
+
+  /** POST /api/v1/contracts/sow/:id/cancel — Record cancellation tracking event */
+  @Post('sow/:id/cancel')
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles(MembershipRole.PLATFORM_ADMIN)
+  cancelSow(@Param('id') id: string, @Body() dto: CancelSowDto) {
+    return this.contractsService.cancelSow(id, dto);
+  }
+
+  /** POST /api/v1/contracts/msa/find-or-create — Find or create pair-level MSA */
+  @Post('msa/find-or-create')
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles(MembershipRole.PLATFORM_ADMIN)
+  findOrCreateMsa(@Body() dto: FindOrCreateMsaDto) {
+    return this.msaService.findOrCreateMsa(dto);
+  }
+
+  /** PATCH /api/v1/contracts/msa/:id/sign — Record manual MSA signature */
+  @Patch('msa/:id/sign')
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles(MembershipRole.STARTUP_ADMIN, MembershipRole.OPERATOR, MembershipRole.PLATFORM_ADMIN)
+  signMsa(@Param('id') id: string, @Body() dto: SignMsaDto) {
+    return this.msaService.recordSignature(id, dto.party, dto.signatureId);
   }
 
   /** GET /api/v1/contracts/sow/startup/:startupProfileId */

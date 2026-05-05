@@ -19,6 +19,7 @@ import {
   CreateMilestoneDto,
   UpdateMilestoneDto,
   CreateNoteDto,
+  ConvertFulltimeDto,
 } from './dto/engagements.dto';
 
 @Controller('engagements')
@@ -64,6 +65,16 @@ export class EngagementsController {
     @SessionUserDecorator() user: SessionUserType,
   ) {
     return this.service.updateStatus(id, dto, user.id);
+  }
+
+  @Patch(':id/convert-fulltime')
+  @Roles(MembershipRole.PLATFORM_ADMIN)
+  convertFulltime(
+    @Param('id') id: string,
+    @Body() dto: ConvertFulltimeDto,
+    @SessionUserDecorator() user: SessionUserType,
+  ) {
+    return this.service.convertToFulltime(id, dto, user.id);
   }
 
   // ── Milestones ──────────────────────────────────────────────────────────

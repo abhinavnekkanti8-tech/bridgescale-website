@@ -22,6 +22,11 @@ const PENDING_APPROVAL_ALLOWED_PREFIXES = [
   '/api/v1/applications/initiate-unlock',
   '/api/v1/applications/verify-unlock',
   '/api/v1/operators/profile',
+  '/api/v1/operator-tax-profile',
+  '/api/v1/calls',
+  '/api/v1/engagement-intents',
+  '/api/v1/pre-sow-summaries',
+  '/api/v1/contracts/msa',
   '/api/v1/auth',
 ];
 

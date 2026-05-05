@@ -84,6 +84,14 @@ export class OperatorsController {
     return this.operatorsService.findByOrgId(user.orgId);
   }
 
+  /** GET /api/v1/operators/profile/me/gate — Report matching/MSA/payout readiness */
+  @Get('profile/me/gate')
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles(MembershipRole.OPERATOR)
+  getMyReadinessGate(@CurrentUser() user: SessionUser) {
+    return this.operatorsService.getReadinessGateByOrgId(user.orgId);
+  }
+
   /** PATCH /api/v1/operators/profile/:id — Update operator profile */
   @Patch('profile/:id')
   @UseGuards(SessionAuthGuard, RolesGuard)
@@ -128,6 +136,14 @@ export class OperatorsController {
   @Roles(MembershipRole.PLATFORM_ADMIN, MembershipRole.OPERATOR)
   getScores(@Param('id') id: string) {
     return this.operatorsService.getScores(id);
+  }
+
+  /** GET /api/v1/operators/:id/gate — Admin readiness view */
+  @Get(':id/gate')
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles(MembershipRole.PLATFORM_ADMIN)
+  getReadinessGate(@Param('id') id: string) {
+    return this.operatorsService.getReadinessGate(id);
   }
 
   /** PATCH /api/v1/operators/:id/verify — Verify/reject operator (admin) */

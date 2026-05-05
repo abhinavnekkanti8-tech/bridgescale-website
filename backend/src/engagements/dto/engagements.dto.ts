@@ -8,8 +8,14 @@ import {
 import { MilestoneStatus } from '@prisma/client';
 
 export class UpdateEngagementStatusDto {
-  @IsEnum(['NOT_STARTED', 'ACTIVE', 'PAUSED', 'COMPLETED', 'TERMINATED'])
-  status: 'NOT_STARTED' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'TERMINATED';
+  @IsEnum(['NOT_STARTED', 'ACTIVE', 'PAUSED', 'COMPLETED', 'TERMINATED', 'CONVERTED_TO_FULLTIME'])
+  status: 'NOT_STARTED' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'TERMINATED' | 'CONVERTED_TO_FULLTIME';
+}
+
+export class ConvertFulltimeDto {
+  @IsOptional()
+  @IsString()
+  description?: string;
 }
 
 export class CreateMilestoneDto {
