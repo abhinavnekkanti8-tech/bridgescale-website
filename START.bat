@@ -38,10 +38,11 @@ REM Frontend .env.local — already committed with correct settings
 if not exist "frontend\.env.local" (
     echo   WARNING: frontend\.env.local missing. Creating minimal config...
     (
-        echo NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+        echo NEXT_PUBLIC_API_URL=http://localhost:4000
         echo BACKEND_URL=http://localhost:4000
     ) > "frontend\.env.local"
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "(Get-Content 'frontend\.env.local') -replace '^NEXT_PUBLIC_API_URL=.*','NEXT_PUBLIC_API_URL=http://localhost:4000' | Set-Content 'frontend\.env.local'" >nul 2>&1
 
 echo OK - Environment files ready
 
@@ -130,6 +131,20 @@ if errorlevel 1 (
 echo   Seeding database with demo accounts...
 call npm run seed >nul 2>&1
 
+echo   Marking local admin email as verified...
+node -e "const {PrismaClient}=require('@prisma/client'); const p=new PrismaClient(); p.user.update({where:{email:'admin@platform.local'},data:{emailVerifiedAt:new Date()}}).then(()=>console.log('  OK - Local admin verified')).catch((e)=>{console.log('  WARNING - Could not verify local admin:', e.message)}).finally(()=>p.$disconnect())"
+
+echo.
+echo   Optional: create one dummy review engagement?
+echo   This creates local placeholder data only: company, operator, Pre-SOW, MSA, SOW,
+echo   signed contract, paid invoice, ledger, dummy payout attempt, active engagement.
+echo   It does NOT call Stripe, Razorpay, Wise, Deel, Remote, or Multiplier.
+set /p CREATE_REVIEW_FLOW="  Create dummy review scenario now? (y/N): "
+if /i "!CREATE_REVIEW_FLOW!"=="y" (
+    echo   Creating dummy review scenario...
+    node scripts\dummy-review-e2e.js
+)
+
 echo OK - Backend ready ^(migrations applied, demo data seeded^)
 
 REM ─────────────────────────────────────────────────────────────────
@@ -188,17 +203,20 @@ echo   Backend API: http://localhost:4000/api/v1
 echo   Health:      http://localhost:4000/health
 echo ===================================================================
 echo.
-echo   DEMO ACCOUNTS (all seeded fresh)
+echo   DEMO / REVIEW ACCESS
 echo   ─────────────────────────────────────────────────────────────
-echo   Admin:    admin@platform.com        /  Admin@123!
-echo   Startup:  ravi@acmetech.com         /  Startup@123
-echo   Operator: priya@diasporasales.com   /  Operator@123
+echo   Admin:    admin@platform.local        /  LocalAdminChangeMe!123
+echo.
+echo   Optional review data:
+echo   If you answered "y" to the dummy review scenario prompt, the database
+echo   also contains one placeholder company/operator engagement chain for
+echo   legal and partner workflow review.
 echo.
 echo ===================================================================
 echo   END-TO-END TESTING GUIDE
 echo ===================================================================
 echo.
-echo   [ADMIN FLOW]  login as admin@platform.com
+echo   [ADMIN FLOW]  login as admin@platform.local
 echo   ─────────────────────────────────────────────────────────────
 echo   /admin/dashboard          Overview + key metrics
 echo   /admin/analytics          Platform-wide analytics
@@ -209,6 +227,11 @@ echo   /admin/discovery          Discovery call management
 echo   /admin/matching           AI operator-startup matching
 echo   /admin/deal-desk          Deal desk tools
 echo   /admin/contracts          SoW + contract oversight
+echo   /admin/pre-sow            Pre-SOW review queue
+echo   /admin/msa                MSA signing dashboard
+echo   /admin/compliance         Compliance decision audit
+echo   /admin/eor                EOR enrolment queue
+echo   /admin/ledgers            Payment ledger review
 echo   /admin/sow-templates      View/edit 5 seeded SoW templates
 echo   /admin/billing            Invoices + payment tracking
 echo   /admin/escalations        Escalation case management
@@ -216,7 +239,9 @@ echo   /admin/settings           Platform settings
 echo   /admin/startups           All startup profiles
 echo   /admin/operators          All operator profiles
 echo.
-echo   [STARTUP FLOW]  login as ravi@acmetech.com
+echo   [STARTUP FLOW]
+echo   Create a fresh company via /for-companies/apply, or review the optional
+echo   placeholder scenario through the Admin queues.
 echo   ─────────────────────────────────────────────────────────────
 echo   /startup/dashboard        Startup home
 echo   /startup/profile          Fill company profile (industry, stage)
@@ -231,7 +256,9 @@ echo   /startup/engagements      Active engagements list
 echo   /startup/engagements/[id]           Engagement workspace
 echo   /startup/engagements/[id]/closeout  Submit closeout report
 echo.
-echo   [OPERATOR FLOW]  login as priya@diasporasales.com
+echo   [OPERATOR FLOW]
+echo   Create a fresh operator via /for-talent/apply, or review the optional
+echo   placeholder scenario through the Admin queues.
 echo   ─────────────────────────────────────────────────────────────
 echo   /operator/apply           Submit operator application
 echo   /operator/dashboard       Operator home
