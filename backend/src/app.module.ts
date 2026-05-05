@@ -27,6 +27,12 @@ import { ApplicationMatchingModule } from './application-matching/application-ma
 import { InterviewsModule } from './interviews/interviews.module';
 import { ApprovalsModule } from './approvals/approvals.module';
 import { SowModule } from './sow/sow.module';
+import { OperatorTaxProfileModule } from './operator-tax-profile/operator-tax-profile.module';
+import { OperatorEorEnrollmentModule } from './operator-eor-enrollment/operator-eor-enrollment.module';
+import { CoreFlowModule } from './core-flow/core-flow.module';
+import { PartnersModule } from './partners/partners.module';
+import { AdminOpsModule } from './admin-ops/admin-ops.module';
+import { DemoSeedModule } from './demo-seed/demo-seed.module';
 
 @Module({
   imports: [
@@ -85,6 +91,12 @@ import { SowModule } from './sow/sow.module';
     InterviewsModule,
     ApprovalsModule,
     SowModule,
+    OperatorTaxProfileModule,
+    OperatorEorEnrollmentModule,
+    CoreFlowModule,
+    PartnersModule,
+    AdminOpsModule,
+    DemoSeedModule,
   ],
   controllers: [AppController],
 })
