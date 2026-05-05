@@ -5,7 +5,19 @@
  * Run with: npm run seed
  */
 
-import { PrismaClient, OrgType, MembershipRole, MembershipStatus, UserStatus, SowTemplateType } from '@prisma/client';
+import {
+  PrismaClient,
+  OrgType,
+  MembershipRole,
+  MembershipStatus,
+  UserStatus,
+  SowTemplateType,
+  ServiceLane,
+  EngagementType,
+  RetainerFlavour,
+  ServiceTemplateCode,
+  OperatorRole,
+} from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { resolveSeedPolicy } from '../src/config/seed-policy';
 
@@ -39,6 +51,9 @@ async function main() {
   const existing = await prisma.user.findUnique({ where: { email: adminEmail } });
   if (existing) {
     console.log(`ℹ️  Platform Admin already exists: ${adminEmail}`);
+    await seedSowTemplates();
+    await seedPhase1ServiceTemplates();
+    await seedRoleTemplateEngagementCombinations();
     return;
   }
 
@@ -128,6 +143,8 @@ async function main() {
 
   // ── Seed SoW Templates ─────────────────────────────────────────────
   await seedSowTemplates();
+  await seedPhase1ServiceTemplates();
+  await seedRoleTemplateEngagementCombinations();
 }
 
 async function seedSowTemplates() {
@@ -603,6 +620,200 @@ BridgeScale: _________________________ Date: __________`,
   }
 
   console.log(`5 SoW templates ready.`);
+}
+
+const phase1ServiceTemplates = [
+  {
+    code: ServiceTemplateCode.INTL_MARKET_ENTRY,
+    name: 'International Market Entry Diagnostic',
+    lane: ServiceLane.FRACTIONAL_BD_PARTNERSHIPS,
+    engagementType: EngagementType.CONSULTATION,
+    retainerFlavour: null,
+    suggestedDurationDays: 14,
+    description: 'Short diagnostic to validate target market, ICP, channel options, and first commercial moves.',
+  },
+  {
+    code: ServiceTemplateCode.ICP_REFINEMENT,
+    name: 'ICP Refinement',
+    lane: ServiceLane.FRACTIONAL_EXECUTION_OPS,
+    engagementType: EngagementType.CONSULTATION,
+    retainerFlavour: null,
+    suggestedDurationDays: 14,
+    description: 'Refines ideal customer profile, target segments, buying committee, and qualification rules.',
+  },
+  {
+    code: ServiceTemplateCode.GTM_STRATEGY,
+    name: 'GTM Strategy',
+    lane: ServiceLane.FRACTIONAL_LEADERSHIP,
+    engagementType: EngagementType.CONSULTATION,
+    retainerFlavour: null,
+    suggestedDurationDays: 21,
+    description: 'Defines the commercial strategy, motion, positioning, pipeline model, and operating cadence.',
+  },
+  {
+    code: ServiceTemplateCode.PIPELINE_SPRINT,
+    name: 'Pipeline Sprint',
+    lane: ServiceLane.FRACTIONAL_EXECUTION_OPS,
+    engagementType: EngagementType.SPRINT,
+    retainerFlavour: null,
+    suggestedDurationDays: 30,
+    description: 'Time-boxed outbound execution sprint to build list, launch outreach, and create qualified meetings.',
+  },
+  {
+    code: ServiceTemplateCode.FOUNDER_LED_SALES_TRANSITION,
+    name: 'Founder-Led Sales Transition',
+    lane: ServiceLane.FRACTIONAL_LEADERSHIP,
+    engagementType: EngagementType.RETAINER,
+    retainerFlavour: RetainerFlavour.LEADERSHIP,
+    suggestedDurationDays: 90,
+    description: 'Helps the founder move from ad hoc sales to a repeatable, delegated commercial operating model.',
+  },
+  {
+    code: ServiceTemplateCode.REVENUE_CADENCE_SETUP,
+    name: 'Revenue Cadence Setup',
+    lane: ServiceLane.FRACTIONAL_EXECUTION_OPS,
+    engagementType: EngagementType.SPRINT,
+    retainerFlavour: null,
+    suggestedDurationDays: 30,
+    description: 'Sets up CRM hygiene, pipeline reviews, reporting rhythm, handoff rules, and basic revenue operations.',
+  },
+  {
+    code: ServiceTemplateCode.PARTNER_CHANNEL_DEVELOPMENT,
+    name: 'Partner Channel Development',
+    lane: ServiceLane.FRACTIONAL_BD_PARTNERSHIPS,
+    engagementType: EngagementType.SPRINT,
+    retainerFlavour: null,
+    suggestedDurationDays: 45,
+    description: 'Maps partner landscape, prioritizes channel targets, and starts partner outreach and qualification.',
+  },
+  {
+    code: ServiceTemplateCode.CUSTOMER_SUCCESS_RETENTION,
+    name: 'Customer Success Retention',
+    lane: ServiceLane.FRACTIONAL_EXECUTION_OPS,
+    engagementType: EngagementType.RETAINER,
+    retainerFlavour: RetainerFlavour.OPERATOR,
+    suggestedDurationDays: 90,
+    description: 'Fractional customer success support for onboarding, retention, expansion, and account health.',
+  },
+  {
+    code: ServiceTemplateCode.SALES_PROCESS_CRM_CLEANUP,
+    name: 'Sales Process and CRM Cleanup',
+    lane: ServiceLane.FRACTIONAL_EXECUTION_OPS,
+    engagementType: EngagementType.SPRINT,
+    retainerFlavour: null,
+    suggestedDurationDays: 30,
+    description: 'Cleans up sales stages, CRM fields, operating rules, reporting, and process discipline.',
+  },
+  {
+    code: ServiceTemplateCode.CLOSING_SUPPORT,
+    name: 'Closing Support',
+    lane: ServiceLane.FRACTIONAL_EXECUTION_OPS,
+    engagementType: EngagementType.RETAINER,
+    retainerFlavour: RetainerFlavour.OPERATOR,
+    suggestedDurationDays: 60,
+    description: 'Fractional support for live opportunities, follow-up, stakeholder management, and deal progression.',
+  },
+];
+
+async function seedPhase1ServiceTemplates() {
+  for (const template of phase1ServiceTemplates) {
+    await prisma.serviceTemplate.upsert({
+      where: { code: template.code },
+      update: template,
+      create: template,
+    });
+    console.log(`Service template ready: ${template.name}`);
+  }
+
+  console.log(`${phase1ServiceTemplates.length} Phase 1 service templates ready.`);
+}
+
+const leadershipRoles: OperatorRole[] = [
+  OperatorRole.VP_SALES,
+  OperatorRole.VP_REVENUE,
+  OperatorRole.CRO,
+  OperatorRole.HEAD_OF_SALES,
+  OperatorRole.GTM_LEADER,
+  OperatorRole.FOUNDER_LED_SALES_COACH,
+  OperatorRole.REVENUE_ADVISOR,
+];
+
+const bdRoles: OperatorRole[] = [
+  OperatorRole.BD_LEAD,
+  OperatorRole.PARTNERSHIPS_LEAD,
+  OperatorRole.CHANNEL_LEAD,
+  OperatorRole.ALLIANCES_LEAD,
+  OperatorRole.MARKET_ACCESS_LEAD,
+];
+
+const executionRoles: OperatorRole[] = [
+  OperatorRole.AE,
+  OperatorRole.SDR,
+  OperatorRole.BDR,
+  OperatorRole.OUTBOUND_OPERATOR,
+  OperatorRole.REVOPS,
+  OperatorRole.SALES_OPS,
+  OperatorRole.CUSTOMER_SUCCESS_OPERATOR,
+  OperatorRole.EXPANSION_OPERATOR,
+  OperatorRole.ACCOUNT_MANAGER,
+  OperatorRole.SALES_ENABLEMENT_SOLUTIONS_CONSULTANT,
+];
+
+function combinationsFor(role: OperatorRole) {
+  if (leadershipRoles.includes(role)) {
+    const allowedCodes: ServiceTemplateCode[] = [
+      ServiceTemplateCode.GTM_STRATEGY,
+      ServiceTemplateCode.FOUNDER_LED_SALES_TRANSITION,
+      ServiceTemplateCode.INTL_MARKET_ENTRY,
+      ServiceTemplateCode.CLOSING_SUPPORT,
+    ];
+    return phase1ServiceTemplates.filter((template) =>
+      allowedCodes.includes(template.code),
+    );
+  }
+
+  if (bdRoles.includes(role)) {
+    const allowedCodes: ServiceTemplateCode[] = [
+      ServiceTemplateCode.INTL_MARKET_ENTRY,
+      ServiceTemplateCode.PARTNER_CHANNEL_DEVELOPMENT,
+      ServiceTemplateCode.PIPELINE_SPRINT,
+      ServiceTemplateCode.CLOSING_SUPPORT,
+    ];
+    return phase1ServiceTemplates.filter((template) =>
+      allowedCodes.includes(template.code),
+    );
+  }
+
+  const allowedCodes: ServiceTemplateCode[] = [
+    ServiceTemplateCode.ICP_REFINEMENT,
+    ServiceTemplateCode.PIPELINE_SPRINT,
+    ServiceTemplateCode.REVENUE_CADENCE_SETUP,
+    ServiceTemplateCode.CUSTOMER_SUCCESS_RETENTION,
+    ServiceTemplateCode.SALES_PROCESS_CRM_CLEANUP,
+    ServiceTemplateCode.CLOSING_SUPPORT,
+  ];
+  return phase1ServiceTemplates.filter((template) =>
+    allowedCodes.includes(template.code),
+  );
+}
+
+async function seedRoleTemplateEngagementCombinations() {
+  const roles = [...leadershipRoles, ...bdRoles, ...executionRoles];
+  const rows = roles.flatMap((operatorRole) =>
+    combinationsFor(operatorRole).map((template) => ({
+      operatorRole,
+      serviceTemplate: template.code,
+      engagementType: template.engagementType,
+      retainerFlavour: template.retainerFlavour,
+      serviceLane: template.lane,
+      isRecommended: true,
+      notes: 'Phase 1 seed rule. Replace with Operating Matrix sheet 06 once finalized.',
+    })),
+  );
+
+  await prisma.roleTemplateEngagementCombination.deleteMany({});
+  await prisma.roleTemplateEngagementCombination.createMany({ data: rows });
+  console.log(`${rows.length} role/service combinations ready.`);
 }
 
 main()
