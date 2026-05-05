@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MarketingNav } from '@/components/MarketingNav';
 import FaqSection from '@/components/FaqSection';
 import { talentFaqGroups } from '@/content/faq';
@@ -26,6 +26,34 @@ function useReveal() {
 function Reveal({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   const ref = useReveal();
   return <div ref={ref} className={`reveal-init ${className}`}>{children}</div>;
+}
+
+/* ── Role-bucket card with expandable title list ── */
+function RoleBucketCard({ name, blurb, titles }: { name: string; blurb: string; titles: string[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={`${styles.roleBucket} ${open ? styles.roleBucketOpen : ''}`}>
+      <button
+        type="button"
+        className={styles.roleBucketHeader}
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <div>
+          <div className={styles.roleBucketName}>{name}</div>
+          <div className={styles.roleBucketBlurb}>{blurb}</div>
+        </div>
+        <span className={styles.roleBucketChev} aria-hidden>{open ? '−' : '+'}</span>
+      </button>
+      {open && (
+        <ul className={styles.roleBucketTitles}>
+          {titles.map((t) => (
+            <li key={t} className={styles.roleBucketTitle}>{t}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 /* ── Data ── */
@@ -58,17 +86,37 @@ const compensation = [
   { name: 'Hybrid cash + equity', range: 'Negotiated', desc: 'Lower cash retainer combined with meaningful equity. For talent willing to share risk for higher upside. Documented via FAST templates.' },
 ];
 
-const roles = [
-  'Fractional VP Sales / CRO',
-  'Sales execution (SDR, BDR, AE)',
-  'Channel & reseller development',
-  'Alliance & partnership ops',
-  'International market entry',
-  'GTM strategy & refinement',
-  'Outbound pipeline generation',
-  'Revenue operations & cadence',
-  'Founder-led sales transition',
-  'Customer success & retention',
+const roleBuckets = [
+  {
+    name: 'Sales Leadership',
+    blurb: 'Senior fractional leaders who own revenue. Build teams, set strategy, operate as part of the leadership group.',
+    titles: ['Fractional VP Sales', 'VP Revenue', 'CRO', 'Head of Sales', 'GTM Leader'],
+  },
+  {
+    name: 'Sales Advisors',
+    blurb: 'Senior commercial operators in advisory mode — strategy, founder coaching, and second-opinion engagements.',
+    titles: ['Founder-led sales coach', 'Revenue advisor', 'GTM strategy advisor'],
+  },
+  {
+    name: 'Partnerships & BD',
+    blurb: 'Build channels, alliances, and reseller networks. Open new markets through partner ecosystems instead of direct sale.',
+    titles: ['BD Lead', 'Partnerships Lead', 'Channel Lead', 'Alliances Lead', 'Market Access Lead'],
+  },
+  {
+    name: 'Sales Execution',
+    blurb: 'Hands-on operators running the pipeline. Outbound, qualification, deal cycles, and direct quota carry.',
+    titles: ['Account Executive (AE)', 'SDR', 'BDR', 'Outbound operator'],
+  },
+  {
+    name: 'Sales Operations',
+    blurb: 'The backbone of revenue. Forecasting, cadence, tooling, and the systems that make a sales team predictable.',
+    titles: ['RevOps', 'Sales Ops', 'Sales Enablement / Solutions Consultant'],
+  },
+  {
+    name: 'Customer Success',
+    blurb: 'Retain and expand the accounts you already won. Renewal motions, expansion plays, and account management.',
+    titles: ['Customer Success Operator', 'Expansion Operator', 'Account Manager'],
+  },
 ];
 
 export default function ForTalentPage() {
@@ -180,10 +228,11 @@ export default function ForTalentPage() {
         <Reveal>
           <div className={styles.container}>
             <div className={styles.sectionLabel}>Fractional roles available</div>
-            <h2 className={styles.sectionHeading}>Deploy your expertise where it matters most.</h2>
-            <div className={styles.rolesGrid}>
-              {roles.map((role) => (
-                <div key={role} className={styles.roleChip}>{role}</div>
+            <h2 className={styles.sectionHeading}>Six role buckets. Click any to see the underlying titles.</h2>
+            <p className={styles.sectionSub}>Every role on BridgeScale maps to one of six public buckets. Pick the bucket that fits — we&apos;ll match you against companies who need that capability.</p>
+            <div className={styles.roleBucketsGrid}>
+              {roleBuckets.map((b) => (
+                <RoleBucketCard key={b.name} name={b.name} blurb={b.blurb} titles={b.titles} />
               ))}
             </div>
           </div>

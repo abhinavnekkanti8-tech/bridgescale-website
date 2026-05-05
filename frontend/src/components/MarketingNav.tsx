@@ -11,6 +11,7 @@ export function MarketingNav() {
     { href: '/',              label: 'Home' },
     { href: '/for-companies', label: 'For Companies' },
     { href: '/for-talent',    label: 'For Talent' },
+    { href: '/learn',         label: 'Learn' },
     { href: '/about',         label: 'About' },
     { href: '/blog',          label: 'Blog' },
   ];

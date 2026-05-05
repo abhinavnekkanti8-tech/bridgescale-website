@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { MarketingNav } from '@/components/MarketingNav';
 import { PRIVACY_PATH, TERMS_PATH } from '@/lib/legal';
@@ -138,7 +138,7 @@ export default function HomePage() {
         <div className={styles.wrap}>
           <div className={styles.heroEyebrow}>
             <span className={styles.heroEyebrowLine} />
-            Now accepting early applications
+            For Indian startups going international
           </div>
 
           <h1 className={styles.heroTitle}>
@@ -205,22 +205,7 @@ export default function HomePage() {
             </div>
           </Reveal>
           <Reveal>
-            <div className={styles.gapMosaic}>
-              {gapCards.map((card, ci) => (
-                <div key={ci} className={styles.gapCard}>
-                  <div className={styles.gapCardLabel}>{card.label}</div>
-                  <div className={styles.gapCardTitle}>{card.title}</div>
-                  <ul className={styles.gapList}>
-                    {card.points.map((p, pi) => (
-                      <li key={pi} className={styles.gapItem}>
-                        <span className={styles.gapDash}>—</span>
-                        <span>{p}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
+            <GapToggleSection cards={gapCards} />
           </Reveal>
         </div>
       </section>
@@ -363,11 +348,10 @@ export default function HomePage() {
           <Reveal>
             <div className={styles.ctaGrid}>
               <div>
-                <div className={styles.sectionLabel}>Early access</div>
-                <h2 className={styles.ctaHeading}>Request your spot.</h2>
+                <div className={styles.sectionLabel}>Get started</div>
+                <h2 className={styles.ctaHeading}>Pick your side.</h2>
                 <p className={styles.ctaSub}>
-                  We&apos;re reviewing early applications from both sides. Tell us who you are —
-                  we&apos;ll follow up within 3–5 business days.
+                  Indian startup or MSME going international? Diaspora senior talent looking for structured fractional work? Start with the form for your side — we take it from there.
                 </p>
               </div>
               <div className={styles.ctaCards}>
@@ -406,6 +390,51 @@ export default function HomePage() {
         </div>
       </footer>
 
+    </div>
+  );
+}
+
+/* ── Gap section: toggle between Startups / Talent ───────────────────── */
+function GapToggleSection({ cards }: { cards: typeof gapCards }) {
+  const [active, setActive] = useState<'startups' | 'talent'>('startups');
+  const idx = active === 'startups' ? 0 : 1;
+  const card = cards[idx];
+
+  return (
+    <div className={styles.gapToggleWrap}>
+      <div className={styles.gapToggleBar} role="tablist" aria-label="Audience toggle">
+        <button
+          role="tab"
+          aria-selected={active === 'startups'}
+          className={`${styles.gapToggleBtn} ${active === 'startups' ? styles.gapToggleBtnActive : ''}`}
+          onClick={() => setActive('startups')}
+          type="button"
+        >
+          For startups
+        </button>
+        <button
+          role="tab"
+          aria-selected={active === 'talent'}
+          className={`${styles.gapToggleBtn} ${active === 'talent' ? styles.gapToggleBtnActive : ''}`}
+          onClick={() => setActive('talent')}
+          type="button"
+        >
+          For talent
+        </button>
+      </div>
+
+      <div className={styles.gapToggleCard}>
+        <div className={styles.gapCardLabel}>{card.label}</div>
+        <div className={styles.gapCardTitle}>{card.title}</div>
+        <ul className={styles.gapList}>
+          {card.points.map((p, pi) => (
+            <li key={pi} className={styles.gapItem}>
+              <span className={styles.gapDash}>—</span>
+              <span>{p}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

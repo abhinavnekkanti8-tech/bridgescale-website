@@ -1,0 +1,475 @@
+/* ── /learn page ── */
+
+.page {
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+.section {
+  padding: 80px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.sectionLabel {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-3);
+}
+
+.sectionHeading {
+  font-family: var(--font-serif);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
+  max-width: 30ch;
+}
+
+.sectionSub {
+  font-size: 1rem;
+  font-weight: 300;
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+  max-width: 65ch;
+  margin-bottom: var(--space-8);
+}
+
+/* ── HERO ── */
+.hero {
+  padding: 80px 0 60px 0;
+  background: var(--color-surface);
+}
+.heroLabel {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-3);
+}
+.heroTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-weight: 600;
+  line-height: 1.15;
+  margin-bottom: var(--space-5);
+  max-width: 24ch;
+}
+.heroDesc {
+  font-size: 1.05rem;
+  font-weight: 300;
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+  max-width: 60ch;
+  margin-bottom: var(--space-7);
+}
+.heroActions {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+/* ── WHEN FRACTIONAL ── */
+.whenGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  margin-top: 24px;
+}
+.whenColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.whenColumnLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.whenColumnLabelGood { color: #2f6d4a; }
+.whenColumnLabelBad { color: var(--color-text-muted); }
+
+.whenCard {
+  background: var(--color-surface);
+  padding: 22px 24px;
+  border-left: 3px solid;
+}
+.whenCardGood { border-left-color: #2f6d4a; }
+.whenCardBad { border-left-color: var(--color-border); }
+
+.whenCardTitle {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--color-text-primary);
+}
+.whenCardDesc {
+  font-size: 0.88rem;
+  font-weight: 300;
+  color: var(--color-text-secondary);
+  line-height: 1.65;
+}
+
+.ruleOfThumb {
+  margin-top: 32px;
+  padding: 24px 28px;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1.55;
+  text-align: center;
+  color: var(--color-text-primary);
+}
+
+/* ── CALCULATOR ── */
+.calc {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 32px;
+  margin-top: 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 32px;
+}
+
+.calcInputs {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.calcRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.calcRowHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.calcLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.calcValue {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+.calcSlider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--color-border);
+  outline: none;
+  border-radius: 2px;
+}
+.calcSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  cursor: pointer;
+  border: 2px solid var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+.calcSlider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  cursor: pointer;
+  border: 2px solid var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+.calcNote {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  font-weight: 300;
+}
+
+.calcOutput {
+  background: var(--color-surface-alt);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.calcOutHeadline {
+  font-family: var(--font-serif);
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+.calcOutCaption {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin-bottom: 18px;
+}
+.calcOutSub {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  margin-bottom: 4px;
+}
+.calcOutSubCaption {
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+  margin-bottom: 22px;
+}
+.calcBreakdown {
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.calcBreakdownRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+.calcBreakdownTotal {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  padding-top: 10px;
+  border-top: 1px dashed var(--color-border);
+  margin-top: 6px;
+}
+
+.calcCta {
+  margin-top: 24px;
+  padding: 22px 24px;
+  background: var(--color-surface);
+  border-left: 3px solid var(--color-accent);
+}
+.calcCtaText {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+/* ── ENGAGEMENT-TYPE CARDS (4) ── */
+.engGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--color-border);
+  margin-top: 24px;
+}
+.engCard {
+  background: var(--color-surface);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+}
+.engCardName {
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+.engCardOneLine {
+  font-size: 0.9rem;
+  font-style: italic;
+  color: var(--color-text-secondary);
+  font-weight: 300;
+}
+.engCardMeta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 14px;
+  font-size: 0.82rem;
+  margin-top: 6px;
+}
+.engCardMetaLabel {
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.7rem;
+}
+.engCardMetaValue {
+  color: var(--color-text-primary);
+}
+.engCardBest {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+  font-weight: 300;
+  border-top: 1px dashed var(--color-border);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+.engNote {
+  margin-top: 24px;
+  padding: 18px 22px;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-alt);
+  font-weight: 300;
+  line-height: 1.6;
+}
+
+/* ── ROLE BUCKET STRIP ── */
+.bucketStrip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--color-border);
+  margin-top: 24px;
+  margin-bottom: 32px;
+}
+.bucketCell {
+  background: var(--color-surface);
+  padding: 18px 20px;
+}
+.bucketCellName {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+.bucketCellDesc {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  font-weight: 300;
+  line-height: 1.5;
+}
+
+/* ── MATRIX TABLE ── */
+.matrixWrap {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+.matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  min-width: 720px;
+}
+.matrix th, .matrix td {
+  border: 1px solid var(--color-border);
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+.matrix th {
+  background: var(--color-surface-alt);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-size: 0.78rem;
+}
+.matrix tbody th {
+  background: var(--color-surface);
+  font-family: var(--font-serif);
+  font-weight: 600;
+}
+.matrixCellPrice {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.matrixCellComp {
+  color: var(--color-text-muted);
+  font-size: 0.74rem;
+  font-style: italic;
+  font-weight: 300;
+}
+.matrixCellEmpty {
+  color: var(--color-text-muted);
+  text-align: center;
+  background: var(--color-surface-alt);
+}
+
+.matrixCaption {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  font-weight: 300;
+  margin-bottom: 12px;
+  font-style: italic;
+}
+
+.matrixFooter {
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+  font-weight: 300;
+  margin-top: 12px;
+  font-style: italic;
+}
+
+.dealDeskNote {
+  margin-top: 32px;
+  padding: 22px 26px;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+}
+.dealDeskNoteText {
+  font-size: 0.92rem;
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  margin-bottom: 14px;
+  font-weight: 500;
+}
+
+/* ── FOOTER CTA ── */
+.footerCta {
+  padding: 80px 0;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+}
+.footerCtaTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+.footerCtaActions {
+  display: flex;
+  gap: var(--space-4);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .calc { grid-template-columns: 1fr; }
+  .whenGrid { grid-template-columns: 1fr; }
+  .engGrid { grid-template-columns: 1fr; }
+  .bucketStrip { grid-template-columns: 1fr; }
+}

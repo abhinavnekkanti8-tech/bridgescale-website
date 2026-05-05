@@ -54,7 +54,32 @@ function FaqRow({ item }: { item: FaqItem }) {
         className={styles.answerWrap}
         style={{ maxHeight: open ? innerRef.current?.scrollHeight ?? 0 : 0 }}
       >
-        <div ref={innerRef} className={styles.answer}>{item.a}</div>
+        <div ref={innerRef} className={styles.answer}>
+          <p style={{ margin: 0 }}>{item.a}</p>
+          {item.docs && item.docs.length > 0 && (
+            <div className={styles.docList}>
+              <div className={styles.docListLabel}>Sample documents</div>
+              <ul className={styles.docListItems}>
+                {item.docs.map((d) => (
+                  <li key={d.href} className={styles.docListItem}>
+                    <a
+                      href={d.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.docLink}
+                    >
+                      <span className={styles.docIcon} aria-hidden>📄</span>
+                      <span>
+                        <span className={styles.docLabel}>{d.label}</span>
+                        <span className={styles.docMeta}>SAMPLE — finalised version coming soon</span>
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
