@@ -547,6 +547,8 @@ export const paymentsApi = {
   markInvoicePaid: (id: string) => apiFetch<Invoice>(`/payments/invoice/${id}/pay`, { method: 'PATCH' }),
   markInvoiceOverdue: (id: string) => apiFetch<Invoice>(`/payments/invoice/${id}/overdue`, { method: 'PATCH' }),
 
+  getMode: () => apiFetch<{ dummyPaymentMode: boolean; partnerLiveMode: boolean; env: string }>('/payments/mode'),
+
   // Shared / Startup Methods
   getPlanByContract: (contractId: string) => apiFetch<PaymentPlan>(`/payments/plan/${contractId}`),
   getStartupInvoices: (startupProfileId: string) => apiFetch<Invoice[]>(`/payments/invoice/startup/${startupProfileId}`),
@@ -582,6 +584,51 @@ export interface EngagementMilestone {
   evidenceUrl?: string;
 }
 
+/* ── Phase-2 contracts surface (MSA + Pre-SOW) ─────────────────────────── */
+
+export type MsaStatus = 'PENDING_SIGNATURES' | 'PARTIALLY_SIGNED' | 'FULLY_EXECUTED' | 'TERMINATED';
+
+export interface MasterServiceAgreement {
+  id: string;
+  startupProfileId: string;
+  operatorId: string;
+  status: MsaStatus;
+  platformFeePercent: number;
+  conversionFeePercent: number;
+  nonCircMonths: number;
+  termNoticeDays: number;
+  governingLaw: string;
+  platformSignedAt?: string | null;
+  startupSignedAt?: string | null;
+  operatorSignedAt?: string | null;
+  fullyExecutedAt?: string | null;
+  documentUrl?: string | null;
+  watermarked: boolean;
+}
+
+export type PreSowSummaryStatus = 'DRAFT' | 'SHARED' | 'CONFIRMED' | 'CANCELLED';
+
+export interface PreSowCommercialSummary {
+  id: string;
+  callId: string;
+  startupProfileId: string;
+  operatorId: string;
+  masterAgreementId?: string | null;
+  serviceTemplate: string;
+  engagementType: string;
+  retainerFlavour?: string | null;
+  compensationMode: string;
+  indicativePrice?: number | null;
+  currency: string;
+  weeklyHours?: number | null;
+  durationDays?: number | null;
+  specialTerms?: string | null;
+  cancellationNote?: string | null;
+  status: PreSowSummaryStatus;
+  startupConfirmedAt?: string | null;
+  operatorConfirmedAt?: string | null;
+}
+
 export interface Engagement {
   id: string;
   contractId: string;
@@ -591,9 +638,25 @@ export interface Engagement {
   startDate?: string;
   endDate?: string;
   healthScore: number;
-  contract?: { sow: { title: string; deliverables: string; scope: string } };
+  contract?: {
+    id?: string;
+    status?: 'PENDING_SIGNATURES' | 'STARTUP_SIGNED' | 'OPERATOR_SIGNED' | 'FULLY_SIGNED' | 'CANCELLED';
+    startupSignedAt?: string | null;
+    operatorSignedAt?: string | null;
+    fullySignedAt?: string | null;
+    sow: {
+      id?: string;
+      title: string;
+      deliverables: string;
+      scope: string;
+      status?: 'DRAFT' | 'REVIEW' | 'APPROVED' | 'SIGNED' | 'LOCKED';
+      msa?: MasterServiceAgreement | null;
+    };
+  };
   startup?: { companyName: string; website: string };
   operator?: { user: { firstName: string; lastName: string } };
+  /** Most recent Pre-SOW Commercial Summary for this (startup, operator) pair. */
+  preSowSummary?: PreSowCommercialSummary | null;
 }
 
 export const engagementsApi = {
@@ -616,6 +679,146 @@ export const engagementsApi = {
     
   addNote: (id: string, content: string) =>
     apiFetch<WorkspaceNote>(`/engagements/${id}/notes`, { method: 'POST', body: JSON.stringify({ content }) }),
+};
+
+// ── MSA + Pre-SOW (Phase-2 core flow) ─────────────────────────────────────
+
+export type MsaParty = 'STARTUP' | 'OPERATOR' | 'PLATFORM';
+
+export const msaApi = {
+  /** Idempotent — returns the existing MSA for the (startup, operator) pair or creates one. */
+  findOrCreate: (data: { startupProfileId: string; operatorId: string }) =>
+    apiFetch<MasterServiceAgreement>('/contracts/msa/find-or-create', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  /** Records a manual signature timestamp on the MSA for the given party. */
+  sign: (id: string, party: MsaParty, signatureId?: string) =>
+    apiFetch<MasterServiceAgreement>(`/contracts/msa/${id}/sign`, {
+      method: 'PATCH',
+      body: JSON.stringify({ party, signatureId }),
+    }),
+};
+
+export type EngagementCallStatus = 'REQUESTED' | 'ACCEPTED' | 'DECLINED' | 'COMPLETED' | 'CANCELLED';
+
+export interface EngagementIntent {
+  id: string;
+  callId: string;
+  party: 'STARTUP' | 'OPERATOR';
+  status: 'INTERESTED' | 'NOT_INTERESTED';
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface EngagementCall {
+  id: string;
+  startupProfileId: string;
+  operatorId: string;
+  status: EngagementCallStatus;
+  scheduledAt?: string | null;
+  meetingLink?: string | null;
+  notes?: string | null;
+  outcomeNotes?: string | null;
+  completedAt?: string | null;
+  intents?: EngagementIntent[];
+  startup?: { id: string; industry: string };
+  operator?: { id: string; operatorId: string };
+}
+
+export interface StrikeStatus {
+  lateCancels: number;
+  noShows: number;
+  total: number;
+  windowDays: number;
+  threshold: number;
+  pausedAtRisk: boolean;
+  paused: boolean;
+}
+
+export const coreFlowApi = {
+  listMyCalls: () => apiFetch<EngagementCall[]>('/calls/me'),
+  getCall: (id: string) => apiFetch<EngagementCall>(`/calls/${id}`),
+  requestCall: (data: { startupProfileId: string; operatorId: string; shortlistId?: string; candidateId?: string; proposedAt?: string; meetingLink?: string; notes?: string }) =>
+    apiFetch<EngagementCall>('/calls/request', { method: 'POST', body: JSON.stringify(data) }),
+  recordCallOutcome: (id: string, outcomeNotes?: string) =>
+    apiFetch<EngagementCall>(`/calls/${id}/outcome`, { method: 'PATCH', body: JSON.stringify({ outcomeNotes }) }),
+  respondToCall: (id: string, status: 'ACCEPTED' | 'DECLINED', scheduledAt?: string, meetingLink?: string, notes?: string) =>
+    apiFetch<EngagementCall>(`/calls/${id}/respond`, { method: 'PATCH', body: JSON.stringify({ status, scheduledAt, meetingLink, notes }) }),
+  deferCall: (id: string, newProposedAt: string, reason?: string) =>
+    apiFetch<EngagementCall>(`/calls/${id}/defer`, { method: 'PATCH', body: JSON.stringify({ newProposedAt, reason }) }),
+  getMyStrikes: () => apiFetch<StrikeStatus>('/strikes/me'),
+  getPreSowSummary: (id: string) =>
+    apiFetch<PreSowCommercialSummary>(`/core-flow/pre-sow-summaries/${id}`),
+
+  /** Either party (or admin) confirms the Pre-SOW Summary. */
+  confirmPreSowSummary: (id: string, party: 'STARTUP' | 'OPERATOR') =>
+    apiFetch<PreSowCommercialSummary>(`/core-flow/pre-sow-summaries/${id}/confirm`, {
+      method: 'PATCH',
+      body: JSON.stringify({ party }),
+    }),
+
+  recordIntent: (data: { callId: string; party: 'STARTUP' | 'OPERATOR'; status: 'INTERESTED' | 'NOT_INTERESTED'; notes?: string }) =>
+    apiFetch(`/core-flow/engagement-intents`, { method: 'POST', body: JSON.stringify(data) }),
+};
+
+// ── Operator Tax Profile (Phase-3 plumbing UI) ────────────────────────────
+
+export type TaxFormType = 'W9' | 'W8BEN' | 'W8BEN_E' | 'GST_PAN' | 'VAT' | 'OTHER';
+export type TaxFormStatus = 'NOT_STARTED' | 'COLLECTED' | 'UNDER_REVIEW' | 'VERIFIED' | 'EXPIRED' | 'REJECTED';
+
+export interface TaxProfileForm {
+  formType: TaxFormType;
+  formStatus: TaxFormStatus;
+  taxResidencyCountry?: string | null;
+  payoutCountry?: string | null;
+  payoutCurrency?: string | null;
+  individualOrEntity?: string | null;
+  expiresAt?: string | null;
+  verifiedAt?: string | null;
+  updatedAt: string;
+}
+
+export interface TaxProfileStatus {
+  forms: TaxProfileForm[];
+  basicComplete: boolean;
+  msaReady: boolean;
+  payoutReady: boolean;
+  expectedForms: TaxFormType[];
+}
+
+export const operatorTaxApi = {
+  getMine: () => apiFetch<TaxProfileStatus>('/operator-tax-profile/me'),
+  upsert: (data: Partial<TaxProfileForm> & { formType: TaxFormType; encryptedBlobRef?: string }) =>
+    apiFetch<TaxProfileForm>('/operator-tax-profile', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
+// ── Operator EOR Enrollment (Phase-3 plumbing UI) ─────────────────────────
+
+export type EorPartner = 'DEEL' | 'REMOTE' | 'MULTIPLIER';
+export type EorEnrollmentStatus = 'NOT_STARTED' | 'PENDING' | 'ACTIVE' | 'REJECTED' | 'TERMINATED';
+
+export interface OperatorEorEnrollment {
+  id: string | null;
+  operatorProfileId: string;
+  partner: EorPartner;
+  status: EorEnrollmentStatus;
+  partnerSideId: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export const operatorEorApi = {
+  listMine: () => apiFetch<OperatorEorEnrollment[]>('/operator-eor-enrollments/me'),
+  request: (partner: EorPartner) =>
+    apiFetch<OperatorEorEnrollment>('/operator-eor-enrollments/me/request', {
+      method: 'POST',
+      body: JSON.stringify({ partner }),
+    }),
 };
 
 // ── Health, Nudges & Escalations ──────────────────────────────────────────
@@ -748,4 +951,143 @@ export interface AdminDashboardMetrics {
 
 export const analyticsApi = {
   getDashboardMetrics: () => apiFetch<AdminDashboardMetrics>('/admin/analytics/dashboard'),
+};
+
+// ── Phase-6 partner API surface ─────────────────────────────────────────
+
+export interface StripeOnboardingLinkResponse {
+  url: string;
+  accountId: string;
+  expiresAt: string;
+  liveMode: boolean;
+}
+
+export const partnersApi = {
+  stripeOnboardingLink: (returnUrl: string) =>
+    apiFetch<StripeOnboardingLinkResponse>('/partners/stripe/onboarding-link', {
+      method: 'POST',
+      body: JSON.stringify({ returnUrl }),
+    }),
+  syncEorEnrollment: (id: string) =>
+    apiFetch<OperatorEorEnrollment>(`/operator-eor-enrollments/${id}/sync`, { method: 'POST' }),
+};
+
+// ── Admin Ops (PLATFORM_ADMIN-only triage queues) ───────────────────────
+
+export interface QueueCounts {
+  preSowAwaitingConfirmation: number;
+  msaPendingSignatures: number;
+  contractsPendingSignatures: number;
+  complianceDecisionsLast30d: number;
+  eorEnrolmentsPending: number;
+  ledgersAwaitingReview: number;
+}
+
+export interface AdminPreSowRow {
+  id: string;
+  status: PreSowSummaryStatus;
+  serviceTemplate: string;
+  engagementType: string;
+  retainerFlavour?: string | null;
+  compensationMode: string;
+  indicativePrice?: number | null;
+  currency: string;
+  weeklyHours?: number | null;
+  durationDays?: number | null;
+  startupConfirmedAt?: string | null;
+  operatorConfirmedAt?: string | null;
+  startupProfileId: string;
+  operatorId: string;
+  startup?: { id: string; industry: string };
+  operator?: { id: string; operatorId: string };
+  updatedAt: string;
+}
+
+export interface AdminMsaRow {
+  id: string;
+  status: MsaStatus;
+  startupProfileId: string;
+  operatorId: string;
+  platformSignedAt?: string | null;
+  startupSignedAt?: string | null;
+  operatorSignedAt?: string | null;
+  fullyExecutedAt?: string | null;
+  documentUrl?: string | null;
+  startup?: { id: string; industry: string };
+  operator?: { id: string; operatorId: string };
+  updatedAt: string;
+}
+
+export interface AdminContractRow {
+  id: string;
+  sowId: string;
+  status: 'PENDING_SIGNATURES' | 'STARTUP_SIGNED' | 'OPERATOR_SIGNED' | 'FULLY_SIGNED' | 'CANCELLED';
+  startupSignedAt?: string | null;
+  operatorSignedAt?: string | null;
+  fullySignedAt?: string | null;
+  contactsUnlocked: boolean;
+  sow?: { id: string; title: string; totalPriceUsd: number; startupProfileId: string; operatorId: string };
+  updatedAt: string;
+}
+
+export interface AdminComplianceRow {
+  id: string;
+  operatorProfileId?: string | null;
+  sowId?: string | null;
+  mode: string;
+  reason: string;
+  decidedBy: string;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
+  operatorProfile?: { id: string; operatorId: string } | null;
+}
+
+export interface AdminEorEnrollmentRow {
+  id: string;
+  partner: EorPartner;
+  status: EorEnrollmentStatus;
+  partnerSideId?: string | null;
+  operatorProfile?: { id: string; operatorId: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminPaymentLedgerRow {
+  id: string;
+  contractId: string;
+  status: 'DRAFT' | 'REVIEWED' | 'APPROVED' | 'BLOCKED' | 'READY_FOR_PAYOUT';
+  totalAmountCents?: number;
+  currency?: string;
+  contract?: { id: string; sow?: { title: string } };
+  payoutAttempts?: Array<{ id: string; status: string; provider: string; createdAt: string }>;
+  updatedAt: string;
+}
+
+export const adminOpsApi = {
+  queueCounts: () => apiFetch<QueueCounts>('/admin-ops/queue-counts'),
+  preSowSummaries: (status?: PreSowSummaryStatus) =>
+    apiFetch<AdminPreSowRow[]>(`/admin-ops/pre-sow-summaries${status ? `?status=${status}` : ''}`),
+  msas: (status?: MsaStatus) =>
+    apiFetch<AdminMsaRow[]>(`/admin-ops/msas${status ? `?status=${status}` : ''}`),
+  contracts: (status?: string) =>
+    apiFetch<AdminContractRow[]>(`/admin-ops/contracts${status ? `?status=${status}` : ''}`),
+  complianceDecisions: () => apiFetch<AdminComplianceRow[]>('/admin-ops/compliance-decisions'),
+  eorEnrollments: (status?: EorEnrollmentStatus) =>
+    apiFetch<AdminEorEnrollmentRow[]>(`/admin-ops/eor-enrollments${status ? `?status=${status}` : ''}`),
+  paymentLedgers: (status?: string) =>
+    apiFetch<AdminPaymentLedgerRow[]>(`/admin-ops/payment-ledgers${status ? `?status=${status}` : ''}`),
+};
+
+// ── Demo seed (Phase 2 clickable end-to-end demo) ────────────────────────
+
+export interface DemoCredentials {
+  startup: { email: string; password: string; dashboard: string };
+  operator: { email: string; password: string; dashboard: string };
+  seeded?: Record<string, string>;
+}
+
+export const demoSeedApi = {
+  credentials: () => apiFetch<DemoCredentials>('/demo-seed'),
+  seed: () => apiFetch<DemoCredentials>('/demo-seed', { method: 'POST' }),
+  cleanup: () => apiFetch<{ deleted: number }>('/demo-seed', { method: 'DELETE' }),
 };

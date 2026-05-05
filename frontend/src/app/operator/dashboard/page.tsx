@@ -7,7 +7,12 @@ import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { operatorsApi, OperatorProfile, SupplyQualityScore } from '@/lib/api-client';
 import { CompletionChecklist } from '@/components/CompletionChecklist';
 import { UnlockMatchingCTA } from '@/components/UnlockMatchingCTA';
+import TaxFormsPanel from '@/components/operator/TaxFormsPanel';
+import StripeConnectPanel from '@/components/operator/StripeConnectPanel';
+import EorEnrollmentPanel from '@/components/operator/EorEnrollmentPanel';
+import CancellationPolicyPanel from '@/components/operator/CancellationPolicyPanel';
 import styles from './page.module.css';
+import PaymentModeBanner from '@/components/PaymentModeBanner';
 
 const TIER_CONFIG: Record<string, { label: string; class: string }> = {
   TIER_A: { label: 'Tier A', class: 'badge-teal' },
@@ -105,6 +110,7 @@ function DashboardContent() {
 
   return (
     <div className={styles.page} id="operator-dashboard">
+      <PaymentModeBanner />
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Operator Dashboard</h1>
@@ -201,6 +207,11 @@ function DashboardContent() {
           {score.recommendation && <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9375rem' }}>{score.recommendation}</p>}
         </div>
       )}
+
+      <StripeConnectPanel />
+      <TaxFormsPanel />
+      <EorEnrollmentPanel />
+      <CancellationPolicyPanel />
     </div>
   );
 }

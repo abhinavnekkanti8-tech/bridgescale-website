@@ -133,7 +133,7 @@ function UnlockMatchingContent() {
         <div style={{ fontSize: '48px', marginBottom: '1rem' }}>🔓</div>
         <h2 style={{ marginBottom: '0.5rem' }}>Unlock Your Matches</h2>
         <p style={{ color: '#666', marginBottom: '2rem' }}>
-          Access detailed profiles and book discovery calls with {paymentData.currency === 'INR' ? '₹15,000' : '$50'}.
+          Access detailed profiles and book discovery calls with {paymentData.currency === 'INR' ? '₹8,500' : '$100'}.
         </p>
 
         {error && (
@@ -157,7 +157,7 @@ function UnlockMatchingContent() {
             opacity: loading ? 0.6 : 1,
           }}
         >
-          {loading ? 'Opening payment...' : `Pay ${paymentData.currency === 'INR' ? '₹15,000' : '$50'} →`}
+          {loading ? 'Opening payment...' : `Pay ${paymentData.currency === 'INR' ? '₹8,500' : '$100'} →`}
         </button>
 
         <p style={{ fontSize: '0.875rem', color: '#999', marginTop: '1rem' }}>

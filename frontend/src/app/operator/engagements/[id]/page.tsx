@@ -11,6 +11,7 @@ import { useEffect, useState, FormEvent } from 'react';
 import { usePathname } from 'next/navigation';
 import { engagementsApi, Engagement, EngagementMilestone, WorkspaceNote, ActivityLog } from '@/lib/api-client';
 import { useAuth } from '@/contexts/AuthContext';
+import ContractsAgreementsPanel from '@/components/engagement/ContractsAgreementsPanel';
 import styles from '@/app/startup/engagements/[id]/page.module.css';
 
 const MILESTONE_STATUS_BADGE: Record<string, string> = { PENDING: 'badge-amber', IN_PROGRESS: 'badge-blue', REVIEW: 'badge-violet', COMPLETED: 'badge-teal' };
@@ -121,6 +122,12 @@ function OperatorWorkspaceContent() {
           <span className={styles.healthLabel}>Health Score</span>
         </div>
       </header>
+
+      <ContractsAgreementsPanel
+        engagement={engagement}
+        viewer="OPERATOR"
+        onChange={fetchData}
+      />
 
       <div className={styles.layout}>
         <div className={styles.mainCol}>

@@ -7,6 +7,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { engagementsApi, healthApi, Engagement, EngagementMilestone, WorkspaceNote, ActivityLog } from '@/lib/api-client';
 import { useAuth } from '@/contexts/AuthContext';
+import ContractsAgreementsPanel from '@/components/engagement/ContractsAgreementsPanel';
 import styles from './page.module.css';
 
 const MILESTONE_STATUS_BADGE: Record<string, string> = { PENDING: 'badge-amber', IN_PROGRESS: 'badge-blue', REVIEW: 'badge-violet', COMPLETED: 'badge-teal' };
@@ -152,6 +153,12 @@ function WorkspaceContent() {
           </button>
         )}
       </div>
+
+      <ContractsAgreementsPanel
+        engagement={engagement}
+        viewer={isOperator ? 'OPERATOR' : 'STARTUP'}
+        onChange={fetchData}
+      />
 
       <div className={styles.layout}>
         {/* Main Column: Milestones & Notes */}

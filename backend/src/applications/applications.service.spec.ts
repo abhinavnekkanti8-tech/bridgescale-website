@@ -206,3 +206,28 @@ describe('ApplicationsService consent enforcement', () => {
     expect(createdApplicationPayload?.noticeVersion).toBe(CURRENT_NOTICE_VERSION);
   });
 });
+
+describe('ApplicationsService unlock fee constants', () => {
+  it('keeps company unlock at INR 8,500 and operator unlock at USD 50', () => {
+    const service = new ApplicationsService(
+      {} as any,
+      { get: jest.fn((_: string, defaultValue?: string) => defaultValue) } as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+
+    expect((service as any).getFeeMinor(ApplicationTypeDto.COMPANY)).toEqual({
+      amount: 850000,
+      currency: 'INR',
+      provider: 'RAZORPAY',
+    });
+    expect((service as any).getFeeMinor(ApplicationTypeDto.TALENT)).toEqual({
+      amount: 5000,
+      currency: 'USD',
+      provider: 'STRIPE',
+    });
+  });
+});

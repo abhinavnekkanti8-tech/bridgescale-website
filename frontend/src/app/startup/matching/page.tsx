@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
-import { matchingApi, MatchShortlist, MatchCandidate } from '@/lib/api-client';
+import Link from 'next/link';
+import { matchingApi, MatchShortlist, MatchCandidate, coreFlowApi } from '@/lib/api-client';
 import styles from './page.module.css';
 
 const STATUS_BADGE: Record<string, string> = { SHORTLISTED: '', INTERESTED: 'badge-teal', DECLINED: '', SELECTED: 'badge-violet', PASSED: '' };
@@ -28,6 +29,8 @@ function ShortlistContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selecting, setSelecting] = useState<string | null>(null);
+  const [requesting, setRequesting] = useState<string | null>(null);
+  const [callMessage, setCallMessage] = useState('');
 
   const fetchShortlist = useCallback(async () => {
     if (!shortlistId) { setError('No shortlist ID.'); setLoading(false); return; }
@@ -39,6 +42,26 @@ function ShortlistContent() {
   }, [shortlistId]);
 
   useEffect(() => { fetchShortlist(); }, [fetchShortlist]);
+
+  async function handleRequestCall(candidate: MatchCandidate) {
+    if (!shortlist) return;
+    setRequesting(candidate.id);
+    setCallMessage('');
+    try {
+      await coreFlowApi.requestCall({
+        startupProfileId: shortlist.startupProfileId,
+        operatorId: candidate.operatorId,
+        shortlistId: shortlist.id,
+        candidateId: candidate.id,
+        proposedAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      });
+      setCallMessage('Call request sent. Track it in your Discovery calls page.');
+    } catch {
+      setCallMessage('Could not send call request. Try again.');
+    } finally {
+      setRequesting(null);
+    }
+  }
 
   async function handleSelect(candidateId: string) {
     if (!shortlist) return;
@@ -64,7 +87,14 @@ function ShortlistContent() {
             {shortlist.selectionDeadline && <span style={{ marginLeft: 'var(--space-4)', fontSize: '0.8125rem' }}>Deadline: {new Date(shortlist.selectionDeadline).toLocaleDateString()}</span>}
           </p>
         </div>
+        <Link href="/startup/calls" className="btn btn-secondary">View Discovery Calls →</Link>
       </div>
+
+      {callMessage && (
+        <div style={{ padding: '10px 14px', background: '#dcf2e1', color: '#2f6d4a', borderRadius: 4, marginBottom: 14, fontSize: '0.85rem' }}>
+          {callMessage}
+        </div>
+      )}
 
       <div className={styles.cardGrid}>
         {shortlist.candidates.map((c: MatchCandidate, idx: number) => (
@@ -114,6 +144,18 @@ function ShortlistContent() {
               <button className="btn btn-primary" style={{ marginTop: 'var(--space-3)' }}
                 onClick={() => handleSelect(c.id)} disabled={selecting === c.id} id={`select-${c.id}`}>
                 {selecting === c.id ? 'Selecting…' : 'Select This Operator'}
+              </button>
+            )}
+            {/* Self-serve call request — works once interest is ACCEPTED, regardless of selection state */}
+            {c.interest === 'ACCEPTED' && (
+              <button
+                className="btn btn-secondary"
+                style={{ marginTop: 'var(--space-2)' }}
+                onClick={() => handleRequestCall(c)}
+                disabled={requesting === c.id}
+                id={`request-call-${c.id}`}
+              >
+                {requesting === c.id ? 'Requesting…' : '📞 Request 30-min discovery call'}
               </button>
             )}
             {c.status === 'SELECTED' && (
