@@ -169,49 +169,51 @@ export default function ForCompaniesPage() {
           <div className={styles.container}>
             <div className={styles.sectionLabel}>Engagement types</div>
             <h2 className={styles.sectionHeading}>Three core structures. Pick the one that fits.</h2>
-            <p className={styles.sectionSub}>Every engagement falls into one of three structures. Retainers come in two flavours. Add-ons (success-fee, equity, conversion) layer on top of any of them.</p>
-            {/* 2x2 Engagement Matrix
-                 Top-left: Consultation  |  Top-right: Sprint
-                 Bottom (full width):    Retainer description (left) + 2 flavours (right) */}
+            <p className={styles.sectionSub}>Every engagement falls into one of three structures. Retainers come in two flavours. Add-ons — success-fee, equity-only, conversion to full-time — layer on top of any of them.</p>
+            {/* 3-column engagement matrix
+                 Col 1 (top):    Consultation
+                 Col 1 (bottom): Retainer (spans 2 rows)
+                 Col 2 (top):    Sprint
+                 Col 2 (mid):    Standard cash retainer
+                 Col 2 (bot):    Hybrid cash + equity
+                 Col 3:          Add-ons stack — Success fee | Equity-only | Conversion */}
             <div className={styles.engMatrix}>
-              <div className={styles.engMatrixCell}>
+              <div className={`${styles.engCell} ${styles.engCellConsult}`}>
                 <div className={styles.engName}>{engagements[0].name}</div>
                 <div className={styles.engPrice}>{engagements[0].price}</div>
                 <div className={styles.engDesc}>{engagements[0].desc}</div>
               </div>
-              <div className={styles.engMatrixCell}>
+              <div className={`${styles.engCell} ${styles.engCellSprint}`}>
                 <div className={styles.engName}>{engagements[1].name}</div>
                 <div className={styles.engPrice}>{engagements[1].price}</div>
                 <div className={styles.engDesc}>{engagements[1].desc}</div>
               </div>
-              <div className={styles.engMatrixRetainer}>
-                <div className={styles.engRetainerLeft}>
-                  <div className={styles.engName}>{engagements[2].name}</div>
-                  <div className={styles.engPrice}>{engagements[2].price}</div>
-                  <div className={styles.engDesc}>{engagements[2].desc}</div>
-                </div>
-                <div className={styles.engRetainerRight}>
-                  <div className={styles.engFlavoursLabel}>Two flavours</div>
-                  {engagements[2].flavours.map((f) => (
-                    <div key={f.label} className={styles.engFlavour}>
-                      <div className={styles.engFlavourLabel}>{f.label}</div>
-                      <div className={styles.engFlavourDesc}>{f.desc}</div>
-                    </div>
-                  ))}
-                </div>
+              <div className={`${styles.engCell} ${styles.engCellRetainer}`}>
+                <div className={styles.engName}>{engagements[2].name}</div>
+                <div className={styles.engPrice}>{engagements[2].price}</div>
+                <div className={styles.engDesc}>{engagements[2].desc}</div>
               </div>
-            </div>
-
-            <div className={styles.addOnsBlock}>
-              <div className={styles.addOnsLabel}>Optional add-ons (layer on top of any structure)</div>
-              <div className={styles.addOnsStack}>
-                {addOns.map((a) => (
-                  <div key={a.name} className={styles.addOnRow}>
-                    <div className={styles.addOnName}>{a.name}</div>
-                    <div className={styles.addOnDesc}>{a.desc}</div>
-                  </div>
-                ))}
-              </div>
+              {engagements[2].flavours.map((f, i) => (
+                <div
+                  key={f.label}
+                  className={`${styles.engCell} ${styles.engFlavourCell} ${i === 0 ? styles.engFlavourTop : styles.engFlavourBottom}`}
+                >
+                  <div className={styles.engFlavourLabel}>{f.label}</div>
+                  <div className={styles.engFlavourDesc}>{f.desc}</div>
+                </div>
+              ))}
+              {addOns.map((a, i) => (
+                <div
+                  key={a.name}
+                  className={`${styles.engCell} ${styles.addOnCell} ${
+                    i === 0 ? styles.addOnRow1 : i === 1 ? styles.addOnRow2 : styles.addOnRow3
+                  }`}
+                >
+                  <div className={styles.addOnTag}>Add-on</div>
+                  <div className={styles.engName}>{a.name}</div>
+                  <div className={styles.engDesc}>{a.desc}</div>
+                </div>
+              ))}
             </div>
 
             <div className={styles.engNote}>

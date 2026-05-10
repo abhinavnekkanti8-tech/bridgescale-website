@@ -18,9 +18,5 @@ coverage/
 backend/coverage/
 frontend/dev-server.*.log
 
-# Local wiki/compiler output
-.wiki-compiler.json
-wiki/
-
 # Office/editor temporary files
 .~lock.*#

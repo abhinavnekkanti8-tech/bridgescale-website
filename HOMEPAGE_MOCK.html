@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BridgeScale — Homepage Mock (Draft v2)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --color-bg:             #f5f3ef;
+      --color-surface:        #f5f3ef;
+      --color-surface-alt:    #ffffff;
+      --color-border:         #d9d4cc;
+      --color-border-hover:   #c4beb6;
+      --color-accent:         #99081F;
+      --color-accent-hover:   #660013;
+      --color-dark:           #111111;
+      --color-dark-rule:      #272727;
+      --color-text-primary:   #0f0f0f;
+      --color-text-secondary: #706b65;
+      --color-text-muted:     #9e9890;
+      --font-serif: 'Playfair Display', Georgia, serif;
+      --font-body:  'DM Sans', system-ui, sans-serif;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-body);
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, h4, h5 {
+      font-family: var(--font-serif);
+      font-weight: 600;
+      line-height: 1.12;
+      letter-spacing: -0.02em;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px; padding: 14px 26px;
+      font-family: var(--font-body); font-size: 14px; font-weight: 500;
+      cursor: pointer; transition: all 0.2s cubic-bezier(.25,.46,.45,.94);
+      border: none; outline: none; text-decoration: none;
+    }
+    .btn-primary { background: var(--color-accent); color: #fff; }
+    .btn-primary:hover { background: var(--color-accent-hover); }
+    .btn-secondary {
+      background: transparent; color: var(--color-accent);
+      border: 1.5px solid var(--color-accent);
+    }
+    .btn-secondary:hover { background: var(--color-accent-hover); color: #fff; border-color: var(--color-accent-hover); }
+
+    /* ── Layout ── */
+    .page { min-height: 100vh; background: var(--color-bg); }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 32px; }
+
+    /* ── Draft banner ── */
+    .draft-banner {
+      background: var(--color-accent); color: #fff;
+      padding: 8px 32px; font-size: 11px; font-weight: 600;
+      letter-spacing: 0.1em; text-align: center; text-transform: uppercase;
+    }
+
+    /* ══════ NAV ══════ */
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(245,243,239,0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .nav-inner {
+      max-width: 1120px; margin: 0 auto; padding: 0 32px;
+      height: 60px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { font-family: var(--font-serif); font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: 7px; }
+    .logo-mark { color: var(--color-accent); }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-link { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); position: relative; transition: color 0.2s; }
+    .nav-link::after { content: ''; position: absolute; left: 0; bottom: -2px; width: 0; height: 1.5px; background: var(--color-accent); transition: width 0.3s cubic-bezier(.25,.46,.45,.94); }
+    .nav-link:hover { color: var(--color-text-primary); }
+    .nav-link:hover::after { width: 100%; }
+    .nav-cta { font-size: 13px; font-weight: 500; background: var(--color-text-primary); color: var(--color-bg); padding: 9px 20px; transition: background 0.2s; }
+    .nav-cta:hover { background: var(--color-accent-hover); }
+
+    /* ══════ HERO — asymmetric two-col ══════ */
+    /*
+      Left (~55%): eyebrow + big headline. Anchors the page with type mass.
+      Right (~45%): tagline + sub + CTAs + pillar cards stacked vertically.
+      Pillar cards on the right stack as horizontal rows separated by rules.
+    */
+    .hero { padding: 88px 0 0; border-bottom: 1px solid var(--color-border); }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 11fr 9fr;
+      gap: 64px;
+      align-items: flex-start;
+      padding-bottom: 72px;
+    }
+    .hero-left {}
+    .hero-eyebrow { display: inline-flex; align-items: center; gap: 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 32px; }
+    .hero-eyebrow-line { width: 32px; height: 1.5px; background: var(--color-accent); display: inline-block; }
+    .hero-title { font-family: var(--font-serif); font-weight: 700; font-size: clamp(2.4rem, 4.5vw, 3.6rem); line-height: 1.06; letter-spacing: -0.03em; }
+    .hero-title-accent { color: var(--color-accent); }
+    /* Right side */
+    .hero-right { padding-top: 8px; display: flex; flex-direction: column; }
+    .hero-tagline { font-size: 1.05rem; font-weight: 400; color: var(--color-text-secondary); letter-spacing: 0.02em; margin-bottom: 12px; }
+    .hero-sub { font-size: 0.9rem; font-weight: 300; color: var(--color-text-secondary); line-height: 1.75; margin-bottom: 32px; }
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 48px; }
+    /* Pillar cards — stacked vertically on the right, rule-separated, no outer border */
+    .hero-pillars { display: flex; flex-direction: column; border-top: 1px solid var(--color-border); }
+    .hero-pillar { padding: 20px 0; display: flex; gap: 20px; align-items: flex-start; border-bottom: 1px solid var(--color-border); }
+    .hero-pillar-name { font-family: var(--font-serif); font-weight: 700; font-size: 1rem; color: var(--color-accent); line-height: 1.2; flex-shrink: 0; width: 72px; padding-top: 2px; }
+    .hero-pillar-body { font-size: 0.8rem; font-weight: 300; color: var(--color-text-secondary); line-height: 1.6; }
+
+    /* ══════ MARQUEE ══════ */
+    @keyframes marqueeScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+    .marquee { overflow: hidden; padding: 14px 0; border-bottom: 1px solid var(--color-border); }
+    .marquee:hover .marquee-track { animation-play-state: paused; }
+    .marquee-track { display: flex; width: max-content; animation: marqueeScroll 40s linear infinite; will-change: transform; }
+    .marquee-item { display: inline-flex; align-items: center; gap: 14px; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; padding: 0 20px; white-space: nowrap; }
+    .marquee-outcome { color: var(--color-text-muted); }
+    .marquee-number  { color: var(--color-accent); }
+    .marquee-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
+    .marquee-dot-muted  { background: var(--color-border); }
+    .marquee-dot-accent { background: var(--color-accent); }
+
+    /* ══════ SHARED SECTION ══════ */
+    .section { border-bottom: 1px solid var(--color-border); padding: 88px 0; }
+    .section-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-accent); margin-bottom: 12px; }
+    .section-heading { font-family: var(--font-serif); font-weight: 700; font-size: 1.9rem; line-height: 1.12; letter-spacing: -0.015em; color: var(--color-text-primary); margin-bottom: 16px; }
+    .section-sub { font-size: 0.95rem; font-weight: 300; color: var(--color-text-secondary); line-height: 1.7; max-width: 540px; }
+
+    /* ══════ THE GAP — asymmetric, borderless toggle ══════ */
+    /*
+      Layout: left col (sticky meta) + right col (live content)
+      Left: eyebrow, heading, sub-paragraph, tagline, then the toggle pill bar
+      Right: the active card content — no box, just content on the bg
+    */
+    .gap-layout {
+      display: grid;
+      grid-template-columns: 5fr 7fr;
+      gap: 80px;
+      align-items: flex-start;
+    }
+    .gap-left { position: sticky; top: 88px; }
+    .gap-left .section-label { margin-bottom: 12px; }
+    .gap-left .section-heading { margin-bottom: 20px; }
+    .gap-left .section-sub { margin-bottom: 20px; }
+    .gap-tagline {
+      font-size: 0.875rem; font-style: italic;
+      color: var(--color-text-muted); margin-bottom: 36px;
+      border-left: 2px solid var(--color-border); padding-left: 12px;
+    }
+
+    /* Toggle — pill bar, but sits in the left column, flush left */
+    .gap-toggle-bar {
+      display: inline-flex;
+      background: transparent;
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      padding: 3px;
+    }
+    .gap-toggle-btn {
+      font-family: inherit; font-size: 0.8rem; font-weight: 600;
+      color: var(--color-text-muted); padding: 7px 20px;
+      border: none; background: transparent; border-radius: 999px;
+      cursor: pointer; transition: background .2s, color .2s;
+    }
+    .gap-toggle-btn:hover { color: var(--color-text-primary); }
+    .gap-toggle-btn.active {
+      background: var(--color-bg);
+      color: var(--color-accent);
+      box-shadow: 0 0 0 1px var(--color-accent);
+    }
+
+    /* Right side — no box, no border, just editorial content on cream */
+    .gap-right {}
+    .gap-panel { display: none; }
+    .gap-panel.visible { display: block; }
+    .gap-card-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 20px;
+    }
+    .gap-card-title {
+      font-family: var(--font-serif); font-weight: 600;
+      font-size: 1.35rem; line-height: 1.2; margin-bottom: 32px;
+      color: var(--color-text-primary);
+    }
+    .gap-list { list-style: none; display: flex; flex-direction: column; }
+    .gap-item {
+      display: flex; align-items: flex-start; gap: 16px;
+      font-size: 0.9rem; color: var(--color-text-secondary);
+      line-height: 1.65; font-weight: 300;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .gap-item:first-child { border-top: 1px solid var(--color-border); }
+    .gap-item-num {
+      font-family: var(--font-serif); font-size: 0.72rem; font-weight: 700;
+      color: var(--color-accent); flex-shrink: 0; padding-top: 3px;
+      min-width: 18px;
+    }
+
+    /* ══════ WHY NOW — inverted ══════ */
+    .why-now { background: var(--color-dark); color: #f5f3ef; padding: 88px 0; border-bottom: none; }
+    .why-now-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 80px; align-items: flex-start; }
+    .why-now-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-accent); margin-bottom: 12px; }
+    .why-now-heading { font-family: var(--font-serif); font-weight: 700; font-size: 1.85rem; line-height: 1.12; letter-spacing: -0.015em; color: #f5f3ef; margin-bottom: 16px; }
+    .why-now-definition { font-size: 0.9rem; font-weight: 400; color: #c8c3bc; line-height: 1.8; margin-bottom: 16px; border-left: 2px solid var(--color-accent); padding-left: 16px; }
+    .why-now-sub { font-size: 0.9rem; font-weight: 300; color: #9e9890; line-height: 1.7; }
+    .stat-list { display: flex; flex-direction: column; }
+    .stat-row { display: flex; align-items: baseline; gap: 24px; padding: 28px 0; border-top: 1px solid var(--color-dark-rule); transition: padding-left 0.25s ease, border-top-color 0.25s ease; cursor: default; }
+    .stat-row:hover { padding-left: 14px; border-top-color: var(--color-accent); }
+    .stat-figure { font-family: var(--font-serif); font-weight: 700; font-size: 2.8rem; color: var(--color-accent); line-height: 1; flex-shrink: 0; width: 100px; transition: color 0.25s; }
+    .stat-row:hover .stat-figure { color: #f5f3ef; }
+    .stat-body { font-size: 0.88rem; color: #9e9890; line-height: 1.65; font-weight: 300; transition: color 0.25s; }
+    .stat-row:hover .stat-body { color: #c8c3bc; }
+    .logo-strip { margin-top: 48px; }
+    .logo-strip-label { font-size: 0.72rem; color: #4a4a4a; font-style: italic; margin-bottom: 20px; }
+    .logo-strip-row { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
+    .logo-placeholder { width: 88px; height: 28px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: center; font-size: 9px; color: rgba(255,255,255,0.18); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
+    .stat-source { margin-top: 24px; font-size: 0.72rem; color: #4a4a4a; font-weight: 300; }
+
+    /* ══════ OFFERINGS ══════ */
+    .offer-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 48px; margin-bottom: 56px; }
+    .offer-header-left { max-width: 520px; }
+    .offer-header-right { font-size: 0.875rem; color: var(--color-text-secondary); line-height: 1.65; font-weight: 300; max-width: 360px; text-align: right; }
+    .offer-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--color-border); }
+    .offer-card { background: var(--color-bg); padding: 36px 30px; display: flex; flex-direction: column; gap: 12px; transition: background 0.3s; position: relative; overflow: hidden; }
+    .offer-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--color-accent); transform: scaleX(0); transform-origin: left; transition: transform 0.5s cubic-bezier(.25,.46,.45,.94); }
+    .offer-card:hover { background: var(--color-surface-alt); }
+    .offer-card:hover::after { transform: scaleX(1); }
+    .offer-num { font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; color: var(--color-accent); }
+    .offer-name { font-family: var(--font-serif); font-weight: 600; font-size: 1.12rem; line-height: 1.25; }
+    .offer-outcome { font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary); line-height: 1.4; font-style: italic; }
+    .offer-desc { font-size: 0.875rem; color: var(--color-text-secondary); line-height: 1.65; font-weight: 300; flex: 1; }
+    .offer-roles { font-size: 10px; color: var(--color-text-muted); font-weight: 500; letter-spacing: 0.02em; }
+    /* Engagement types row */
+    .offer-engagements {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      padding-top: 14px; border-top: 1px solid var(--color-border);
+    }
+    .offer-engagement-label {
+      font-size: 9px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.12em; color: var(--color-text-muted); margin-bottom: 6px;
+      display: block; width: 100%;
+    }
+    .offer-eng-chip {
+      font-size: 10px; font-weight: 500;
+      padding: 3px 9px;
+      border: 1px solid var(--color-border);
+      color: var(--color-text-secondary);
+      transition: border-color 0.3s, color 0.3s;
+    }
+    .offer-eng-chip.highlight {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+    .offer-card:hover .offer-eng-chip { border-color: var(--color-accent); color: var(--color-accent); }
+    .offer-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+    .offer-pill { font-size: 10px; font-weight: 500; padding: 4px 10px; border: 1px solid var(--color-border); color: var(--color-text-secondary); letter-spacing: 0.03em; transition: border-color 0.3s, color 0.3s; }
+    .offer-card:hover .offer-pill { border-color: var(--color-border-hover); }
+    .offer-link { font-size: 12px; font-weight: 600; color: var(--color-accent); letter-spacing: 0.03em; display: inline-flex; align-items: center; gap: 4px; transition: gap 0.2s; margin-top: 4px; }
+    .offer-link-note { font-size: 10px; color: var(--color-text-muted); font-style: italic; margin-top: 2px; }
+    .offer-card:hover .offer-link { gap: 8px; }
+    .cross-strip { background: var(--color-bg); border-top: 1px solid var(--color-border); padding: 20px 30px; margin-top: 1px; }
+    .cross-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 12px; }
+    .cross-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+    .cross-pill { font-size: 10px; font-weight: 500; padding: 4px 10px; border: 1px solid var(--color-border); color: var(--color-text-secondary); letter-spacing: 0.03em; }
+
+    /* ══════ WHY BRIDGESCALE — Gap-style asymmetric layout ══════ */
+    /* Reuses .gap-layout, .gap-left, .gap-toggle-bar/btn, .gap-panel,
+       .gap-card-label, .gap-card-title from The Gap section above.
+       Only new classes needed are the inner two-col pair grid. */
+
+    .col-headers {
+      display: grid; grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .col-header {
+      font-size: 9.5px; font-weight: 600; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--color-text-muted);
+      padding-bottom: 14px;
+    }
+    .col-header:last-child { padding-left: 28px; }
+
+    .pairs-grid { display: grid; grid-template-columns: 1fr 1fr; }
+    .pair-situation {
+      padding: 24px 28px 24px 0;
+      font-size: 0.88rem; font-weight: 600;
+      color: var(--color-text-primary); line-height: 1.55;
+      border-top: 1px solid var(--color-border);
+      border-right: 1px solid var(--color-border);
+      transition: color 0.2s;
+    }
+    .pair-situation:hover { color: var(--color-accent); }
+    .pair-support {
+      padding: 24px 0 24px 28px;
+      font-size: 0.875rem; font-weight: 300;
+      color: var(--color-text-secondary); line-height: 1.7;
+      border-top: 1px solid var(--color-border);
+    }
+
+    /* Below strip */
+    .why-bs-below { margin-top: 36px; padding-top: 28px; border-top: 1px solid var(--color-border); }
+    .why-bs-links { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin-bottom: 14px; }
+    .why-bs-link { color: var(--color-accent); font-size: 13px; font-weight: 500; transition: color 0.15s; }
+    .why-bs-link:hover { color: var(--color-accent-hover); }
+    .why-bs-dot { margin: 0 12px; color: var(--color-text-muted); font-size: 13px; }
+    .why-bs-corridor { font-size: 0.78rem; color: var(--color-text-muted); font-style: italic; line-height: 1.8; }
+
+    /* ══════ STANDARDS ══════ */
+    .trust-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--color-border); }
+    .trust-cell { background: var(--color-bg); padding: 36px 30px; transition: background 0.3s; }
+    .trust-cell:hover { background: var(--color-surface-alt); }
+    .trust-cell-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-accent); margin-bottom: 12px; }
+    .trust-cell-title { font-family: var(--font-serif); font-weight: 600; font-size: 1.05rem; line-height: 1.3; margin-bottom: 12px; }
+    .trust-cell-body { font-size: 0.875rem; color: var(--color-text-secondary); line-height: 1.65; font-weight: 300; }
+
+    /* ══════ CTA BANNER ══════ */
+    .cta-banner { padding: 52px 0; }
+    .cta-banner-inner { display: flex; align-items: center; justify-content: space-between; gap: 40px; flex-wrap: wrap; }
+    .cta-banner-heading { font-family: var(--font-serif); font-weight: 700; font-size: 1.6rem; letter-spacing: -0.02em; margin-bottom: 6px; }
+    .cta-banner-sub { font-size: 0.875rem; color: var(--color-text-secondary); font-weight: 300; line-height: 1.65; max-width: 440px; }
+    .cta-banner-actions { display: flex; gap: 10px; flex-shrink: 0; flex-wrap: wrap; }
+
+    /* ══════ FOOTER ══════ */
+    .footer { border-top: 1px solid var(--color-border); background: var(--color-dark); }
+    .footer-inner { max-width: 1120px; margin: 0 auto; padding: 28px 32px; display: flex; align-items: center; justify-content: space-between; }
+    .footer-brand { font-family: var(--font-serif); font-size: 1rem; font-weight: 700; color: #f5f3ef; }
+    .footer-links { display: flex; gap: 24px; font-size: 12px; }
+    .footer-link { color: var(--color-text-secondary); transition: color 0.15s; }
+    .footer-link:hover { color: #f5f3ef; }
+
+    /* ══════ RESPONSIVE ══════ */
+    @media (max-width: 900px) {
+      .gap-layout { grid-template-columns: 1fr; gap: 40px; }
+      .gap-left { position: static; }
+      .why-now-grid { grid-template-columns: 1fr; gap: 40px; }
+      .why-bs-row { grid-template-columns: 1fr; }
+      .why-bs-situation { border-right: none; padding-right: 0; }
+      .why-bs-support { padding-left: 0; border-top: 1px dashed var(--color-border); }
+      .why-bs-col-headers { display: none; }
+    }
+    @media (max-width: 768px) {
+      .hero-pillars, .offer-grid, .trust-grid { grid-template-columns: 1fr; }
+      .hero-pillar + .hero-pillar { border-left: none; border-top: 1px solid var(--color-border); padding-left: 0; padding-top: 20px; }
+      .offer-header { flex-direction: column; }
+      .offer-header-right { text-align: left; max-width: none; }
+      .cta-banner-inner { flex-direction: column; align-items: flex-start; }
+      .section { padding: 56px 0; }
+      .hero { padding: 56px 0 48px; }
+      .why-now { padding: 56px 0; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="draft-banner">⚡ Mock v2 — HOMEPAGE_DRAFT.md · Not live · Services pages not yet built</div>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="logo"><span class="logo-mark">◆</span> BridgeScale</div>
+      <div class="nav-links">
+        <a href="#" class="nav-link">For Companies</a>
+        <a href="#" class="nav-link">For Talent</a>
+        <a href="#" class="nav-link">Services</a>
+        <a href="#" class="nav-link">About</a>
+        <a href="#" class="nav-cta">Apply</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO — asymmetric: headline left, action+pillars right -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+
+        <!-- Left: eyebrow + big headline only -->
+        <div class="hero-left">
+          <div class="hero-eyebrow"><span class="hero-eyebrow-line"></span>For Indian startups going international</div>
+          <h1 class="hero-title">
+            The gap between your product and international growth isn't strategy. It's
+            <span class="hero-title-accent">senior talent</span> with the networks to open it.
+          </h1>
+        </div>
+
+        <!-- Right: tagline + sub + CTAs + pillar cards stacked -->
+        <div class="hero-right">
+          <p class="hero-tagline">Fractional diaspora talent. Vetted. Scoped. Managed.</p>
+          <p class="hero-sub">BridgeScale matches Indian startups and MSMEs with vetted diaspora senior talent across sales leadership, sales execution, and partnerships &amp; BD — for fractional, scoped engagements that produce real commercial outcomes in international markets.</p>
+          <div class="hero-actions">
+            <a href="/for-companies/apply" class="btn btn-primary">I'm a company looking for talent →</a>
+            <a href="/for-talent/apply" class="btn btn-secondary">I'm a sales professional</a>
+          </div>
+          <div class="hero-pillars">
+            <div class="hero-pillar">
+              <div class="hero-pillar-name">Vetted</div>
+              <div class="hero-pillar-body">Senior diaspora talent. Interview-screened, reference-verified, domain-assessed. Selective intake — the quality of the network is the product.</div>
+            </div>
+            <div class="hero-pillar">
+              <div class="hero-pillar-name">Scoped</div>
+              <div class="hero-pillar-body">Defined deliverables. Defined windows. Engagements end when the work ends — not when the budget runs out.</div>
+            </div>
+            <div class="hero-pillar">
+              <div class="hero-pillar-name">Managed</div>
+              <div class="hero-pillar-body">Cross-border contracts, payments, FX, GST, and compliance handled by the platform. You see one invoice, one payout.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- MARQUEE -->
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee-track">
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-muted"></span><span class="marquee-outcome">Pipeline Generation</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-accent"></span><span class="marquee-number">73% cite GTM talent as #1 barrier</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-muted"></span><span class="marquee-outcome">International Market Entry</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-accent"></span><span class="marquee-number">4× faster time-to-market</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-muted"></span><span class="marquee-outcome">Channel &amp; Partner Development</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-accent"></span><span class="marquee-number">6-week avg. to first activity</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-muted"></span><span class="marquee-outcome">ICP Validation In-Market</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-accent"></span><span class="marquee-number">340% fractional hiring growth since 2020</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-muted"></span><span class="marquee-outcome">Outbound Pipeline Build</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-accent"></span><span class="marquee-number">15% acceptance rate</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-muted"></span><span class="marquee-outcome">Revenue Operating Cadence</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-accent"></span><span class="marquee-number">Structured cross-border contracting</span></span>
+      <!-- duplicate -->
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-muted"></span><span class="marquee-outcome">Pipeline Generation</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-accent"></span><span class="marquee-number">73% cite GTM talent as #1 barrier</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-muted"></span><span class="marquee-outcome">International Market Entry</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-accent"></span><span class="marquee-number">4× faster time-to-market</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-muted"></span><span class="marquee-outcome">Channel &amp; Partner Development</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-accent"></span><span class="marquee-number">6-week avg. to first activity</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-muted"></span><span class="marquee-outcome">ICP Validation In-Market</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-accent"></span><span class="marquee-number">340% fractional hiring growth since 2020</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-muted"></span><span class="marquee-outcome">Outbound Pipeline Build</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-accent"></span><span class="marquee-number">15% acceptance rate</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-muted"></span><span class="marquee-outcome">Revenue Operating Cadence</span></span>
+      <span class="marquee-item"><span class="marquee-dot marquee-dot-accent"></span><span class="marquee-number">Structured cross-border contracting</span></span>
+    </div>
+  </div>
+
+  <!-- THE GAP — asymmetric, toggle in left col, no card box -->
+  <section class="section" id="gap">
+    <div class="wrap">
+      <div class="gap-layout">
+
+        <!-- Left: sticky meta + toggle control -->
+        <div class="gap-left">
+          <div class="section-label">The gap we're closing</div>
+          <h2 class="section-heading">The talent and the demand both exist. The infrastructure to connect them doesn't.</h2>
+          <p class="section-sub">Indian startups need senior international growth talent. Diaspora professionals want to contribute home — on professional terms. Both sides hit the same wall: no managed way to scope, contract, pay, and run cross-border fractional work.</p>
+          <p class="gap-tagline" style="margin-top:20px;">Not a job board. Not a recruiter. Not an advisory network.</p>
+          <div style="margin-top: 32px;">
+            <div class="gap-toggle-bar" role="tablist">
+              <button class="gap-toggle-btn active" role="tab" onclick="switchGap('startups',this)">For startups</button>
+              <button class="gap-toggle-btn" role="tab" onclick="switchGap('talent',this)">For talent</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: content — no box, no border, just on the cream bg -->
+        <div class="gap-right">
+          <!-- Startups panel -->
+          <div class="gap-panel visible" id="gap-startups">
+            <div class="gap-card-label">Indian startups &amp; MSMEs going international</div>
+            <div class="gap-card-title">Serious about going global. Not set up to hire for it full-time.</div>
+            <ul class="gap-list">
+              <li class="gap-item"><span class="gap-item-num">01</span><span>Don't know exactly what commercial capability gap you have — only what role title you think you need.</span></li>
+              <li class="gap-item"><span class="gap-item-num">02</span><span>Can't justify a full-time international senior hire — $200K+ before equity is hard to commit to before the market is proven.</span></li>
+              <li class="gap-item"><span class="gap-item-num">03</span><span>No trusted access to senior talent who've already navigated your target markets — job boards return generalists, warm intros produce advisors who attend three calls and disengage.</span></li>
+              <li class="gap-item"><span class="gap-item-num">04</span><span>Need scoped execution, not another informal advisory relationship that ends in suggestions instead of work.</span></li>
+              <li class="gap-item"><span class="gap-item-num">05</span><span>Want flexibility — cash, retainer, success-based, or hybrid fractional structures depending on the engagement.</span></li>
+            </ul>
+          </div>
+          <!-- Talent panel -->
+          <div class="gap-panel" id="gap-talent">
+            <div class="gap-card-label">Indian diaspora senior talent</div>
+            <div class="gap-card-title">Ready to contribute back home. Only on professional terms.</div>
+            <ul class="gap-list">
+              <li class="gap-item"><span class="gap-item-num">01</span><span>"Pick your brain" calls accumulate, go uncompensated — senior talent disengage within weeks.</span></li>
+              <li class="gap-item"><span class="gap-item-num">02</span><span>Want structured, scoped, paid fractional engagements — not informal calls that go nowhere.</span></li>
+              <li class="gap-item"><span class="gap-item-num">03</span><span>Prefer part-time or project-based formats compatible with your existing full-time role or next challenge.</span></li>
+              <li class="gap-item"><span class="gap-item-num">04</span><span>Want equity upside through documented hybrid or FAST structures — not a vague promise.</span></li>
+              <li class="gap-item"><span class="gap-item-num">05</span><span>Need cross-border contracting, FX, GST, payments, and EOR handled — friction that today kills engagements before delivery starts.</span></li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY FRACTIONAL. WHY NOW. -->
+  <section class="why-now" id="why-now">
+    <div class="wrap">
+      <div class="why-now-grid">
+        <div>
+          <div class="why-now-label">Why fractional. Why now.</div>
+          <h2 class="why-now-heading">The model has crossed a threshold. The timing is structural.</h2>
+          <p class="why-now-definition">Fractional means senior talent on a part-time, scoped basis — typically 15–20 hours/week, with a defined deliverable and a defined window. Not a consultant who hands over a deck. Not an advisor who attends quarterly calls. An operator who owns the work and ships the outcome.</p>
+          <p class="why-now-sub">Fractional hiring isn't a workaround. It's the operating model for companies that need senior talent without the overhead, and for professionals who want to deploy expertise without a career disruption.</p>
+        </div>
+        <div>
+          <div class="stat-list">
+            <div class="stat-row">
+              <div class="stat-figure">73%</div>
+              <p class="stat-body">of high-growth startups cite lack of senior GTM talent as their primary barrier to international expansion.</p>
+            </div>
+            <div class="stat-row">
+              <div class="stat-figure">4×</div>
+              <p class="stat-body">faster time-to-market when companies engage fractional senior talent vs. hiring full-time for new geographies.</p>
+            </div>
+          </div>
+          <div class="logo-strip">
+            <div class="logo-strip-label">Fractional commercial talent has built revenue at —</div>
+            <div class="logo-strip-row">
+              <div class="logo-placeholder">Logo</div>
+              <div class="logo-placeholder">Logo</div>
+              <div class="logo-placeholder">Logo</div>
+              <div class="logo-placeholder">Logo</div>
+              <div class="logo-placeholder">Logo</div>
+              <div class="logo-placeholder">Logo</div>
+            </div>
+          </div>
+          <div class="stat-source" style="margin-top:20px;">Sources: McKinsey Global Institute · Fractional Executive Association · Industry benchmark data</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT WE OFFER -->
+  <section class="section" id="services">
+    <div class="wrap">
+      <div class="offer-header">
+        <div class="offer-header-left">
+          <div class="section-label">What we offer</div>
+          <h2 class="section-heading">Three services. One job: scaling your commercial motion outward.</h2>
+        </div>
+        <p class="offer-header-right">Every engagement is scoped to a specific outcome — a market opened, a pipeline built, a partnership signed. Not retainers in search of a problem.</p>
+      </div>
+      <div class="offer-grid">
+
+        <!-- 01 — Sales Leadership -->
+        <div class="offer-card">
+          <div class="offer-num">01</div>
+          <div class="offer-name">Fractional Sales Leadership</div>
+          <div class="offer-outcome">Lead the next phase of your commercial motion — fractionally.</div>
+          <div class="offer-desc">Senior revenue leaders who shape your ICP, build the playbook, and run the operating cadence. Entering a new market, expanding into a new industry, or scaling past founder-led sales.</div>
+          <div class="offer-roles">VP Sales · CRO · Head of International · GTM Leader</div>
+          <div class="offer-engagements">
+            <span class="offer-engagement-label">Engagement types</span>
+            <span class="offer-eng-chip">Consultation</span>
+            <span class="offer-eng-chip highlight">Sprint</span>
+            <span class="offer-eng-chip highlight">Retainer</span>
+            <span class="offer-eng-chip">Equity-linked</span>
+          </div>
+          <!-- Note: /services/sales-leadership page not yet built -->
+          <span class="offer-link-note">Service page — coming soon</span>
+        </div>
+
+        <!-- 02 — Sales Execution -->
+        <div class="offer-card">
+          <div class="offer-num">02</div>
+          <div class="offer-name">Fractional Sales Execution</div>
+          <div class="offer-outcome">Build qualified pipeline where you're scaling — new market, new industry, or new segment.</div>
+          <div class="offer-desc">Hands-on operators who prospect, qualify, and progress deals. Networks and fluency to shortcut cold outreach across target geographies, industries, and buyer profiles.</div>
+          <div class="offer-roles">Account Executive · SDR · BDR · Outbound Operator</div>
+          <div class="offer-engagements">
+            <span class="offer-engagement-label">Engagement types</span>
+            <span class="offer-eng-chip highlight">Sprint</span>
+            <span class="offer-eng-chip highlight">Retainer</span>
+            <span class="offer-eng-chip">Success-fee</span>
+          </div>
+          <span class="offer-link-note">Service page — coming soon</span>
+        </div>
+
+        <!-- 03 — Partnerships & BD -->
+        <div class="offer-card">
+          <div class="offer-num">03</div>
+          <div class="offer-name">Fractional Partnerships &amp; BD</div>
+          <div class="offer-outcome">Open new markets, industries, or segments through channels and alliances.</div>
+          <div class="offer-desc">Operators who build reseller, distributor, and strategic partner relationships — opening routes that direct outbound can't reach.</div>
+          <div class="offer-roles">BD Lead · Partnerships Lead · Channel Lead · Market Access Lead</div>
+          <div class="offer-engagements">
+            <span class="offer-engagement-label">Engagement types</span>
+            <span class="offer-eng-chip">Consultation</span>
+            <span class="offer-eng-chip highlight">Sprint</span>
+            <span class="offer-eng-chip highlight">Retainer</span>
+            <span class="offer-eng-chip">Success-fee</span>
+          </div>
+          <span class="offer-link-note">Service page — coming soon</span>
+        </div>
+      </div>
+
+      <div class="cross-strip">
+        <div class="cross-label">Cross-capability areas</div>
+        <div class="cross-pills">
+          <span class="cross-pill">GTM strategy &amp; refinement</span>
+          <span class="cross-pill">ICP &amp; messaging clarity</span>
+          <span class="cross-pill">Commercial systems &amp; operating cadence</span>
+          <span class="cross-pill">Revenue operations</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY BRIDGESCALE — Gap-style asymmetric layout -->
+  <section class="section" id="why-bridgescale">
+    <div class="wrap">
+      <div class="gap-layout">
+
+        <!-- Left: sticky — label, heading, sub, toggle -->
+        <div class="gap-left">
+          <div class="section-label">Why BridgeScale</div>
+          <h2 class="section-heading">An operating layer, not a marketplace.</h2>
+          <p class="section-sub">Most fractional platforms broker introductions. BridgeScale runs an AI-native operating layer — diagnosis, matching, engagement health, contract structure — built specifically for cross-border work between Indian startups and diaspora senior talent.</p>
+          <div style="margin-top:32px;">
+            <div class="gap-toggle-bar" role="tablist">
+              <button class="gap-toggle-btn active" role="tab" onclick="switchWhyBS('startups',this)">For companies</button>
+              <button class="gap-toggle-btn" role="tab" onclick="switchWhyBS('talent',this)">For talent</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: situation→support pairs on bare cream -->
+        <div>
+
+          <!-- Companies panel -->
+          <div class="gap-panel visible" id="whybs-startups">
+            <div class="gap-card-label">Companies scaling commercially</div>
+            <div class="gap-card-title">What we do that a generic fractional network can't.</div>
+            <div class="col-headers">
+              <div class="col-header">The situation you're in</div>
+              <div class="col-header">What BridgeScale does about it</div>
+            </div>
+            <div class="pairs-grid">
+              <div class="pair-situation">You're building international revenue, but a full-time leader is too slow and too expensive to commit to.</div>
+              <div class="pair-support">Start with a 30-day Sprint. If it produces, convert to a Retainer. If it doesn't, you've spent the cost of a Sprint — not the cost of a wrong hire.</div>
+
+              <div class="pair-situation">You don't know exactly what commercial capability is actually missing.</div>
+              <div class="pair-support">Every intake runs through an AI Diagnosis before you see a single profile. The shortlist is built against the gap, not the role title.</div>
+
+              <div class="pair-situation">You're worried about who you'll actually get matched with.</div>
+              <div class="pair-support">Selective intake. Every operator is interview-screened, reference-verified, and assessed on a domain-specific brief. You only ever see vetted talent.</div>
+
+              <div class="pair-situation">You can't run cross-border contracts, payments, or tax compliance in-house.</div>
+              <div class="pair-support">A tri-party MSA covers the legal shape. FX, invoicing, GST, withholding, and EOR handled through best-in-class providers. One invoice, one payout.</div>
+
+              <div class="pair-situation">Different engagements need different shapes.</div>
+              <div class="pair-support">Pick the structure (Consultation / Sprint / Retainer) and the compensation mode (Cash / Hybrid / Success-fee / Equity-only). The platform supports the combinations; you choose.</div>
+
+              <div class="pair-situation">You don't want to lose a great fractional hire to a competitor — or to full-time.</div>
+              <div class="pair-support">If the fit is right and you want to convert, we have a structured path — clear terms, clear window, no surprise.</div>
+            </div>
+          </div>
+
+          <!-- Talent panel -->
+          <div class="gap-panel" id="whybs-talent">
+            <div class="gap-card-label">Senior diaspora professionals</div>
+            <div class="gap-card-title">What we do that other fractional networks don't.</div>
+            <div class="col-headers">
+              <div class="col-header">The situation you're in</div>
+              <div class="col-header">What BridgeScale does about it</div>
+            </div>
+            <div class="pairs-grid">
+              <div class="pair-situation">The only "opportunities" arriving are unpaid advisory calls.</div>
+              <div class="pair-support">Every engagement is scoped, paid, and contracted — Consultation, Sprint, or Retainer only. No "pick your brain" calls disguised as work.</div>
+
+              <div class="pair-situation">You can't take on engagements without scope or SoW.</div>
+              <div class="pair-support">A non-binding Pre-SOW Commercial Summary locks scope before any contract is signed. The engagement either has a defined deliverable or it doesn't happen.</div>
+
+              <div class="pair-situation">Cross-border invoicing, FX, GST, and tax compliance is enough friction to kill the engagement.</div>
+              <div class="pair-support">Invoicing, FX, GST/withholding, and EOR handled where required. ACH, Wise, or Razorpay payouts depending on your residence. You see one payout.</div>
+
+              <div class="pair-situation">You want equity upside, but only with documented terms.</div>
+              <div class="pair-support">Cash + Equity (FAST-documented) and Equity-only structures available on retainer engagements. Always written down, never verbal.</div>
+
+              <div class="pair-situation">You need fractional work that fits alongside a full-time role.</div>
+              <div class="pair-support">15–20 hours/week, async-friendly, milestone-tracked. Set your availability — engage when the brief matches what you do well, decline when it doesn't.</div>
+
+              <div class="pair-situation">You want to know who you're working with before saying yes.</div>
+              <div class="pair-support">A free 30-minute introductory call before any contract is signed. The Pre-SOW summary documents what you discussed. Decline cleanly if it's not a fit.</div>
+            </div>
+          </div>
+
+          <div class="why-bs-below">
+            <div class="why-bs-links">
+              <a href="/learn" class="why-bs-link">Calculate the cost of a wrong full-time hire →</a>
+              <span class="why-bs-dot">·</span>
+              <a href="/learn" class="why-bs-link">Read our standard MSA &amp; SOW templates →</a>
+            </div>
+            <div class="why-bs-corridor">
+              Markets we cover today: US · UK · Canada · UAE · Singapore · Australia · India.<br/>
+              Extended coverage for EU markets through Employer-of-Record partners.
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STANDARDS & PRINCIPLES -->
+  <section class="section" id="about">
+    <div class="wrap">
+      <div style="margin-bottom:56px;">
+        <div class="section-label">Standards &amp; principles</div>
+        <h2 class="section-heading">How we operate. What we won't compromise.</h2>
+      </div>
+      <div class="trust-grid">
+        <div class="trust-cell">
+          <div class="trust-cell-label">Vetting</div>
+          <div class="trust-cell-title">Every professional is rigorously screened.</div>
+          <p class="trust-cell-body">Verified references from past clients and employers. A live expert interview. A domain-specific assessment — case study pitch for sales roles, turnaround narrative for leadership. Selective intake; the quality of the network is the product.</p>
+        </div>
+        <div class="trust-cell">
+          <div class="trust-cell-label">Intelligence</div>
+          <div class="trust-cell-title">AI does the heavy lifting. Humans own the outcomes.</div>
+          <p class="trust-cell-body">AI assists with need diagnosis, talent matching, scope drafting, and engagement health monitoring — every recommendation is reviewable and overridable, every shortlist reviewed by platform staff before it reaches you. The work being delivered — first meetings, partner conversations, deal progression — is where senior humans earn their keep. Agentic AI is a force multiplier. It's not a substitute for a vetted operator with the network to actually open a market.</p>
+        </div>
+        <div class="trust-cell">
+          <div class="trust-cell-label">Principles</div>
+          <div class="trust-cell-title">Fractional-first. Curated, not open.</div>
+          <p class="trust-cell-body">Diagnosis before matching. Execution is the product. Rewarded engagement, not unpaid mentorship. Built for Indian startups and MSMEs — not enterprises.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA BANNER — slim -->
+  <section class="cta-banner" id="signup">
+    <div class="wrap">
+      <div class="cta-banner-inner">
+        <div>
+          <h2 class="cta-banner-heading">Ready to apply?</h2>
+          <p class="cta-banner-sub">Indian startup or MSME going international? Diaspora senior talent looking for structured fractional work? Pick your side.</p>
+        </div>
+        <div class="cta-banner-actions">
+          <a href="/for-companies/apply" class="btn btn-primary">I'm a company →</a>
+          <a href="/for-talent/apply" class="btn btn-secondary">I'm fractional talent →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">◆ BridgeScale</div>
+      <div class="footer-links">
+        <a href="/for-companies" class="footer-link">For Companies</a>
+        <a href="/for-talent" class="footer-link">For Talent</a>
+        <a href="/about" class="footer-link">About</a>
+        <a href="/blog" class="footer-link">Blog</a>
+        <a href="/privacy" class="footer-link">Privacy</a>
+        <a href="/terms" class="footer-link">Terms</a>
+      </div>
+    </div>
+  </footer>
+
+</div>
+<script>
+  /* Gap toggle — synced with Why BS */
+  function switchGap(side, btn) {
+    document.querySelectorAll('#gap .gap-toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('gap-startups').classList.toggle('visible', side === 'startups');
+    document.getElementById('gap-talent').classList.toggle('visible', side === 'talent');
+    // sync Why BS
+    const wbsBtns = document.querySelectorAll('#why-bridgescale .gap-toggle-btn');
+    wbsBtns.forEach(b => b.classList.remove('active'));
+    wbsBtns[side === 'startups' ? 0 : 1].classList.add('active');
+    document.getElementById('whybs-startups').classList.toggle('visible', side === 'startups');
+    document.getElementById('whybs-talent').classList.toggle('visible', side === 'talent');
+  }
+
+  /* Why BS toggle — synced with Gap */
+  function switchWhyBS(side, btn) {
+    document.querySelectorAll('#why-bridgescale .gap-toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('whybs-startups').classList.toggle('visible', side === 'startups');
+    document.getElementById('whybs-talent').classList.toggle('visible', side === 'talent');
+    // sync Gap
+    const gapBtns = document.querySelectorAll('#gap .gap-toggle-btn');
+    gapBtns.forEach(b => b.classList.remove('active'));
+    gapBtns[side === 'startups' ? 0 : 1].classList.add('active');
+    document.getElementById('gap-startups').classList.toggle('visible', side === 'startups');
+    document.getElementById('gap-talent').classList.toggle('visible', side === 'talent');
+  }
+</script>
+</body>
+</html>

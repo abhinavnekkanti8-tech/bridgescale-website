@@ -20,16 +20,36 @@ export default function FaqSection({
       <div className={styles.container}>
         <div className={styles.sectionLabel}>{label}</div>
         <h2 className={styles.heading}>{heading}</h2>
-        {groups.map((group, gi) => (
-          <div key={gi} className={styles.group}>
-            <h3 className={styles.groupHeading}>{group.heading}</h3>
-            <div className={styles.list}>
-              {group.items.map((item, i) => (
-                <FaqRow key={i} item={item} />
-              ))}
+        {groups.map((group, gi) => {
+          const mid = Math.ceil(group.items.length / 2);
+          const left = group.items.slice(0, mid);
+          const right = group.items.slice(mid);
+          const count = group.items.length;
+          return (
+            <div key={gi} className={styles.group}>
+              <div className={styles.groupHeader}>
+                <h3 className={styles.groupHeading}>{group.heading}</h3>
+                <span className={styles.groupCount}>
+                  {count} {count === 1 ? 'question' : 'questions'}
+                </span>
+              </div>
+              <div className={styles.columns}>
+                <div className={styles.column}>
+                  {left.map((item, i) => (
+                    <FaqRow key={i} item={item} />
+                  ))}
+                </div>
+                {right.length > 0 && (
+                  <div className={styles.column}>
+                    {right.map((item, i) => (
+                      <FaqRow key={i} item={item} />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

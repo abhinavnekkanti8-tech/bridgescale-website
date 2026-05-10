@@ -1,0 +1,22 @@
+{
+  "name": "AG Platform (BridgeScale)",
+  "mode": "recommended",
+  "output": "wiki/",
+  "sources": [
+    { "path": "backend/src",    "type": "code" },
+    { "path": "backend/prisma", "type": "code" },
+    { "path": "frontend/src",   "type": "code" },
+    { "path": "Docs",           "type": "docs" }
+  ],
+  "article_sections": [
+    "Purpose",
+    "Architecture",
+    "Talks To",
+    "API Surface",
+    "Data",
+    "Key Decisions",
+    "Gotchas"
+  ],
+  "auto_update": "prompt",
+  "wiki_mode": "codebase"
+}
