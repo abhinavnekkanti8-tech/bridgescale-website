@@ -13,6 +13,8 @@ import { SessionAuthGuard } from '../common/guards/session-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { MembershipRole } from '@prisma/client';
+import { SessionUser as SessionUserDecorator } from '../auth/session-user.decorator';
+import { SessionUser as SessionUserType } from '../common/types/session.types';
 
 @Controller('discovery')
 export class DiscoveryController {
@@ -22,8 +24,11 @@ export class DiscoveryController {
   @Post()
   @UseGuards(SessionAuthGuard, RolesGuard)
   @Roles(MembershipRole.PLATFORM_ADMIN, MembershipRole.STARTUP_ADMIN)
-  schedule(@Body() dto: ScheduleDiscoveryDto) {
-    return this.discoveryService.schedule(dto);
+  schedule(
+    @Body() dto: ScheduleDiscoveryDto,
+    @SessionUserDecorator() user: SessionUserType,
+  ) {
+    return this.discoveryService.schedule(user, dto);
   }
 
   /** GET /api/v1/discovery — List all calls (admin) */
@@ -52,36 +57,43 @@ export class DiscoveryController {
   /** GET /api/v1/discovery/startup/:startupProfileId — Get startup's calls */
   @Get('startup/:startupProfileId')
   @UseGuards(SessionAuthGuard)
-  findByStartup(@Param('startupProfileId') id: string) {
-    return this.discoveryService.findByStartup(id);
+  findByStartup(
+    @Param('startupProfileId') id: string,
+    @SessionUserDecorator() user: SessionUserType,
+  ) {
+    return this.discoveryService.findByStartup(user, id);
   }
 
   /** GET /api/v1/discovery/:id — Get specific discovery call */
   @Get(':id')
   @UseGuards(SessionAuthGuard)
-  findOne(@Param('id') id: string) {
-    return this.discoveryService.findOne(id);
+  findOne(@Param('id') id: string, @SessionUserDecorator() user: SessionUserType) {
+    return this.discoveryService.findOne(user, id);
   }
 
   /** PATCH /api/v1/discovery/:id/cancel — Cancel a call */
   @Patch(':id/cancel')
   @UseGuards(SessionAuthGuard)
-  cancel(@Param('id') id: string) {
-    return this.discoveryService.cancel(id);
+  cancel(@Param('id') id: string, @SessionUserDecorator() user: SessionUserType) {
+    return this.discoveryService.cancel(user, id);
   }
 
   /** PATCH /api/v1/discovery/:id/complete — Mark call complete */
   @Patch(':id/complete')
   @UseGuards(SessionAuthGuard)
-  complete(@Param('id') id: string) {
-    return this.discoveryService.markCompleted(id);
+  complete(@Param('id') id: string, @SessionUserDecorator() user: SessionUserType) {
+    return this.discoveryService.markCompleted(user, id);
   }
 
   /** POST /api/v1/discovery/:id/notes — Submit notes & trigger AI summary */
   @Post(':id/notes')
   @UseGuards(SessionAuthGuard)
-  addNotes(@Param('id') id: string, @Body() dto: AddNotesDto) {
-    return this.discoveryService.addNotes(id, dto);
+  addNotes(
+    @Param('id') id: string,
+    @Body() dto: AddNotesDto,
+    @SessionUserDecorator() user: SessionUserType,
+  ) {
+    return this.discoveryService.addNotes(user, id, dto);
   }
 
   /** PATCH /api/v1/discovery/:id/override — Admin override summary */

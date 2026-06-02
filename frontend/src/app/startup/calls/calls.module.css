@@ -1,0 +1,48 @@
+.page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px;
+}
+.header {
+  margin-bottom: 20px;
+}
+.title {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+.sub {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  font-weight: 300;
+  line-height: 1.6;
+  max-width: 70ch;
+  margin: 0;
+}
+.loading {
+  text-align: center;
+  padding: 48px;
+  color: var(--color-text-muted);
+}
+.empty {
+  padding: 32px;
+  background: var(--color-surface-alt);
+  border: 1px dashed var(--color-border);
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-weight: 300;
+}
+.err {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: #fee;
+  color: #c00;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}

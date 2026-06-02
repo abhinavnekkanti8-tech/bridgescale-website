@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Why BridgeScale — Gap-style mock</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #f5f3ef;
+      --surface: #ffffff;
+      --border:  #d9d4cc;
+      --accent:  #99081F;
+      --tx:      #0f0f0f;
+      --tx2:     #706b65;
+      --txm:     #9e9890;
+      --serif: 'Playfair Display', Georgia, serif;
+      --body:  'DM Sans', system-ui, sans-serif;
+    }
+    html { font-size: 16px; }
+    body { font-family: var(--body); background: var(--bg); color: var(--tx); -webkit-font-smoothing: antialiased; line-height: 1.6; }
+    h2 { font-family: var(--serif); font-weight: 700; line-height: 1.12; letter-spacing: -0.02em; }
+    a  { color: var(--accent); text-decoration: none; }
+
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 32px; }
+    .section { padding: 88px 0; }
+
+    /* ── Exact same asymmetric layout as The Gap ── */
+    .gap-layout {
+      display: grid;
+      grid-template-columns: 5fr 7fr;
+      gap: 80px;
+      align-items: flex-start;
+    }
+    .gap-left { position: sticky; top: 88px; }
+    .gap-left .section-label { margin-bottom: 12px; }
+    .gap-left .section-heading { margin-bottom: 20px; }
+    .gap-left .section-sub { margin-bottom: 20px; }
+
+    .section-label {
+      font-size: 10.5px; font-weight: 600; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 12px;
+    }
+    .section-heading {
+      font-family: var(--serif); font-weight: 700;
+      font-size: 1.9rem; line-height: 1.12; letter-spacing: -0.015em;
+      margin-bottom: 16px;
+    }
+    .section-sub {
+      font-size: 0.95rem; font-weight: 300; color: var(--tx2);
+      line-height: 1.7; max-width: 540px;
+    }
+
+    /* ── Toggle — identical to gap toggle ── */
+    .gap-toggle-bar {
+      display: inline-flex;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px;
+      margin-top: 32px;
+    }
+    .gap-toggle-btn {
+      font-family: inherit; font-size: 0.8rem; font-weight: 600;
+      color: var(--txm); padding: 7px 20px;
+      border: none; background: transparent; border-radius: 999px;
+      cursor: pointer; transition: background .2s, color .2s;
+    }
+    .gap-toggle-btn:hover { color: var(--tx); }
+    .gap-toggle-btn.active {
+      background: var(--bg); color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    /* ── Right side — identical to gap-right ── */
+    .gap-panel { display: none; }
+    .gap-panel.visible { display: block; }
+
+    .gap-card-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--txm); margin-bottom: 20px;
+    }
+    .gap-card-title {
+      font-family: var(--serif); font-weight: 600;
+      font-size: 1.35rem; line-height: 1.2; margin-bottom: 32px;
+      color: var(--tx);
+    }
+    .gap-list { list-style: none; display: flex; flex-direction: column; }
+    /* ── Two-col situation→support grid inside the right panel ── */
+    .col-headers {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0;
+    }
+    .col-header {
+      font-size: 9.5px; font-weight: 600; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--txm);
+      padding-bottom: 14px;
+    }
+    .col-header:last-child { padding-left: 28px; }
+
+    .pairs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    /* Each situation+support pair shares one row across both columns */
+    .pair-situation {
+      padding: 24px 28px 24px 0;
+      font-size: 0.88rem; font-weight: 600;
+      color: var(--tx); line-height: 1.55;
+      border-top: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      transition: color 0.2s;
+    }
+    .pair-support {
+      padding: 24px 0 24px 28px;
+      font-size: 0.875rem; font-weight: 300;
+      color: var(--tx2); line-height: 1.7;
+      border-top: 1px solid var(--border);
+    }
+    /* Hover: highlight the whole row by targeting adjacent sibling */
+    .pair-situation:hover,
+    .pair-situation:hover + .pair-support {
+      background: var(--surface);
+    }
+    .pair-situation:hover { color: var(--accent); }
+
+    /* ── Below strip ── */
+    .below { margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--border); }
+    .links { display: flex; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+    .lnk { color: var(--accent); font-size: 12px; font-weight: 500; }
+    .dot { margin: 0 12px; color: var(--txm); font-size: 12px; }
+    .corridor { font-size: 0.75rem; color: var(--txm); font-style: italic; line-height: 1.8; }
+
+    @media (max-width: 860px) {
+      .gap-layout { grid-template-columns: 1fr; gap: 40px; }
+      .gap-left { position: static; }
+    }
+  </style>
+</head>
+<body>
+<section class="section">
+  <div class="wrap">
+    <div class="gap-layout">
+
+      <!-- Left: sticky — label, heading, sub, toggle -->
+      <div class="gap-left">
+        <div class="section-label">Why BridgeScale</div>
+        <h2 class="section-heading">An operating layer, not a marketplace.</h2>
+        <p class="section-sub">Most fractional platforms broker introductions. BridgeScale runs an AI-native operating layer — diagnosis, matching, engagement health, contract structure — built specifically for cross-border work between Indian startups and diaspora senior talent.</p>
+        <div class="gap-toggle-bar" role="tablist">
+          <button class="gap-toggle-btn active" role="tab" onclick="switchPanel('startups', this)">For companies</button>
+          <button class="gap-toggle-btn" role="tab" onclick="switchPanel('talent', this)">For talent</button>
+        </div>
+      </div>
+
+      <!-- Right: same treatment as Gap right — label, serif title, numbered list -->
+      <div>
+
+        <!-- Companies panel -->
+        <div class="gap-panel visible" id="panel-startups">
+          <div class="gap-card-label">Companies scaling commercially</div>
+          <div class="gap-card-title">What we do that a generic fractional network can't.</div>
+          <div class="col-headers">
+            <div class="col-header">The situation you're in</div>
+            <div class="col-header">What BridgeScale does about it</div>
+          </div>
+          <div class="pairs-grid">
+            <div class="pair-situation">You're building international revenue, but a full-time leader is too slow and too expensive to commit to.</div>
+            <div class="pair-support">Start with a 30-day Sprint. If it produces, convert to a Retainer. If it doesn't, you've spent the cost of a Sprint — not the cost of a wrong hire.</div>
+
+            <div class="pair-situation">You don't know exactly what commercial capability is actually missing.</div>
+            <div class="pair-support">AI Diagnosis runs before you see a single profile. The shortlist is built against your actual capability gap — not a job title you guessed at.</div>
+
+            <div class="pair-situation">You're worried about who you'll actually get matched with.</div>
+            <div class="pair-support">Every operator is interview-screened, reference-verified, and assessed on a domain-specific brief. You only ever see vetted talent.</div>
+
+            <div class="pair-situation">You can't run cross-border contracts, payments, or tax compliance in-house.</div>
+            <div class="pair-support">Tri-party MSA, FX, invoicing, GST, withholding, EOR — all handled. You see one invoice, one payout.</div>
+
+            <div class="pair-situation">Different engagements need different shapes.</div>
+            <div class="pair-support">Consultation / Sprint / Retainer × Cash / Hybrid / Success-fee / Equity-only. The platform supports the combinations — you choose the shape.</div>
+
+            <div class="pair-situation">You don't want to lose a great fractional hire to a competitor — or to full-time.</div>
+            <div class="pair-support">If the fit is right and you want to convert, we have a structured path — clear terms, clear window, no surprise.</div>
+          </div>
+        </div>
+
+        <!-- Talent panel -->
+        <div class="gap-panel" id="panel-talent">
+          <div class="gap-card-label">Senior diaspora professionals</div>
+          <div class="gap-card-title">What we do that other fractional networks don't.</div>
+          <div class="col-headers">
+            <div class="col-header">The situation you're in</div>
+            <div class="col-header">What BridgeScale does about it</div>
+          </div>
+          <div class="pairs-grid">
+            <div class="pair-situation">The only "opportunities" arriving are unpaid advisory calls.</div>
+            <div class="pair-support">Every engagement is scoped, paid, and contracted — Consultation, Sprint, or Retainer only. No "pick your brain" calls disguised as work.</div>
+
+            <div class="pair-situation">You can't take on engagements without scope or SoW.</div>
+            <div class="pair-support">A non-binding Pre-SOW Commercial Summary locks scope before any contract is signed. The engagement either has a defined deliverable or it doesn't happen.</div>
+
+            <div class="pair-situation">Cross-border invoicing, FX, GST, and tax compliance is enough friction to kill the engagement.</div>
+            <div class="pair-support">Invoicing, FX, GST/withholding, and EOR handled where required. ACH, Wise, or Razorpay payouts depending on your residence. You see one payout.</div>
+
+            <div class="pair-situation">You want equity upside, but only with documented terms.</div>
+            <div class="pair-support">Cash + Equity (FAST-documented) and Equity-only retainer structures available. Always written down, never verbal.</div>
+
+            <div class="pair-situation">You need fractional work that fits alongside a full-time role.</div>
+            <div class="pair-support">15–20 hours/week, async-friendly, milestone-tracked. Set your availability — engage when the brief fits, decline cleanly when it doesn't.</div>
+
+            <div class="pair-situation">You want to know who you're working with before saying yes.</div>
+            <div class="pair-support">Free 30-minute introductory call before any contract. The Pre-SOW summary documents what was discussed. Decline cleanly if it's not a fit.</div>
+          </div>
+        </div>
+
+        <div class="below">
+          <div class="links">
+            <a href="#" class="lnk">Calculate the cost of a wrong full-time hire →</a>
+            <span class="dot">·</span>
+            <a href="#" class="lnk">Read our standard MSA &amp; SOW templates →</a>
+          </div>
+          <div class="corridor">
+            Markets we cover today: US · UK · Canada · UAE · Singapore · Australia · India.<br/>
+            Extended coverage for EU markets through Employer-of-Record partners.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  function switchPanel(side, btn) {
+    document.querySelectorAll('.gap-toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-startups').classList.toggle('visible', side === 'startups');
+    document.getElementById('panel-talent').classList.toggle('visible', side === 'talent');
+  }
+</script>
+</body>
+</html>

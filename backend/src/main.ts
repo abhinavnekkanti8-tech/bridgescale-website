@@ -3,17 +3,27 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import * as session from 'express-session';
-import { join } from 'path';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { validateProductionConfig } from './config/production-config';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+    rawBody: true,
+  });
 
   // ── Structured logging via pino ──
   app.useLogger(app.get(Logger));
 
   const config = app.get(ConfigService);
+  validateProductionConfig({
+    ...process.env,
+    SESSION_SECRET: config.get<string>('SESSION_SECRET'),
+    DUMMY_PAYMENT_MODE: config.get<string>('DUMMY_PAYMENT_MODE'),
+    STRIPE_WEBHOOK_SECRET: config.get<string>('STRIPE_WEBHOOK_SECRET'),
+    STRIPE_SECRET_KEY: config.get<string>('STRIPE_SECRET_KEY'),
+  });
 
   // ── Session middleware (express-session) ──
   // NOTE: For production, replace MemoryStore with a persistent store
@@ -28,7 +38,7 @@ async function bootstrap() {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: config.get<number>('SESSION_MAX_AGE_MS', 86400000), // 24h default
+        maxAge: Number(config.get<string>('SESSION_MAX_AGE_MS', '86400000')), // 24h default
       },
     }),
   );
@@ -56,7 +66,6 @@ async function bootstrap() {
   });
 
   // ── Serve uploaded files statically ──
-  (app as any).useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
 
   const port = config.get<number>('BACKEND_PORT', 4000);
   await app.listen(port);

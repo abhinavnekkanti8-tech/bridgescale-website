@@ -12,6 +12,8 @@ import { SessionAuthGuard } from '../common/guards/session-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { MembershipRole } from '@prisma/client';
+import { SessionUser as SessionUserDecorator } from '../auth/session-user.decorator';
+import { SessionUser as SessionUserType } from '../common/types/session.types';
 
 @Controller('matching')
 export class MatchingController {
@@ -36,15 +38,18 @@ export class MatchingController {
   /** GET /api/v1/matching/startup/:startupProfileId — Get startup's shortlists */
   @Get('startup/:startupProfileId')
   @UseGuards(SessionAuthGuard)
-  findByStartup(@Param('startupProfileId') id: string) {
-    return this.matchingService.findByStartup(id);
+  findByStartup(
+    @Param('startupProfileId') id: string,
+    @SessionUserDecorator() user: SessionUserType,
+  ) {
+    return this.matchingService.findByStartup(user, id);
   }
 
   /** GET /api/v1/matching/:id — Get specific shortlist */
   @Get(':id')
   @UseGuards(SessionAuthGuard)
-  findOne(@Param('id') id: string) {
-    return this.matchingService.findOne(id);
+  findOne(@Param('id') id: string, @SessionUserDecorator() user: SessionUserType) {
+    return this.matchingService.findOne(user, id);
   }
 
   /** PATCH /api/v1/matching/:id/publish — Publish shortlist to startup */
@@ -62,8 +67,9 @@ export class MatchingController {
   operatorRespond(
     @Param('candidateId') id: string,
     @Body() body: { interest: 'ACCEPTED' | 'DECLINED'; declineReason?: string },
+    @SessionUserDecorator() user: SessionUserType,
   ) {
-    return this.matchingService.operatorRespond(id, body.interest, body.declineReason);
+    return this.matchingService.operatorRespond(user, id, body.interest, body.declineReason);
   }
 
   /** PATCH /api/v1/matching/:id/select/:candidateId — Startup selects operator */
@@ -73,7 +79,8 @@ export class MatchingController {
   selectOperator(
     @Param('id') shortlistId: string,
     @Param('candidateId') candidateId: string,
+    @SessionUserDecorator() user: SessionUserType,
   ) {
-    return this.matchingService.selectOperator(shortlistId, candidateId);
+    return this.matchingService.selectOperator(user, shortlistId, candidateId);
   }
 }

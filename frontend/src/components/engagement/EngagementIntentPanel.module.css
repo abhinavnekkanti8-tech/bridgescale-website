@@ -1,0 +1,130 @@
+.callCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.callHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+.callTitle {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.callMeta {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  font-weight: 300;
+}
+.meetingLink {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.meetingLink:hover { text-decoration: underline; }
+.note {
+  padding: 10px 12px;
+  background: var(--color-surface-alt);
+  border-left: 2px solid var(--color-accent);
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+  font-weight: 300;
+  line-height: 1.55;
+}
+.muted {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-weight: 300;
+}
+.intentBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--color-border);
+}
+.intentRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+.intentLabel {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+.pill {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.pillGood { background: #dcf2e1; color: #2f6d4a; }
+.pillBad { background: #f8e2e2; color: #b03030; }
+.pillMuted { background: var(--color-surface-alt); color: var(--color-text-muted); }
+.mutualBanner {
+  margin-top: 4px;
+  padding: 10px 14px;
+  background: #ecf6ee;
+  border-left: 3px solid #2f6d4a;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #2f6d4a;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.err {
+  padding: 8px 12px;
+  background: #fee;
+  color: #c00;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+.deferBox {
+  margin-top: 8px;
+  padding: 14px 16px;
+  background: var(--color-surface-alt);
+  border-left: 3px solid var(--color-accent);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.deferBox label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.deferBox label span {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+.deferBox input {
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.88rem;
+  font-family: inherit;
+}

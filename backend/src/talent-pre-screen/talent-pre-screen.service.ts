@@ -3,10 +3,12 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
-import { PreScreenRecommendation } from '@prisma/client';
+import { MembershipRole, PreScreenRecommendation } from '@prisma/client';
+import { SessionUser } from '../common/types/session.types';
 import {
   TALENT_PRESCREEN_PROMPT_VERSION,
   TalentPreScreenInput,
@@ -24,7 +26,11 @@ export class TalentPreScreenService {
   /**
    * Get a talent pre-screen by application ID.
    */
-  async getPreScreenByApplicationId(applicationId: string) {
+  async getPreScreenByApplicationId(user: SessionUser, applicationId: string) {
+    if (user.role !== MembershipRole.PLATFORM_ADMIN) {
+      throw new ForbiddenException('Only platform admins can access talent pre-screens.');
+    }
+
     const preScreen = await this.prisma.talentPreScreen.findUnique({
       where: { applicationId },
       include: { application: true },

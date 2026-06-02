@@ -10,6 +10,7 @@ import {
   Min,
   Max,
 } from 'class-validator';
+import { CancellationParty, EngagementIntentParty } from '@prisma/client';
 
 // ── Package type DTO (mirrors PackageType enum) ──────────────────────────────
 
@@ -155,4 +156,43 @@ export class EquityEventDto {
   @IsString()
   @MaxLength(1000)
   notes: string;
+}
+
+export class FindOrCreateMsaDto {
+  @IsString()
+  startupProfileId: string;
+
+  @IsString()
+  operatorId: string;
+}
+
+export class SignMsaDto {
+  @IsEnum(EngagementIntentParty)
+  party: EngagementIntentParty;
+
+  @IsString()
+  signatureId: string;
+}
+
+export class GenerateSowFromSummaryDto {
+  @IsString()
+  summaryId: string;
+}
+
+export class CancelSowDto {
+  @IsEnum(CancellationParty)
+  party: CancellationParty;
+
+  @IsString()
+  reason: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  refundAmount?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  payoutPenalty?: number;
 }

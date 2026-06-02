@@ -6,6 +6,8 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
 import { ScheduleDiscoveryDto, AddNotesDto, OverrideDiscoveryDto } from './dto/discovery.dto';
+import { RecordAccessService } from '../common/services/record-access.service';
+import { SessionUser } from '../common/types/session.types';
 
 @Injectable()
 export class DiscoveryService {
@@ -14,11 +16,13 @@ export class DiscoveryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiService: AiService,
+    private readonly recordAccess: RecordAccessService,
   ) {}
 
   // ── Scheduling ────────────────────────────────────────────────────────────
 
-  async schedule(dto: ScheduleDiscoveryDto) {
+  async schedule(user: SessionUser, dto: ScheduleDiscoveryDto) {
+    await this.recordAccess.assertStartupProfileAccess(user, dto.startupProfileId);
     const meetingLink = dto.meetingLink || `https://meet.antigravity.dev/${Date.now().toString(36)}`;
     return this.prisma.discoveryCall.create({
       data: {
@@ -30,14 +34,16 @@ export class DiscoveryService {
     });
   }
 
-  async cancel(callId: string) {
+  async cancel(user: SessionUser, callId: string) {
+    await this.recordAccess.assertDiscoveryCallAccess(user, callId);
     return this.prisma.discoveryCall.update({
       where: { id: callId },
       data: { status: 'CANCELLED' },
     });
   }
 
-  async markCompleted(callId: string) {
+  async markCompleted(user: SessionUser, callId: string) {
+    await this.recordAccess.assertDiscoveryCallAccess(user, callId);
     return this.prisma.discoveryCall.update({
       where: { id: callId },
       data: { status: 'COMPLETED' },
@@ -46,8 +52,9 @@ export class DiscoveryService {
 
   // ── Notes & AI Summary ────────────────────────────────────────────────────
 
-  async addNotes(callId: string, dto: AddNotesDto) {
-    const call = await this.findOne(callId);
+  async addNotes(user: SessionUser, callId: string, dto: AddNotesDto) {
+    await this.recordAccess.assertDiscoveryCallAccess(user, callId);
+    const call = await this.getCallOrThrow(callId);
     const updated = await this.prisma.discoveryCall.update({
       where: { id: callId },
       data: { notes: dto.notes, status: 'COMPLETED' },
@@ -132,20 +139,26 @@ export class DiscoveryService {
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
 
-  async findOne(callId: string) {
+  async findOne(user: SessionUser, callId: string) {
+    await this.recordAccess.assertDiscoveryCallAccess(user, callId);
+    return this.getCallOrThrow(callId);
+  }
+
+  async findByStartup(user: SessionUser, startupProfileId: string) {
+    await this.recordAccess.assertStartupProfileAccess(user, startupProfileId);
+    return this.prisma.discoveryCall.findMany({
+      where: { startupProfileId },
+      orderBy: { scheduledAt: 'desc' },
+    });
+  }
+
+  private async getCallOrThrow(callId: string) {
     const call = await this.prisma.discoveryCall.findUnique({
       where: { id: callId },
       include: { startupProfile: { select: { id: true, industry: true, stage: true } } },
     });
     if (!call) throw new NotFoundException('Discovery call not found.');
     return call;
-  }
-
-  async findByStartup(startupProfileId: string) {
-    return this.prisma.discoveryCall.findMany({
-      where: { startupProfileId },
-      orderBy: { scheduledAt: 'desc' },
-    });
   }
 
   async findAll() {

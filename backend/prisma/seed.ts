@@ -5,29 +5,59 @@
  * Run with: npm run seed
  */
 
-import { PrismaClient, OrgType, MembershipRole, MembershipStatus, UserStatus, SowTemplateType } from '@prisma/client';
-import * as crypto from 'crypto';
+import {
+  PrismaClient,
+  OrgType,
+  MembershipRole,
+  MembershipStatus,
+  UserStatus,
+  SowTemplateType,
+  ServiceLane,
+  EngagementType,
+  RetainerFlavour,
+  ServiceTemplateCode,
+  OperatorRole,
+} from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
+import { resolveSeedPolicy } from '../src/config/seed-policy';
 
 const prisma = new PrismaClient();
 
 // Simple hash for MVP dev — NOT for production use
-function hashPassword(password: string): string {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
+const BCRYPT_SALT_ROUNDS = 10;
 
 async function main() {
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@platform.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123!';
+  const policy = resolveSeedPolicy({
+    nodeEnv: process.env.NODE_ENV,
+    allowNonDevSeed: process.env.ALLOW_NON_DEV_SEED,
+    includeDemoUsers: process.env.SEED_INCLUDE_DEMO_USERS,
+  });
+
+  const adminEmail =
+    process.env.ADMIN_EMAIL ||
+    (!policy.requireExplicitCredentials ? 'admin@platform.local' : undefined);
+  const adminPassword =
+    process.env.ADMIN_PASSWORD ||
+    (!policy.requireExplicitCredentials ? 'LocalAdminChangeMe!123' : undefined);
+
+  if (!adminEmail || !adminPassword) {
+    throw new Error(
+      'ADMIN_EMAIL and ADMIN_PASSWORD are required when seeding outside local/dev/test.',
+    );
+  }
 
   console.log('🌱 Seeding database...');
 
   const existing = await prisma.user.findUnique({ where: { email: adminEmail } });
   if (existing) {
     console.log(`ℹ️  Platform Admin already exists: ${adminEmail}`);
+    await seedSowTemplates();
+    await seedPhase1ServiceTemplates();
+    await seedRoleTemplateEngagementCombinations();
     return;
   }
 
-  const passwordHash = hashPassword(adminPassword);
+  const passwordHash = await bcrypt.hash(adminPassword, BCRYPT_SALT_ROUNDS);
 
   // Create the platform organisation
   const platformOrg = await prisma.organization.create({
@@ -54,64 +84,67 @@ async function main() {
     },
   });
 
-  // Seed a demo Startup user
-  const startupOrg = await prisma.organization.create({
-    data: {
-      orgType: OrgType.STARTUP,
-      name: 'AcmeTech Hyderabad',
-      country: 'IN',
-      website: 'https://acmetech.example.com',
-    },
-  });
+  if (policy.includeDemoUsers) {
+    const startupOrg = await prisma.organization.create({
+      data: {
+        orgType: OrgType.STARTUP,
+        name: 'AcmeTech Hyderabad',
+        country: 'IN',
+        website: 'https://acmetech.example.com',
+      },
+    });
 
-  await prisma.user.create({
-    data: {
-      name: 'Ravi Founder',
-      email: 'ravi@acmetech.com',
-      passwordHash: hashPassword('Startup@123'),
-      status: UserStatus.ACTIVE,
-      memberships: {
-        create: {
-          orgId: startupOrg.id,
-          membershipRole: MembershipRole.STARTUP_ADMIN,
-          status: MembershipStatus.ACTIVE,
+    await prisma.user.create({
+      data: {
+        name: 'Ravi Founder',
+        email: 'ravi@acmetech.local',
+        passwordHash: await bcrypt.hash('LocalStartupChangeMe!123', BCRYPT_SALT_ROUNDS),
+        status: UserStatus.ACTIVE,
+        memberships: {
+          create: {
+            orgId: startupOrg.id,
+            membershipRole: MembershipRole.STARTUP_ADMIN,
+            status: MembershipStatus.ACTIVE,
+          },
         },
       },
-    },
-  });
+    });
 
-  // Seed a demo Operator user
-  const operatorOrg = await prisma.organization.create({
-    data: {
-      orgType: OrgType.OPERATOR_ENTITY,
-      name: 'DiasporaSales EU',
-      country: 'DE',
-    },
-  });
+    const operatorOrg = await prisma.organization.create({
+      data: {
+        orgType: OrgType.OPERATOR_ENTITY,
+        name: 'DiasporaSales EU',
+        country: 'DE',
+      },
+    });
 
-  await prisma.user.create({
-    data: {
-      name: 'Priya Operator',
-      email: 'priya@diasporasales.com',
-      passwordHash: hashPassword('Operator@123'),
-      status: UserStatus.ACTIVE,
-      memberships: {
-        create: {
-          orgId: operatorOrg.id,
-          membershipRole: MembershipRole.OPERATOR,
-          status: MembershipStatus.ACTIVE,
+    await prisma.user.create({
+      data: {
+        name: 'Priya Operator',
+        email: 'priya@diasporasales.local',
+        passwordHash: await bcrypt.hash('LocalOperatorChangeMe!123', BCRYPT_SALT_ROUNDS),
+        status: UserStatus.ACTIVE,
+        memberships: {
+          create: {
+            orgId: operatorOrg.id,
+            membershipRole: MembershipRole.OPERATOR,
+            status: MembershipStatus.ACTIVE,
+          },
         },
       },
-    },
-  });
+    });
 
-  console.log(`Admin created: ${admin.email} / ${adminPassword}`);
-  console.log(`Demo Startup: ravi@acmetech.com / Startup@123`);
-  console.log(`Demo Operator: priya@diasporasales.com / Operator@123`);
-  console.log(`Change passwords before production!`);
+    console.log(`Local admin created: ${admin.email}`);
+    console.log('Local demo users seeded. These accounts are for local/dev use only.');
+  } else {
+    console.log(`Admin created: ${admin.email}`);
+    console.log('Demo startup/operator accounts were skipped for this environment.');
+  }
 
   // ── Seed SoW Templates ─────────────────────────────────────────────
   await seedSowTemplates();
+  await seedPhase1ServiceTemplates();
+  await seedRoleTemplateEngagementCombinations();
 }
 
 async function seedSowTemplates() {
@@ -587,6 +620,200 @@ BridgeScale: _________________________ Date: __________`,
   }
 
   console.log(`5 SoW templates ready.`);
+}
+
+const phase1ServiceTemplates = [
+  {
+    code: ServiceTemplateCode.INTL_MARKET_ENTRY,
+    name: 'International Market Entry Diagnostic',
+    lane: ServiceLane.FRACTIONAL_BD_PARTNERSHIPS,
+    engagementType: EngagementType.CONSULTATION,
+    retainerFlavour: null,
+    suggestedDurationDays: 14,
+    description: 'Short diagnostic to validate target market, ICP, channel options, and first commercial moves.',
+  },
+  {
+    code: ServiceTemplateCode.ICP_REFINEMENT,
+    name: 'ICP Refinement',
+    lane: ServiceLane.FRACTIONAL_EXECUTION_OPS,
+    engagementType: EngagementType.CONSULTATION,
+    retainerFlavour: null,
+    suggestedDurationDays: 14,
+    description: 'Refines ideal customer profile, target segments, buying committee, and qualification rules.',
+  },
+  {
+    code: ServiceTemplateCode.GTM_STRATEGY,
+    name: 'GTM Strategy',
+    lane: ServiceLane.FRACTIONAL_LEADERSHIP,
+    engagementType: EngagementType.CONSULTATION,
+    retainerFlavour: null,
+    suggestedDurationDays: 21,
+    description: 'Defines the commercial strategy, motion, positioning, pipeline model, and operating cadence.',
+  },
+  {
+    code: ServiceTemplateCode.PIPELINE_SPRINT,
+    name: 'Pipeline Sprint',
+    lane: ServiceLane.FRACTIONAL_EXECUTION_OPS,
+    engagementType: EngagementType.SPRINT,
+    retainerFlavour: null,
+    suggestedDurationDays: 30,
+    description: 'Time-boxed outbound execution sprint to build list, launch outreach, and create qualified meetings.',
+  },
+  {
+    code: ServiceTemplateCode.FOUNDER_LED_SALES_TRANSITION,
+    name: 'Founder-Led Sales Transition',
+    lane: ServiceLane.FRACTIONAL_LEADERSHIP,
+    engagementType: EngagementType.RETAINER,
+    retainerFlavour: RetainerFlavour.LEADERSHIP,
+    suggestedDurationDays: 90,
+    description: 'Helps the founder move from ad hoc sales to a repeatable, delegated commercial operating model.',
+  },
+  {
+    code: ServiceTemplateCode.REVENUE_CADENCE_SETUP,
+    name: 'Revenue Cadence Setup',
+    lane: ServiceLane.FRACTIONAL_EXECUTION_OPS,
+    engagementType: EngagementType.SPRINT,
+    retainerFlavour: null,
+    suggestedDurationDays: 30,
+    description: 'Sets up CRM hygiene, pipeline reviews, reporting rhythm, handoff rules, and basic revenue operations.',
+  },
+  {
+    code: ServiceTemplateCode.PARTNER_CHANNEL_DEVELOPMENT,
+    name: 'Partner Channel Development',
+    lane: ServiceLane.FRACTIONAL_BD_PARTNERSHIPS,
+    engagementType: EngagementType.SPRINT,
+    retainerFlavour: null,
+    suggestedDurationDays: 45,
+    description: 'Maps partner landscape, prioritizes channel targets, and starts partner outreach and qualification.',
+  },
+  {
+    code: ServiceTemplateCode.CUSTOMER_SUCCESS_RETENTION,
+    name: 'Customer Success Retention',
+    lane: ServiceLane.FRACTIONAL_EXECUTION_OPS,
+    engagementType: EngagementType.RETAINER,
+    retainerFlavour: RetainerFlavour.OPERATOR,
+    suggestedDurationDays: 90,
+    description: 'Fractional customer success support for onboarding, retention, expansion, and account health.',
+  },
+  {
+    code: ServiceTemplateCode.SALES_PROCESS_CRM_CLEANUP,
+    name: 'Sales Process and CRM Cleanup',
+    lane: ServiceLane.FRACTIONAL_EXECUTION_OPS,
+    engagementType: EngagementType.SPRINT,
+    retainerFlavour: null,
+    suggestedDurationDays: 30,
+    description: 'Cleans up sales stages, CRM fields, operating rules, reporting, and process discipline.',
+  },
+  {
+    code: ServiceTemplateCode.CLOSING_SUPPORT,
+    name: 'Closing Support',
+    lane: ServiceLane.FRACTIONAL_EXECUTION_OPS,
+    engagementType: EngagementType.RETAINER,
+    retainerFlavour: RetainerFlavour.OPERATOR,
+    suggestedDurationDays: 60,
+    description: 'Fractional support for live opportunities, follow-up, stakeholder management, and deal progression.',
+  },
+];
+
+async function seedPhase1ServiceTemplates() {
+  for (const template of phase1ServiceTemplates) {
+    await prisma.serviceTemplate.upsert({
+      where: { code: template.code },
+      update: template,
+      create: template,
+    });
+    console.log(`Service template ready: ${template.name}`);
+  }
+
+  console.log(`${phase1ServiceTemplates.length} Phase 1 service templates ready.`);
+}
+
+const leadershipRoles: OperatorRole[] = [
+  OperatorRole.VP_SALES,
+  OperatorRole.VP_REVENUE,
+  OperatorRole.CRO,
+  OperatorRole.HEAD_OF_SALES,
+  OperatorRole.GTM_LEADER,
+  OperatorRole.FOUNDER_LED_SALES_COACH,
+  OperatorRole.REVENUE_ADVISOR,
+];
+
+const bdRoles: OperatorRole[] = [
+  OperatorRole.BD_LEAD,
+  OperatorRole.PARTNERSHIPS_LEAD,
+  OperatorRole.CHANNEL_LEAD,
+  OperatorRole.ALLIANCES_LEAD,
+  OperatorRole.MARKET_ACCESS_LEAD,
+];
+
+const executionRoles: OperatorRole[] = [
+  OperatorRole.AE,
+  OperatorRole.SDR,
+  OperatorRole.BDR,
+  OperatorRole.OUTBOUND_OPERATOR,
+  OperatorRole.REVOPS,
+  OperatorRole.SALES_OPS,
+  OperatorRole.CUSTOMER_SUCCESS_OPERATOR,
+  OperatorRole.EXPANSION_OPERATOR,
+  OperatorRole.ACCOUNT_MANAGER,
+  OperatorRole.SALES_ENABLEMENT_SOLUTIONS_CONSULTANT,
+];
+
+function combinationsFor(role: OperatorRole) {
+  if (leadershipRoles.includes(role)) {
+    const allowedCodes: ServiceTemplateCode[] = [
+      ServiceTemplateCode.GTM_STRATEGY,
+      ServiceTemplateCode.FOUNDER_LED_SALES_TRANSITION,
+      ServiceTemplateCode.INTL_MARKET_ENTRY,
+      ServiceTemplateCode.CLOSING_SUPPORT,
+    ];
+    return phase1ServiceTemplates.filter((template) =>
+      allowedCodes.includes(template.code),
+    );
+  }
+
+  if (bdRoles.includes(role)) {
+    const allowedCodes: ServiceTemplateCode[] = [
+      ServiceTemplateCode.INTL_MARKET_ENTRY,
+      ServiceTemplateCode.PARTNER_CHANNEL_DEVELOPMENT,
+      ServiceTemplateCode.PIPELINE_SPRINT,
+      ServiceTemplateCode.CLOSING_SUPPORT,
+    ];
+    return phase1ServiceTemplates.filter((template) =>
+      allowedCodes.includes(template.code),
+    );
+  }
+
+  const allowedCodes: ServiceTemplateCode[] = [
+    ServiceTemplateCode.ICP_REFINEMENT,
+    ServiceTemplateCode.PIPELINE_SPRINT,
+    ServiceTemplateCode.REVENUE_CADENCE_SETUP,
+    ServiceTemplateCode.CUSTOMER_SUCCESS_RETENTION,
+    ServiceTemplateCode.SALES_PROCESS_CRM_CLEANUP,
+    ServiceTemplateCode.CLOSING_SUPPORT,
+  ];
+  return phase1ServiceTemplates.filter((template) =>
+    allowedCodes.includes(template.code),
+  );
+}
+
+async function seedRoleTemplateEngagementCombinations() {
+  const roles = [...leadershipRoles, ...bdRoles, ...executionRoles];
+  const rows = roles.flatMap((operatorRole) =>
+    combinationsFor(operatorRole).map((template) => ({
+      operatorRole,
+      serviceTemplate: template.code,
+      engagementType: template.engagementType,
+      retainerFlavour: template.retainerFlavour,
+      serviceLane: template.lane,
+      isRecommended: true,
+      notes: 'Phase 1 seed rule. Replace with Operating Matrix sheet 06 once finalized.',
+    })),
+  );
+
+  await prisma.roleTemplateEngagementCombination.deleteMany({});
+  await prisma.roleTemplateEngagementCombination.createMany({ data: rows });
+  console.log(`${rows.length} role/service combinations ready.`);
 }
 
 main()

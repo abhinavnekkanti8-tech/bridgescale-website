@@ -4,6 +4,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import styles from './dashboard.module.css';
+import PaymentModeBanner from '@/components/PaymentModeBanner';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { BlurredMatchCard } from '@/components/BlurredMatchCard';
@@ -70,6 +71,7 @@ function StartupDashboardContent() {
 
   return (
     <div className={styles.page}>
+      <PaymentModeBanner />
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Welcome back, <span className="gradient-text">{user?.name}</span></h1>

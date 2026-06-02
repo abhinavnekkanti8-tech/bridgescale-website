@@ -1,0 +1,43 @@
+{
+  "last_compiled": "2026-05-06",
+  "topics": [
+    "product-overview",
+    "data-models",
+    "applications",
+    "auth",
+    "ai-services",
+    "matching",
+    "payments",
+    "contracts-sow",
+    "engagements",
+    "frontend-startup",
+    "frontend-operator",
+    "admin-portal",
+    "compliance-eor",
+    "partners",
+    "core-flow"
+  ],
+  "concepts": [
+    "free-signup-flow",
+    "session-auth-pattern",
+    "async-ai-pattern"
+  ],
+  "compile_log": [
+    {
+      "date": "2026-04-27",
+      "created": 12,
+      "refreshed": 0,
+      "unchanged": 0,
+      "concepts_created": 3,
+      "concepts_changed": 0
+    },
+    {
+      "date": "2026-05-06",
+      "created": 3,
+      "refreshed": 7,
+      "unchanged": 5,
+      "concepts_created": 0,
+      "concepts_changed": 0
+    }
+  ]
+}

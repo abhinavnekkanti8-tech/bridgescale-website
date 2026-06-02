@@ -19,9 +19,8 @@ function OperatorContractsContent() {
   const [signing, setSigning] = useState<string | null>(null);
 
   useEffect(() => {
-    // Note: Operator users have user.id mapping directly to OperatorProfile.id in our schema (from token)
-    if (user?.id) {
-      contractsApi.findByOperator(user.id)
+    if (user?.orgId) {
+      contractsApi.findByOperator(user.orgId)
         .then(setSows)
         .catch(() => setError('Could not load contracts.'))
         .finally(() => setLoading(false));
@@ -35,8 +34,8 @@ function OperatorContractsContent() {
       const idempotencyKey = `idemp_op_${Date.now()}`;
       await contractsApi.signOperator(contractId, fakeSignatureId, idempotencyKey);
       
-      if (user?.id) {
-        const updated = await contractsApi.findByOperator(user.id);
+      if (user?.orgId) {
+        const updated = await contractsApi.findByOperator(user.orgId);
         setSows(updated);
       }
       alert('Contract digitally signed locally (dummy workflow).');

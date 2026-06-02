@@ -8,7 +8,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
-import { CreatePaymentPlanDto, IssueInvoiceDto } from './dto/payments.dto';
+import {
+  CreatePaymentPlanDto,
+  CreatePayoutAttemptDto,
+  GenerateLedgerDto,
+  IssueInvoiceDto,
+  UpdateLedgerReviewDto,
+} from './dto/payments.dto';
 import { SessionAuthGuard } from '../common/guards/session-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -73,10 +79,57 @@ export class PaymentsController {
     return this.paymentsService.markInvoiceOverdue(id);
   }
 
+  /** POST /api/v1/payments/ledger — Generate or refresh payment ledger skeleton */
+  @Post('ledger')
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles(MembershipRole.PLATFORM_ADMIN)
+  generateLedger(@Body() dto: GenerateLedgerDto) {
+    return this.paymentsService.generateLedger(dto);
+  }
+
+  /** GET /api/v1/payments/ledger/contract/:contractId — View ledger by contract */
+  @Get('ledger/contract/:contractId')
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles(MembershipRole.PLATFORM_ADMIN)
+  getLedgerByContract(@Param('contractId') contractId: string) {
+    return this.paymentsService.getLedgerByContract(contractId);
+  }
+
+  /** PATCH /api/v1/payments/ledger/:id/review — Founder/admin review marker */
+  @Patch('ledger/:id/review')
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles(MembershipRole.PLATFORM_ADMIN)
+  updateLedgerReview(@Param('id') id: string, @Body() dto: UpdateLedgerReviewDto) {
+    return this.paymentsService.updateLedgerReview(id, dto);
+  }
+
+  /** POST /api/v1/payments/ledger/:id/payout-attempt — Create dummy payout attempt */
+  @Post('ledger/:id/payout-attempt')
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles(MembershipRole.PLATFORM_ADMIN)
+  createPayoutAttempt(@Param('id') id: string, @Body() dto: CreatePayoutAttemptDto) {
+    return this.paymentsService.createPayoutAttempt(id, dto);
+  }
+
   /** POST /api/v1/payments/webhook — Stripe Webhook Endpoint */
   @Post('webhook')
   handleWebhook(@Body() payload: any) {
     // Open endpoint for external service (Stripe)
     return this.paymentsService.handleStripeWebhook(payload);
+  }
+
+
+  /**
+   * GET /api/v1/payments/mode — surfaces which payment surfaces are live.
+   * Used by the UI to show a "Dummy mode" / "Live mode" banner so testers
+   * never confuse a stub success with a real charge.
+   */
+  @Get('mode')
+  getMode() {
+    return {
+      dummyPaymentMode: process.env.DUMMY_PAYMENT_MODE === 'true',
+      partnerLiveMode: process.env.PARTNER_LIVE_MODE === 'true',
+      env: process.env.NODE_ENV ?? 'development',
+    };
   }
 }

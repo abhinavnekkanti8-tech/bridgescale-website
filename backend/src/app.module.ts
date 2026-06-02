@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
+import { AccessControlModule } from './common/access-control.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
@@ -17,6 +18,7 @@ import { EngagementsModule } from './engagements/engagements.module';
 import { CloseoutModule } from './closeout/closeout.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ApplicationsModule } from './applications/applications.module';
+import { ComplianceModule } from './compliance/compliance.module';
 import { EmailModule } from './email/email.module';
 import { DiagnosesModule } from './diagnoses/diagnoses.module';
 import { OpportunityBriefsModule } from './opportunity-briefs/opportunity-briefs.module';
@@ -25,6 +27,12 @@ import { ApplicationMatchingModule } from './application-matching/application-ma
 import { InterviewsModule } from './interviews/interviews.module';
 import { ApprovalsModule } from './approvals/approvals.module';
 import { SowModule } from './sow/sow.module';
+import { OperatorTaxProfileModule } from './operator-tax-profile/operator-tax-profile.module';
+import { OperatorEorEnrollmentModule } from './operator-eor-enrollment/operator-eor-enrollment.module';
+import { CoreFlowModule } from './core-flow/core-flow.module';
+import { PartnersModule } from './partners/partners.module';
+import { AdminOpsModule } from './admin-ops/admin-ops.module';
+import { DemoSeedModule } from './demo-seed/demo-seed.module';
 
 @Module({
   imports: [
@@ -53,6 +61,7 @@ import { SowModule } from './sow/sow.module';
 
     // ── PrismaModule (global DB client) ──
     PrismaModule,
+    AccessControlModule,
 
     // ── Health check endpoint ──
     HealthModule,
@@ -73,6 +82,7 @@ import { SowModule } from './sow/sow.module';
     CloseoutModule,
     AnalyticsModule,
     ApplicationsModule,
+    ComplianceModule,
     EmailModule,
     DiagnosesModule,
     OpportunityBriefsModule,
@@ -81,6 +91,12 @@ import { SowModule } from './sow/sow.module';
     InterviewsModule,
     ApprovalsModule,
     SowModule,
+    OperatorTaxProfileModule,
+    OperatorEorEnrollmentModule,
+    CoreFlowModule,
+    PartnersModule,
+    AdminOpsModule,
+    DemoSeedModule,
   ],
   controllers: [AppController],
 })

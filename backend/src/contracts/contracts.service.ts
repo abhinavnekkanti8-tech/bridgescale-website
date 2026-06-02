@@ -17,7 +17,11 @@ import {
   SetEquityDocRefDto,
   EquityEventDto,
   EquityTypeDto,
+  CancelSowDto,
 } from './dto/contracts.dto';
+import { RecordAccessService } from '../common/services/record-access.service';
+import { SessionUser } from '../common/types/session.types';
+import { MsaService } from './msa.service';
 
 // ── Equity review auto-trigger thresholds ─────────────────────────────────────
 // If either threshold is exceeded the platform flags admin review as mandatory.
@@ -32,6 +36,8 @@ export class ContractsService {
     private readonly prisma: PrismaService,
     private readonly aiService: AiService,
     private readonly config: ConfigService,
+    private readonly recordAccess: RecordAccessService,
+    private readonly msaService: MsaService,
   ) {}
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -240,7 +246,7 @@ export class ContractsService {
     sowId: string,
     role: 'STARTUP' | 'OPERATOR' | 'PLATFORM_ADMIN',
   ) {
-    const sow = await this.findOneSow(sowId);
+    const sow = await this.getSowOrThrow(sowId);
 
     if ((sow as any).packageType !== 'HYBRID_EQUITY') {
       throw new BadRequestException(
@@ -276,7 +282,7 @@ export class ContractsService {
    * Once set, equityReviewRequired cannot be unset without an admin override.
    */
   async requestEquityReview(sowId: string) {
-    const sow = await this.findOneSow(sowId);
+    const sow = await this.getSowOrThrow(sowId);
 
     if ((sow as any).packageType !== 'HYBRID_EQUITY') {
       throw new BadRequestException(
@@ -301,7 +307,7 @@ export class ContractsService {
    * Sets equityReviewApprovedAt, unblocking the approval gate.
    */
   async approveEquityReview(sowId: string) {
-    const sow = await this.findOneSow(sowId);
+    const sow = await this.getSowOrThrow(sowId);
 
     if ((sow as any).packageType !== 'HYBRID_EQUITY') {
       throw new BadRequestException('Not an equity SOW.');
@@ -324,10 +330,119 @@ export class ContractsService {
     return updated;
   }
 
+  async generateSowFromSummary(summaryId: string) {
+    const summary = await this.prisma.preSowCommercialSummary.findUnique({
+      where: { id: summaryId },
+    });
+    if (!summary) throw new NotFoundException('Pre-SOW Commercial Summary not found.');
+    if (summary.status !== 'CONFIRMED') {
+      throw new BadRequestException('Pre-SOW Summary must be confirmed by both parties before SOW generation.');
+    }
+
+    const serviceTemplate = await this.prisma.serviceTemplate.findUnique({
+      where: { code: summary.serviceTemplate },
+    });
+    if (!serviceTemplate) throw new NotFoundException('Service template not found.');
+
+    const msa = await this.msaService.findOrCreateMsa({
+      startupProfileId: summary.startupProfileId,
+      operatorId: summary.operatorId,
+    });
+
+    if (summary.masterAgreementId !== msa.id) {
+      await this.prisma.preSowCommercialSummary.update({
+        where: { id: summary.id },
+        data: { masterAgreementId: msa.id },
+      });
+    }
+
+    const fallbackPackageType =
+      summary.serviceTemplate === 'PARTNER_CHANNEL_DEVELOPMENT'
+        ? 'BD_SPRINT'
+        : summary.engagementType === 'RETAINER'
+          ? 'FRACTIONAL_RETAINER'
+          : 'PIPELINE_SPRINT';
+
+    const title = `${serviceTemplate.name} - Engagement SOW`;
+    const scope = [
+      serviceTemplate.description,
+      summary.specialTerms ? `Special terms: ${summary.specialTerms}` : undefined,
+      summary.cancellationNote ? `Cancellation note: ${summary.cancellationNote}` : undefined,
+    ].filter(Boolean).join('\n\n');
+    const deliverables = `Deliverables will follow the ${serviceTemplate.name} service template and the confirmed Pre-SOW Commercial Summary (${summary.id}).`;
+    const timeline = summary.durationDays
+      ? `${summary.durationDays} day engagement from agreed start date.`
+      : 'Timeline to be confirmed in the SOW review step.';
+
+    const sow = await this.prisma.statementOfWork.create({
+      data: {
+        shortlistId: summary.callId,
+        startupProfileId: summary.startupProfileId,
+        operatorId: summary.operatorId,
+        masterAgreementId: msa.id,
+        packageType: fallbackPackageType,
+        serviceTemplate: summary.serviceTemplate,
+        engagementType: summary.engagementType,
+        retainerFlavour: summary.retainerFlavour,
+        title,
+        scope,
+        deliverables,
+        timeline,
+        weeklyHours: summary.weeklyHours ?? 10,
+        totalPriceUsd: summary.indicativePrice ?? 0,
+        nonCircumvention: true,
+        promptVersion: 'sow_from_pre_sow_v1.0',
+        modelName: this.aiService.getModelName(),
+      },
+    });
+
+    await this.prisma.sowVersion.create({
+      data: {
+        sowId: sow.id,
+        version: 1,
+        content: {
+          title,
+          scope,
+          deliverables,
+          timeline,
+          weeklyHours: sow.weeklyHours,
+          totalPriceUsd: sow.totalPriceUsd,
+          preSowSummaryId: summary.id,
+          serviceTemplate: summary.serviceTemplate,
+        },
+        changedBy: 'SYSTEM',
+        changeNote: 'Generated from confirmed Pre-SOW Commercial Summary',
+      },
+    });
+
+    return sow;
+  }
+
+  async cancelSow(sowId: string, dto: CancelSowDto) {
+    await this.getSowOrThrow(sowId);
+    const event = await this.prisma.cancellationEvent.create({
+      data: {
+        sowId,
+        party: dto.party,
+        reason: dto.reason,
+        refundAmount: dto.refundAmount,
+        payoutPenalty: dto.payoutPenalty,
+      },
+    });
+
+    await this.prisma.statementOfWork.update({
+      where: { id: sowId },
+      data: { status: 'TERMINATED' },
+    });
+
+    return event;
+  }
+
   // ── SoW Editing & Versioning ──────────────────────────────────────────────
 
-  async editSow(sowId: string, dto: EditSowDto, userId: string) {
-    const sow = await this.findOneSow(sowId);
+  async editSow(sowId: string, dto: EditSowDto, user: SessionUser) {
+    await this.recordAccess.assertSowAccess(user, sowId);
+    const sow = await this.getSowOrThrow(sowId);
     if (sow.status === 'SIGNED' || sow.status === 'LOCKED') {
       throw new BadRequestException('Cannot edit a signed or locked SoW.');
     }
@@ -362,7 +477,7 @@ export class ContractsService {
           weeklyHours: updated.weeklyHours,
           totalPriceUsd: updated.totalPriceUsd,
         },
-        changedBy: userId,
+        changedBy: user.id,
         changeNote: dto.changeNote,
       },
     });
@@ -371,7 +486,9 @@ export class ContractsService {
     return updated;
   }
 
-  async submitForReview(sowId: string) {
+  async submitForReview(sowId: string, user: SessionUser) {
+    await this.recordAccess.assertSowAccess(user, sowId);
+    await this.getSowOrThrow(sowId);
     return this.prisma.statementOfWork.update({
       where: { id: sowId },
       data: { status: 'REVIEW' },
@@ -387,10 +504,8 @@ export class ContractsService {
    *   2. If equityReviewRequired, equityReviewApprovedAt must be set.
    */
   async approveSow(sowId: string) {
-    const sow = await this.findOneSow(sowId);
-    if (sow.status !== 'REVIEW') {
-      throw new BadRequestException('SoW must be in REVIEW status to approve.');
-    }
+    const sow = await this.getSowOrThrow(sowId);
+    if (sow.status !== 'REVIEW') throw new BadRequestException('SoW must be in REVIEW status to approve.');
 
     const sowData = sow as any;
 
@@ -435,8 +550,14 @@ export class ContractsService {
 
   // ── Contract Signing (E-Signature) ────────────────────────────────────────
 
-  async signContract(contractId: string, role: 'STARTUP' | 'OPERATOR', dto: SignContractDto) {
-    const contract = await this.findOneContract(contractId);
+  async signContract(
+    contractId: string,
+    user: SessionUser,
+    role: 'STARTUP' | 'OPERATOR',
+    dto: SignContractDto,
+  ) {
+    await this.recordAccess.assertContractAccess(user, contractId);
+    const contract = await this.getContractOrThrow(contractId);
 
     if (dto.idempotencyKey) {
       const existing = await this.prisma.contract.findUnique({
@@ -475,7 +596,11 @@ export class ContractsService {
       data: updateData,
     });
 
-    await this.logDocumentAction(contractId, `${role}_SIGNED`, dto.signatureId);
+    // Log the signature action
+    await this.logDocumentAction(contractId, `${role}_SIGNED`, user.id, undefined, undefined, {
+      signatureId: dto.signatureId,
+      signerRole: role,
+    });
 
     if (updated.status === 'FULLY_SIGNED') {
       // Lock the SoW
@@ -530,7 +655,7 @@ export class ContractsService {
    * once it has been countersigned outside the platform.
    */
   async setEquityDocumentRef(contractId: string, dto: SetEquityDocRefDto) {
-    const contract = await this.findOneContract(contractId);
+    const contract = await this.getContractOrThrow(contractId);
     if (!(contract as any).hasEquityComponent) {
       throw new BadRequestException('This contract does not have an equity component.');
     }
@@ -721,7 +846,7 @@ export class ContractsService {
   // ── Contacts unlock ───────────────────────────────────────────────────────
 
   async unlockContacts(contractId: string) {
-    const contract = await this.findOneContract(contractId);
+    const contract = await this.getContractOrThrow(contractId);
     if (contract.status !== 'FULLY_SIGNED') {
       throw new BadRequestException('Both signatures required before unlocking contacts.');
     }
@@ -739,9 +864,17 @@ export class ContractsService {
     performedBy: string,
     ipAddress?: string,
     userAgent?: string,
+    metadata?: Record<string, unknown>,
   ) {
     return this.prisma.documentLog.create({
-      data: { contractId, action, performedBy, ipAddress, userAgent },
+      data: {
+        contractId,
+        action,
+        performedBy,
+        ipAddress,
+        userAgent,
+        metadata: metadata as any,
+      },
     });
   }
 
@@ -754,26 +887,14 @@ export class ContractsService {
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
 
-  async findOneSow(sowId: string) {
-    const sow = await this.prisma.statementOfWork.findUnique({
-      where: { id: sowId },
-      include: { versions: { orderBy: { version: 'desc' } }, contract: true },
-    });
-    if (!sow) throw new NotFoundException('Statement of Work not found.');
-    return sow;
+  async findOneSow(user: SessionUser, sowId: string) {
+    await this.recordAccess.assertSowAccess(user, sowId);
+    return this.getSowOrThrow(sowId);
   }
 
-  async findOneContract(contractId: string) {
-    const contract = await this.prisma.contract.findUnique({
-      where: { id: contractId },
-      include: {
-        sow: true,
-        documentLogs: { orderBy: { createdAt: 'desc' }, take: 10 },
-        equityGrant: true,
-      },
-    });
-    if (!contract) throw new NotFoundException('Contract not found.');
-    return contract;
+  async findOneContract(user: SessionUser, contractId: string) {
+    await this.recordAccess.assertContractAccess(user, contractId);
+    return this.getContractOrThrow(contractId);
   }
 
   async findAll() {
@@ -783,26 +904,60 @@ export class ContractsService {
     });
   }
 
-  async findByStartup(startupProfileId: string) {
+  async findByStartup(user: SessionUser, startupProfileId: string) {
+    const resolvedStartupProfileId =
+      await this.recordAccess.resolveStartupProfileIdForAccess(user, startupProfileId);
     return this.prisma.statementOfWork.findMany({
-      where: { startupProfileId },
+      where: { startupProfileId: resolvedStartupProfileId },
       orderBy: { createdAt: 'desc' },
       include: { contract: { include: { equityGrant: true } } },
     });
   }
 
-  async findByOperator(operatorId: string) {
+  async findByOperator(user: SessionUser, operatorId: string) {
+    const resolvedOperatorOrgId =
+      await this.recordAccess.resolveOperatorOrgIdForAccess(user, operatorId);
     return this.prisma.statementOfWork.findMany({
-      where: { operatorId },
+      where: { operatorId: resolvedOperatorOrgId },
       orderBy: { createdAt: 'desc' },
       include: { contract: { include: { equityGrant: true } } },
     });
   }
 
-  async getSowVersions(sowId: string) {
+  async getSowVersions(user: SessionUser, sowId: string) {
+    await this.recordAccess.assertSowAccess(user, sowId);
+    await this.getSowOrThrow(sowId);
     return this.prisma.sowVersion.findMany({
       where: { sowId },
       orderBy: { version: 'desc' },
     });
+  }
+
+  async logDownload(
+    contractId: string,
+    user: SessionUser,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
+    await this.recordAccess.assertContractAccess(user, contractId);
+    return this.logDocumentAction(contractId, 'DOWNLOAD', user.id, ipAddress, userAgent);
+  }
+
+  private async getSowOrThrow(sowId: string) {
+    const sow = await this.prisma.statementOfWork.findUnique({
+      where: { id: sowId },
+      include: { versions: { orderBy: { version: 'desc' } }, contract: true },
+    });
+    if (!sow) throw new NotFoundException('Statement of Work not found.');
+    return sow;
+  }
+
+  private async getContractOrThrow(contractId: string) {
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+      include: { sow: true, documentLogs: { orderBy: { createdAt: 'desc' }, take: 10 } },
+    });
+    if (!contract) throw new NotFoundException('Contract not found.');
+    return contract;
   }
 }

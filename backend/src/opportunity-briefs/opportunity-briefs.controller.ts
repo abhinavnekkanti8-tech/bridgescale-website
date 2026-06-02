@@ -12,6 +12,8 @@ import { SessionAuthGuard } from '../common/guards/session-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { MembershipRole } from '@prisma/client';
+import { SessionUser as SessionUserDecorator } from '../auth/session-user.decorator';
+import { SessionUser as SessionUserType } from '../common/types/session.types';
 
 /**
  * Opportunity Briefs Controller: API for managing opportunity briefs.
@@ -28,8 +30,11 @@ export class OpportunityBriefsController {
   @Get(':applicationId')
   @UseGuards(SessionAuthGuard, RolesGuard)
   @Roles(MembershipRole.PLATFORM_ADMIN, MembershipRole.STARTUP_ADMIN)
-  async getBrief(@Param('applicationId') applicationId: string) {
-    return this.opportunityBriefsService.getBriefByApplicationId(applicationId);
+  async getBrief(
+    @Param('applicationId') applicationId: string,
+    @SessionUserDecorator() user: SessionUserType,
+  ) {
+    return this.opportunityBriefsService.getBriefByApplicationId(user, applicationId);
   }
 
   /**

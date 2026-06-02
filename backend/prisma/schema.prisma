@@ -41,6 +41,23 @@ enum MembershipStatus {
   INACTIVE
 }
 
+enum OnboardingStage {
+  ONBOARDING
+  PENDING_APPROVAL
+  ACTIVE
+}
+
+enum AuthProvider {
+  GOOGLE
+  MICROSOFT
+  APPLE
+}
+
+enum EmailActionType {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
 // ─────────────────────────────────────────────
 // CORE IDENTITY MODELS (Artifact 2)
 // ─────────────────────────────────────────────
@@ -53,22 +70,62 @@ model User {
   status           UserStatus   @default(ACTIVE)
   lastLoginAt      DateTime?
   // Magic-link auth
-  magicLinkToken   String?      @unique
-  magicLinkExpiry  DateTime?
+  emailVerifiedAt  DateTime?
+  privacyAcceptedAt DateTime?
+  termsAcceptedAt   DateTime?
+  noticeVersion     String?
+  onboardingStage  OnboardingStage @default(ACTIVE)
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
-  memberships     Membership[]
-  notes           WorkspaceNote[]
-  activityLogs    ActivityLog[]
-  nudges          SystemNudge[]
-  escalations     EscalationCase[]
-  ratingsGiven    EngagementRating[] @relation("RatingReviewer")
-  ratingsReceived EngagementRating[] @relation("RatingReviewee")
+  memberships       Membership[]
+  authIdentities    OAuthIdentity[]
+  emailActionTokens EmailActionToken[]
+  notes             WorkspaceNote[]
+  activityLogs      ActivityLog[]
+  nudges            SystemNudge[]
+  escalations       EscalationCase[]
+  ratingsGiven      EngagementRating[] @relation("RatingReviewer")
+  ratingsReceived   EngagementRating[] @relation("RatingReviewee")
 
   @@index([email])
-  @@index([magicLinkToken])
+  @@index([onboardingStage])
   @@map("users")
+}
+
+model OAuthIdentity {
+  id                String       @id @default(cuid())
+  userId            String
+  provider          AuthProvider
+  providerAccountId String
+  providerEmail     String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_identities")
+}
+
+model EmailActionToken {
+  id         String          @id @default(cuid())
+  userId     String?
+  email      String
+  tokenHash  String          @unique
+  type       EmailActionType
+  metadata   Json?
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email, type])
+  @@index([expiresAt])
+  @@map("email_action_tokens")
 }
 
 model Organization {
@@ -176,6 +233,9 @@ model StartupProfile {
   discoveryCalls DiscoveryCall[]
   shortlists     MatchShortlist[]
   engagements    Engagement[]
+  masterServiceAgreements MasterServiceAgreement[]
+  engagementCalls EngagementCall[]
+  preSowSummaries PreSowCommercialSummary[]
 
   @@map("startup_profiles")
 }
@@ -233,6 +293,61 @@ enum InviteStatus {
   REVOKED
 }
 
+enum ServiceLane {
+  FRACTIONAL_LEADERSHIP
+  FRACTIONAL_BD_PARTNERSHIPS
+  FRACTIONAL_EXECUTION_OPS
+}
+
+enum EngagementType {
+  CONSULTATION
+  SPRINT
+  RETAINER
+}
+
+enum RetainerFlavour {
+  LEADERSHIP
+  OPERATOR
+}
+
+enum ServiceTemplateCode {
+  INTL_MARKET_ENTRY
+  ICP_REFINEMENT
+  GTM_STRATEGY
+  PIPELINE_SPRINT
+  FOUNDER_LED_SALES_TRANSITION
+  REVENUE_CADENCE_SETUP
+  PARTNER_CHANNEL_DEVELOPMENT
+  CUSTOMER_SUCCESS_RETENTION
+  SALES_PROCESS_CRM_CLEANUP
+  CLOSING_SUPPORT
+}
+
+enum OperatorRole {
+  VP_SALES
+  VP_REVENUE
+  CRO
+  HEAD_OF_SALES
+  GTM_LEADER
+  FOUNDER_LED_SALES_COACH
+  REVENUE_ADVISOR
+  BD_LEAD
+  PARTNERSHIPS_LEAD
+  CHANNEL_LEAD
+  ALLIANCES_LEAD
+  MARKET_ACCESS_LEAD
+  AE
+  SDR
+  BDR
+  OUTBOUND_OPERATOR
+  REVOPS
+  SALES_OPS
+  CUSTOMER_SUCCESS_OPERATOR
+  EXPANSION_OPERATOR
+  ACCOUNT_MANAGER
+  SALES_ENABLEMENT_SOLUTIONS_CONSULTANT
+}
+
 model InviteToken {
   id          String       @id @default(cuid())
   email       String
@@ -252,6 +367,7 @@ model OperatorProfile {
   id                String              @id @default(cuid())
   operatorId        String              @unique
   lanes             OperatorLane[]
+  roles             OperatorRole[] @default([])
   regions           TargetMarket[]
   functions         String[]
   experienceTags    String[]
@@ -263,6 +379,24 @@ model OperatorProfile {
   openToEquity      Boolean             @default(false)   // Opt-in to HYBRID_EQUITY matching
   verification      OperatorVerification @default(PENDING)
   tier              OperatorTier         @default(UNVERIFIED)
+
+  // ── Phase 6 partner credential pointers ─────────────────────────────────
+  // Set by Stripe Connect Express onboarding (P6.2). Used as the destination
+  // account for ACH payouts.
+  stripeAccountId        String?
+  stripeChargesEnabled   Boolean?
+  stripePayoutsEnabled   Boolean?
+  stripeDetailsSubmitted Boolean?
+
+  // Set by Wise recipient creation (P6.4). Identifies the operator's bank
+  // account on Wise's side for cross-border payouts.
+  wiseRecipientId   String?
+
+  // Set by RazorpayX fund-account creation (P6.3). Identifies the operator's
+  // Indian bank account as a payout destination from BridgeScale's RazorpayX
+  // account_number.
+  razorpayFundAccountId String?
+
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
 
@@ -270,6 +404,12 @@ model OperatorProfile {
   scores   SupplyQualityScore[]
   candidates MatchCandidate[]
   engagements Engagement[]
+  masterServiceAgreements MasterServiceAgreement[]
+  taxProfiles OperatorTaxProfile[]
+  eorEnrollments OperatorEorEnrollment[]
+  complianceDecisionLogs ComplianceDecisionLog[]
+  engagementCalls EngagementCall[]
+  preSowSummaries PreSowCommercialSummary[]
 
   @@map("operator_profiles")
 }
@@ -428,10 +568,16 @@ model MatchCandidate {
 // ─────────────────────────────────────────────
 
 enum SowStatus {
+  AI_DRAFT
   DRAFT
   REVIEW
+  HUMAN_APPROVED
+  SHARED
   APPROVED
   SIGNED
+  ACTIVE
+  COMPLETED
+  TERMINATED
   LOCKED
 }
 
@@ -448,7 +594,11 @@ model StatementOfWork {
   shortlistId       String
   startupProfileId  String
   operatorId        String
+  masterAgreementId String?
   packageType       PackageType
+  serviceTemplate   ServiceTemplateCode?
+  engagementType    EngagementType?
+  retainerFlavour   RetainerFlavour?
   title             String
   scope             String
   deliverables      String
@@ -480,10 +630,57 @@ model StatementOfWork {
 
   versions  SowVersion[]
   contract  Contract?
+  msa       MasterServiceAgreement? @relation(fields: [masterAgreementId], references: [id])
+  hybridAddendum HybridAddendum?
+  successFeeAddendum SuccessFeeAddendum?
+  equityOnlyAddendum EquityOnlyAddendum?
+  conversionAddendum ConversionAddendum?
+  cancellationEvents CancellationEvent[]
 
   @@index([startupProfileId])
   @@index([operatorId])
+  @@index([masterAgreementId])
+  @@index([serviceTemplate, engagementType, retainerFlavour])
   @@map("statements_of_work")
+}
+
+enum MsaStatus {
+  PENDING_SIGNATURES
+  PARTIALLY_SIGNED
+  FULLY_EXECUTED
+  TERMINATED
+}
+
+model MasterServiceAgreement {
+  id                   String    @id @default(cuid())
+  startupProfileId     String
+  operatorId           String
+  status               MsaStatus @default(PENDING_SIGNATURES)
+  platformFeePercent   Int       @default(10)
+  conversionFeePercent Int       @default(25)
+  nonCircMonths        Int       @default(12)
+  termNoticeDays       Int       @default(30)
+  governingLaw         String    @default("India")
+  platformSignedAt     DateTime?
+  startupSignedAt      DateTime?
+  operatorSignedAt     DateTime?
+  platformSignatureId  String?
+  startupSignatureId   String?
+  operatorSignatureId  String?
+  fullyExecutedAt      DateTime?
+  documentUrl          String?
+  watermarked          Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  startup StartupProfile @relation(fields: [startupProfileId], references: [id], onDelete: Cascade)
+  operator OperatorProfile @relation(fields: [operatorId], references: [operatorId], onDelete: Cascade)
+  sows StatementOfWork[]
+  preSowSummaries PreSowCommercialSummary[]
+
+  @@unique([startupProfileId, operatorId])
+  @@index([operatorId])
+  @@map("master_service_agreements")
 }
 
 model SowVersion {
@@ -522,6 +719,7 @@ model Contract {
   sow           StatementOfWork @relation(fields: [sowId], references: [id], onDelete: Cascade)
   documentLogs  DocumentLog[]
   paymentPlan   PaymentPlan?
+  paymentLedgers PaymentLedger[]
   engagement    Engagement?
   equityGrant   EquityGrant?
 
@@ -535,6 +733,7 @@ model DocumentLog {
   performedBy String
   ipAddress   String?
   userAgent   String?
+  metadata    Json?
   createdAt   DateTime @default(now())
 
   contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
@@ -551,6 +750,10 @@ enum PaymentPlanType {
   CASH_SPRINT_FEE
   MONTHLY_RETAINER
   SUCCESS_FEE_ADDENDUM
+  HYBRID_CASH_EQUITY
+  EQUITY_ONLY
+  CONVERSION_FEE
+  MILESTONE_SCHEDULE
 }
 
 enum InvoiceStatus {
@@ -567,19 +770,97 @@ enum PaymentEventStatus {
   FAILED
 }
 
+enum PaymentLedgerStatus {
+  DRAFT
+  REVIEWED
+  APPROVED
+  BLOCKED
+  READY_FOR_PAYOUT
+}
+
+enum PayoutProvider {
+  STRIPE_CONNECT
+  RAZORPAY
+  WISE
+  MANUAL
+  DUMMY
+}
+
+enum PayoutAttemptStatus {
+  PLANNED
+  QUEUED
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
 model PaymentPlan {
   id              String          @id @default(cuid())
   contractId      String          @unique
   planType        PaymentPlanType
   totalAmountUsd  Int
   currency        String          @default("USD")
+  billingCurrency String          @default("USD")
+  payoutCurrency  String?
+  fxRateAtSigning Float?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
   contract Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
   invoices Invoice[]
+  ledger PaymentLedger?
 
   @@map("payment_plans")
+}
+
+model PaymentLedger {
+  id                  String              @id @default(cuid())
+  paymentPlanId       String              @unique
+  contractId          String
+  invoiceAmount       Int
+  billingCurrency     String              @default("USD")
+  platformFeeAmount   Int
+  operatorPayoutAmount Int
+  eorFeeAmount        Int                 @default(0)
+  payoutCurrency      String?
+  fxRateAtSigning     Float?
+  complianceMode      ComplianceMode      @default(UNKNOWN)
+  taxReady            Boolean             @default(false)
+  payoutReady         Boolean             @default(false)
+  status              PaymentLedgerStatus @default(DRAFT)
+  reviewNotes         String?             @db.Text
+  reviewedAt          DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  paymentPlan PaymentPlan @relation(fields: [paymentPlanId], references: [id], onDelete: Cascade)
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  payoutAttempts PayoutAttempt[]
+
+  @@index([contractId])
+  @@index([status])
+  @@map("payment_ledgers")
+}
+
+model PayoutAttempt {
+  id              String              @id @default(cuid())
+  ledgerId        String
+  provider        PayoutProvider
+  status          PayoutAttemptStatus @default(PLANNED)
+  amount          Int
+  currency        String
+  providerRef     String?
+  dummyMode       Boolean             @default(true)
+  errorMessage    String?
+  metadata        Json?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  ledger PaymentLedger @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
+
+  @@index([ledgerId])
+  @@index([provider])
+  @@map("payout_attempts")
 }
 
 model Invoice {
@@ -620,6 +901,305 @@ model PaymentEvent {
   @@map("payment_events")
 }
 
+enum TaxFormType {
+  W9
+  W8BEN
+  W8BEN_E
+  GST_PAN
+  VAT
+  OTHER
+}
+
+enum TaxFormStatus {
+  NOT_STARTED
+  COLLECTED
+  UNDER_REVIEW
+  VERIFIED
+  EXPIRED
+  REJECTED
+}
+
+enum CompensationMode {
+  CASH
+  SUCCESS_FEE
+  HYBRID_CASH_EQUITY
+  EQUITY_ONLY
+  CONVERSION_FEE
+}
+
+enum ComplianceMode {
+  CONTRACTOR
+  CONTRACTOR_WITH_REVIEW
+  EOR_REQUIRED
+  AGENCY_OF_RECORD
+  PAYROLL_REQUIRED
+  BLOCKED_PENDING_REVIEW
+  UNKNOWN
+}
+
+enum EorPartner {
+  DEEL
+  REMOTE
+  MULTIPLIER
+}
+
+enum EorEnrollmentStatus {
+  NOT_STARTED
+  PENDING
+  ACTIVE
+  REJECTED
+  TERMINATED
+}
+
+enum CancellationParty {
+  STARTUP
+  OPERATOR
+  PLATFORM
+}
+
+enum LifecycleEventType {
+  CREATED
+  STATUS_CHANGED
+  CONVERSION_CANDIDATE
+  CONVERTED_TO_FULLTIME
+  PAYMENT_MILESTONE
+  CLOSEOUT
+}
+
+enum EngagementCallStatus {
+  REQUESTED
+  ACCEPTED
+  DECLINED
+  COMPLETED
+  CANCELLED
+}
+
+enum EngagementIntentParty {
+  STARTUP
+  OPERATOR
+}
+
+enum EngagementIntentStatus {
+  INTERESTED
+  NOT_INTERESTED
+}
+
+enum PreSowSummaryStatus {
+  DRAFT
+  SHARED
+  CONFIRMED
+  CANCELLED
+}
+
+model OperatorTaxProfile {
+  id               String        @id @default(cuid())
+  operatorProfileId String
+  formType         TaxFormType
+  formStatus       TaxFormStatus @default(NOT_STARTED)
+  taxResidencyCountry String?
+  payoutCountry    String?
+  payoutCurrency   String?
+  individualOrEntity String?
+  encryptedBlobRef String?
+  expiresAt        DateTime?
+  verifiedAt       DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  operatorProfile OperatorProfile @relation(fields: [operatorProfileId], references: [id], onDelete: Cascade)
+
+  @@index([operatorProfileId])
+  @@index([formStatus])
+  @@map("operator_tax_profiles")
+}
+
+model ComplianceDecisionLog {
+  id                String         @id @default(cuid())
+  operatorProfileId String?
+  sowId             String?
+  mode              ComplianceMode
+  reason            String         @db.Text
+  decidedBy         String         @default("SYSTEM")
+  metadata          Json?
+  createdAt         DateTime       @default(now())
+
+  operatorProfile OperatorProfile? @relation(fields: [operatorProfileId], references: [id], onDelete: SetNull)
+
+  @@index([operatorProfileId])
+  @@index([sowId])
+  @@map("compliance_decision_logs")
+}
+
+model OperatorEorEnrollment {
+  id                String              @id @default(cuid())
+  operatorProfileId String
+  partner           EorPartner
+  status            EorEnrollmentStatus @default(NOT_STARTED)
+  partnerSideId     String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  operatorProfile OperatorProfile @relation(fields: [operatorProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([operatorProfileId, partner])
+  @@map("operator_eor_enrollments")
+}
+
+model HybridAddendum {
+  id               String           @id @default(cuid())
+  sowId            String           @unique
+  compensationMode CompensationMode @default(HYBRID_CASH_EQUITY)
+  cashAmount       Int?
+  cashCurrency     String?
+  equitySummary    String?          @db.Text
+  status           String           @default("DRAFT")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  sow StatementOfWork @relation(fields: [sowId], references: [id], onDelete: Cascade)
+
+  @@map("hybrid_addenda")
+}
+
+model SuccessFeeAddendum {
+  id               String           @id @default(cuid())
+  sowId            String           @unique
+  compensationMode CompensationMode @default(SUCCESS_FEE)
+  successFeePercent Int?
+  triggerSummary   String?          @db.Text
+  status           String           @default("DRAFT")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  sow StatementOfWork @relation(fields: [sowId], references: [id], onDelete: Cascade)
+
+  @@map("success_fee_addenda")
+}
+
+model EquityOnlyAddendum {
+  id               String           @id @default(cuid())
+  sowId            String           @unique
+  compensationMode CompensationMode @default(EQUITY_ONLY)
+  equitySummary    String?          @db.Text
+  status           String           @default("DRAFT")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  sow StatementOfWork @relation(fields: [sowId], references: [id], onDelete: Cascade)
+
+  @@map("equity_only_addenda")
+}
+
+model ConversionAddendum {
+  id                   String           @id @default(cuid())
+  sowId                String           @unique
+  compensationMode     CompensationMode @default(CONVERSION_FEE)
+  conversionFeePercent Int              @default(25)
+  status               String           @default("DRAFT")
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  sow StatementOfWork @relation(fields: [sowId], references: [id], onDelete: Cascade)
+
+  @@map("conversion_addenda")
+}
+
+model CancellationEvent {
+  id             String            @id @default(cuid())
+  sowId          String
+  party          CancellationParty
+  reason         String            @db.Text
+  refundAmount   Int?
+  payoutPenalty  Int?
+  metadata       Json?
+  createdAt      DateTime          @default(now())
+
+  sow StatementOfWork @relation(fields: [sowId], references: [id], onDelete: Cascade)
+
+  @@index([sowId])
+  @@map("cancellation_events")
+}
+
+model EngagementCall {
+  id               String               @id @default(cuid())
+  startupProfileId String
+  operatorId       String
+  shortlistId      String?
+  candidateId      String?
+  requestedBy      String
+  status           EngagementCallStatus @default(REQUESTED)
+  proposedAt       DateTime?
+  scheduledAt      DateTime?
+  meetingLink      String?
+  notes            String?              @db.Text
+  outcomeNotes     String?              @db.Text
+  respondedAt      DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  startup StartupProfile @relation(fields: [startupProfileId], references: [id], onDelete: Cascade)
+  operator OperatorProfile @relation(fields: [operatorId], references: [operatorId], onDelete: Cascade)
+  intents EngagementIntent[]
+  preSowSummaries PreSowCommercialSummary[]
+
+  @@index([startupProfileId])
+  @@index([operatorId])
+  @@index([status])
+  @@map("engagement_calls")
+}
+
+model EngagementIntent {
+  id               String                 @id @default(cuid())
+  callId           String
+  startupProfileId String
+  operatorId       String
+  party            EngagementIntentParty
+  status           EngagementIntentStatus
+  notes            String?                @db.Text
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  call EngagementCall @relation(fields: [callId], references: [id], onDelete: Cascade)
+
+  @@unique([callId, party])
+  @@index([startupProfileId, operatorId])
+  @@map("engagement_intents")
+}
+
+model PreSowCommercialSummary {
+  id                 String              @id @default(cuid())
+  callId             String
+  startupProfileId   String
+  operatorId         String
+  masterAgreementId  String?
+  serviceTemplate    ServiceTemplateCode
+  engagementType     EngagementType
+  retainerFlavour    RetainerFlavour?
+  compensationMode   CompensationMode    @default(CASH)
+  indicativePrice    Int?
+  currency           String              @default("USD")
+  weeklyHours        Int?
+  durationDays       Int?
+  specialTerms       String?             @db.Text
+  cancellationNote   String?             @db.Text
+  status             PreSowSummaryStatus @default(DRAFT)
+  startupConfirmedAt DateTime?
+  operatorConfirmedAt DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  call EngagementCall @relation(fields: [callId], references: [id], onDelete: Cascade)
+  startup StartupProfile @relation(fields: [startupProfileId], references: [id], onDelete: Cascade)
+  operator OperatorProfile @relation(fields: [operatorId], references: [operatorId], onDelete: Cascade)
+  msa MasterServiceAgreement? @relation(fields: [masterAgreementId], references: [id], onDelete: SetNull)
+
+  @@index([callId])
+  @@index([startupProfileId, operatorId])
+  @@index([status])
+  @@map("pre_sow_commercial_summaries")
+}
+
 // ─────────────────────────────────────────────
 // ENGAGEMENT WORKSPACE MODELS (Artifact 9)
 // ─────────────────────────────────────────────
@@ -630,6 +1210,7 @@ enum EngagementStatus {
   PAUSED
   COMPLETED
   TERMINATED
+  CONVERTED_TO_FULLTIME
 }
 
 enum MilestoneStatus {
@@ -663,10 +1244,26 @@ model Engagement {
   closeoutReport  CloseoutReport?
   ratings         EngagementRating[]
   renewalRec      RenewalRecommendation?
+  lifecycleEvents LifecycleEvent[]
 
   @@index([startupId])
   @@index([operatorId])
   @@map("engagements")
+}
+
+model LifecycleEvent {
+  id           String             @id @default(cuid())
+  engagementId String
+  eventType    LifecycleEventType
+  description  String             @db.Text
+  metadata     Json?
+  createdAt    DateTime           @default(now())
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+
+  @@index([engagementId])
+  @@index([eventType])
+  @@map("lifecycle_events")
 }
 
 model EngagementMilestone {
@@ -929,6 +1526,9 @@ enum ApplicationType {
 
 enum ApplicationStatus {
   // ── Active statuses ────────────────────────────────────────────────────
+  EMAIL_VERIFICATION_PENDING
+  PENDING_PAYMENT
+  PAYMENT_FAILED
   SUBMITTED
   AWAITING_COMPLETION    // Talent account created but refs/assessment incomplete
   UNDER_REVIEW
@@ -942,8 +1542,16 @@ enum ApplicationStatus {
   INTERVIEW_SCHEDULED
   APPROVED
   REJECTED
-  // ── Legacy statuses (no new records use these) ─────────────────────────
-  PENDING_PAYMENT        // @deprecated — pre-free-signup era; kept for historical rows only
+}
+
+enum DataRequestType {
+  EXPORT
+  DELETE
+}
+
+enum DataRequestStatus {
+  COMPLETED
+  REJECTED
 }
 
 model Application {
@@ -955,6 +1563,9 @@ model Application {
   name              String
   email             String
   notes             String?           @db.Text
+  privacyAcceptedAt DateTime?
+  termsAcceptedAt   DateTime?
+  noticeVersion     String?
 
   // Company — mandatory
   companyName       String?
@@ -1047,6 +1658,24 @@ model Application {
   @@index([email])
   @@index([status])
   @@map("applications")
+}
+
+model DataSubjectRequest {
+  id           String            @id @default(cuid())
+  type         DataRequestType
+  status       DataRequestStatus @default(COMPLETED)
+  subjectEmail String
+  subjectUserId String?
+  requestedBy  String
+  reason       String?           @db.Text
+  notes        String?           @db.Text
+  metadata     Json?
+  createdAt    DateTime          @default(now())
+  completedAt  DateTime?
+
+  @@index([subjectEmail])
+  @@index([requestedBy])
+  @@map("data_subject_requests")
 }
 
 // ── AI Workflow: Need Diagnosis (company) ─────────────────────────
@@ -1155,4 +1784,43 @@ model EquityGrant {
 
   @@index([contractId])
   @@map("equity_grants")
+}
+
+model ServiceTemplate {
+  id               String              @id @default(cuid())
+  code             ServiceTemplateCode @unique
+  name             String
+  lane             ServiceLane
+  engagementType   EngagementType
+  retainerFlavour  RetainerFlavour?
+  suggestedDurationDays Int?
+  description      String              @db.Text
+  isActive         Boolean             @default(true)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  roleCombinations RoleTemplateEngagementCombination[]
+
+  @@index([lane])
+  @@index([engagementType])
+  @@map("service_templates")
+}
+
+model RoleTemplateEngagementCombination {
+  id              String              @id @default(cuid())
+  operatorRole    OperatorRole
+  serviceTemplate ServiceTemplateCode
+  engagementType  EngagementType
+  retainerFlavour RetainerFlavour?
+  serviceLane     ServiceLane
+  isRecommended   Boolean             @default(true)
+  notes           String?
+  createdAt       DateTime            @default(now())
+
+  template ServiceTemplate @relation(fields: [serviceTemplate], references: [code], onDelete: Cascade)
+
+  @@unique([operatorRole, serviceTemplate, engagementType, retainerFlavour])
+  @@index([operatorRole])
+  @@index([serviceTemplate, engagementType, retainerFlavour])
+  @@map("role_template_engagement_combinations")
 }

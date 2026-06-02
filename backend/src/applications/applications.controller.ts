@@ -7,17 +7,21 @@ import {
   Param,
   Query,
   Req,
+  Res,
+  Headers,
   HttpCode,
   HttpStatus,
   UseGuards,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  RawBodyRequest,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApplicationsService } from './applications.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
+import { CreateTalentApplicationDto } from './dto/create-talent-application.dto';
 import { CompleteAssessmentDto } from './dto/complete-assessment.dto';
 import { CompleteReferencesDto } from './dto/complete-references.dto';
 import { UnlockMatchingRazorpayDto } from './dto/unlock-matching.dto';
@@ -48,29 +52,36 @@ export class ApplicationsController {
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createApplication(
-    @Req() req: Request,
-    @Body() dto: CreateApplicationDto,
-  ) {
-    const result = await this.applicationsService.createApplication(dto);
+  async createApplication(@Body() dto: CreateApplicationDto) {
+    return this.applicationsService.createApplication(dto);
+  }
 
-    // Set session for auto-login
-    if (result.session && req.session) {
-      (req.session as any).user = {
-        id: result.session.userId,
-        name: dto.name,
-        email: dto.email,
-        role: result.session.role,
-        orgId: result.session.orgId,
-        status: 'PENDING_APPROVAL',
-      };
-      await new Promise<void>((resolve, reject) => {
-        req.session.save((err) => {
-          if (err) reject(err);
-          else resolve();
-        });
+  @Post('talent')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(SessionAuthGuard)
+  async createTalentApplication(
+    @CurrentUser() user: SessionUser,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+    @Body() dto: CreateTalentApplicationDto,
+  ) {
+    if (!user) throw new BadRequestException('User not authenticated.');
+
+    const result = await this.applicationsService.createTalentApplication(user.email, dto);
+    req.session.user = { ...user, stage: 'PENDING_APPROVAL' as any };
+    res.cookie('platform.user_stage', 'PENDING_APPROVAL', {
+      httpOnly: false,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) reject(err);
+        else resolve();
       });
-    }
+    });
 
     return result;
   }
@@ -85,6 +96,56 @@ export class ApplicationsController {
   async getMyApplication(@CurrentUser() user: SessionUser) {
     if (!user) throw new BadRequestException('User not authenticated.');
     return this.applicationsService.getMyApplication(user.email);
+  }
+
+  @Post('my-application/upload-cv')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(SessionAuthGuard)
+  @UseInterceptors(
+    FileInterceptor('cv', {
+      storage: diskStorage({
+        destination: UPLOADS_DIR,
+        filename: (_req, file, cb) => {
+          cb(null, `${uuidv4()}${extname(file.originalname).toLowerCase()}`);
+        },
+      }),
+      limits: { fileSize: 5 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        const allowed = [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ];
+        if (allowed.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new BadRequestException('Only PDF, DOC, and DOCX files are allowed.'), false);
+        }
+      },
+    }),
+  )
+  async uploadMyCv(
+    @CurrentUser() user: SessionUser,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!user) throw new BadRequestException('User not authenticated.');
+    if (!file) throw new BadRequestException('No file uploaded.');
+    return this.applicationsService.attachCvForCurrentUser(
+      user.email,
+      file.originalname,
+      `cv/${file.filename}`,
+    );
+  }
+
+  @Get('my-application/cv')
+  @UseGuards(SessionAuthGuard)
+  async downloadMyCv(
+    @CurrentUser() user: SessionUser,
+    @Res() res: Response,
+  ) {
+    if (!user) throw new BadRequestException('User not authenticated.');
+    const file = await this.applicationsService.getCurrentUserCv(user.email);
+    return res.download(file.absolutePath, file.downloadName);
   }
 
   /**
@@ -128,37 +189,42 @@ export class ApplicationsController {
    * POST /api/v1/applications/:id/upload-cv
    * PUBLIC — Upload a CV/resume file. Max 5MB. PDF/DOC/DOCX only.
    */
-  @Post(':id/upload-cv')
-  @HttpCode(HttpStatus.OK)
-  @UseInterceptors(
-    FileInterceptor('cv', {
-      storage: diskStorage({
-        destination: UPLOADS_DIR,
-        filename: (_req, file, cb) => {
-          cb(null, `${uuidv4()}${extname(file.originalname).toLowerCase()}`);
-        },
-      }),
-      limits: { fileSize: 5 * 1024 * 1024 },
-      fileFilter: (_req, file, cb) => {
-        const allowed = [
-          'application/pdf',
-          'application/msword',
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        ];
-        if (allowed.includes(file.mimetype)) {
-          cb(null, true);
-        } else {
-          cb(new BadRequestException('Only PDF, DOC, and DOCX files are allowed.'), false);
-        }
-      },
-    }),
-  )
-  async uploadCv(
+  @Get(':id/cv')
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles(MembershipRole.PLATFORM_ADMIN)
+  async downloadApplicationCv(
     @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
+    @Res() res: Response,
   ) {
-    if (!file) throw new BadRequestException('No file uploaded.');
-    return this.applicationsService.attachCv(id, file.originalname, `/uploads/cv/${file.filename}`);
+    const file = await this.applicationsService.getApplicationCvForAdmin(id);
+    return res.download(file.absolutePath, file.downloadName);
+  }
+
+  /**
+   * POST /api/v1/applications/webhook
+   * PUBLIC — Stripe webhook for checkout.session.completed events.
+   */
+  @Post('webhook')
+  @HttpCode(HttpStatus.OK)
+  async handleStripeWebhook(
+    @Req() req: RawBodyRequest<Request>,
+    @Headers('stripe-signature') signature: string,
+  ) {
+    const rawBody = (req.rawBody ?? Buffer.alloc(0)).toString('utf-8');
+    const payload = this.applicationsService.verifyAndParseStripeWebhook(
+      rawBody,
+      signature ?? '',
+    );
+
+    if (payload.type !== 'checkout.session.completed') return { received: true };
+
+    const session = payload.data?.object;
+    if (!session?.id) return { received: true };
+
+    return this.applicationsService.handleCheckoutCompleted(
+      session.id,
+      session.payment_intent || '',
+    );
   }
 
   /**

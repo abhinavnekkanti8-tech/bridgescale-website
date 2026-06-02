@@ -1,4 +1,4 @@
-import { MembershipRole, UserStatus } from '@prisma/client';
+import { MembershipRole, OnboardingStage, UserStatus } from '@prisma/client';
 
 /**
  * Shape of the authenticated user object stored in the express-session,
@@ -11,6 +11,7 @@ export interface SessionUser {
   role: MembershipRole;
   orgId: string;
   status: UserStatus;
+  stage: OnboardingStage;
 }
 
 /**
@@ -19,5 +20,10 @@ export interface SessionUser {
 declare module 'express-session' {
   interface SessionData {
     user: SessionUser;
+    oauthState?: {
+      provider: string;
+      state: string;
+      nextPath?: string;
+    };
   }
 }

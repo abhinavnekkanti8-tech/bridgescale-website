@@ -37,7 +37,7 @@ const problems = [
 ];
 
 const steps = [
-  { n: '01', title: 'Define what you need', desc: 'Share your growth goals, target markets, and the commercial gap you need to fill. Our structured intake + AI diagnosis surfaces what you actually need \u2014 even gaps you didn\u2019t describe.', tag: 'AI-assisted intake' },
+  { n: '01', title: 'AI Diagnosis', desc: 'Share your growth goals, target markets, and the commercial gap you need to fill. Our AI Diagnosis engine analyses your intake and surfaces what you actually need \u2014 even gaps you didn\u2019t describe \u2014 producing a structured needs brief before you see a single profile.', tag: 'AI-powered' },
   { n: '02', title: 'Get matched with vetted talent', desc: 'AI generates a ranked shortlist with explainable rationale. Every match is reviewed by platform operators before you see it. Average time to first introduction: under 48 hours.', tag: 'Operator-reviewed' },
   { n: '03', title: 'Book a free consultation', desc: '30-minute intro calls are always free. Meet as many matches as you like. No commitment until you\u2019re confident it\u2019s the right fit.', tag: 'Zero risk' },
   { n: '04', title: 'Engage with confidence', desc: 'A customised Scope of Work with clear deliverables, milestones, and pricing. We handle contracting, cross-border payments, and compliance \u2014 you focus on growth.', tag: 'Managed delivery' },
@@ -51,12 +51,33 @@ const results = [
 ];
 
 const engagements = [
-  { name: 'Consultation', price: 'Free first 30 min', desc: 'One-time or short-series sessions. Strategy clarity, diagnosis, or a second opinion before committing to a longer engagement.' },
-  { name: 'Sprint', price: 'From $2,500', desc: 'Time-boxed, high-intensity fractional execution. A defined output \u2014 pipeline built, market entered, channel mapped \u2014 in a defined window (typically 30 days).' },
-  { name: 'Retainer', price: '$5,000\u2013$10,000/mo', desc: 'Ongoing fractional engagement. Regular cadence, sustained execution, and strategic continuity. 15\u201320 hours/week from an embedded commercial talent.' },
-  { name: 'Success-fee', price: 'Outcome-based', desc: 'Compensation tied to commercial results \u2014 deals closed, partnerships activated, revenue generated. Aligned incentives for both sides.' },
-  { name: 'Hybrid', price: 'Cash + equity', desc: 'For talent willing to share risk. A lower cash retainer combined with meaningful equity stake. Documented via FAST templates.' },
-  { name: 'Full leadership', price: 'Custom', desc: 'Senior fractional roles (VP Sales, CRO-type) with a longer arc \u2014 building teams, owning revenue, and operating as part of your leadership team.' },
+  {
+    name: 'Consultation',
+    price: 'Free first 30 min',
+    desc: 'One-time or short-series sessions. Strategy clarity, diagnosis, or a second opinion before committing to a longer engagement.',
+    flavours: [],
+  },
+  {
+    name: 'Sprint',
+    price: 'From $2,500',
+    desc: 'Time-boxed, high-intensity fractional execution. A defined output \u2014 pipeline built, market entered, channel mapped \u2014 in a defined window (typically 30 days).',
+    flavours: [],
+  },
+  {
+    name: 'Retainer',
+    price: '$5,000\u2013$10,000/mo',
+    desc: 'Ongoing fractional engagement. Regular cadence, sustained execution, and strategic continuity. 15\u201320 hours/week from an embedded commercial talent.',
+    flavours: [
+      { label: 'Standard cash retainer', desc: 'Fixed monthly fee. Predictable cost, predictable cadence.' },
+      { label: 'Hybrid cash + equity', desc: 'Lower cash retainer combined with a meaningful equity stake. Documented via FAST templates. For talent willing to share risk.' },
+    ],
+  },
+];
+
+const addOns = [
+  { name: 'Success-fee component', desc: 'Add an outcome-based bonus on top of any sprint or retainer \u2014 tied to deals closed, partnerships activated, or revenue generated.' },
+  { name: 'Equity-only structure', desc: 'For early-stage companies and senior advisors. Pure equity compensation, documented via FAST. Available on retainer engagements.' },
+  { name: 'Conversion to full-time', desc: 'When the fit is right, convert a fractional engagement to a full-time hire. Conversion fee applies (one-time, time-bounded).' },
 ];
 
 export default function ForCompaniesPage() {
@@ -147,16 +168,54 @@ export default function ForCompaniesPage() {
         <Reveal>
           <div className={styles.container}>
             <div className={styles.sectionLabel}>Engagement types</div>
-            <h2 className={styles.sectionHeading}>Choose the structure that fits your business reality.</h2>
-            <div className={styles.engGrid}>
-              {engagements.map((e) => (
-                <div key={e.name} className={styles.engCard}>
-                  <div className={styles.engName}>{e.name}</div>
-                  <div className={styles.engPrice}>{e.price}</div>
-                  <div className={styles.engDesc}>{e.desc}</div>
+            <h2 className={styles.sectionHeading}>Three core structures. Pick the one that fits.</h2>
+            <p className={styles.sectionSub}>Every engagement falls into one of three structures. Retainers come in two flavours. Add-ons — success-fee, equity-only, conversion to full-time — layer on top of any of them.</p>
+            {/* 3-column engagement matrix
+                 Col 1 (top):    Consultation
+                 Col 1 (bottom): Retainer (spans 2 rows)
+                 Col 2 (top):    Sprint
+                 Col 2 (mid):    Standard cash retainer
+                 Col 2 (bot):    Hybrid cash + equity
+                 Col 3:          Add-ons stack — Success fee | Equity-only | Conversion */}
+            <div className={styles.engMatrix}>
+              <div className={`${styles.engCell} ${styles.engCellConsult}`}>
+                <div className={styles.engName}>{engagements[0].name}</div>
+                <div className={styles.engPrice}>{engagements[0].price}</div>
+                <div className={styles.engDesc}>{engagements[0].desc}</div>
+              </div>
+              <div className={`${styles.engCell} ${styles.engCellSprint}`}>
+                <div className={styles.engName}>{engagements[1].name}</div>
+                <div className={styles.engPrice}>{engagements[1].price}</div>
+                <div className={styles.engDesc}>{engagements[1].desc}</div>
+              </div>
+              <div className={`${styles.engCell} ${styles.engCellRetainer}`}>
+                <div className={styles.engName}>{engagements[2].name}</div>
+                <div className={styles.engPrice}>{engagements[2].price}</div>
+                <div className={styles.engDesc}>{engagements[2].desc}</div>
+              </div>
+              {engagements[2].flavours.map((f, i) => (
+                <div
+                  key={f.label}
+                  className={`${styles.engCell} ${styles.engFlavourCell} ${i === 0 ? styles.engFlavourTop : styles.engFlavourBottom}`}
+                >
+                  <div className={styles.engFlavourLabel}>{f.label}</div>
+                  <div className={styles.engFlavourDesc}>{f.desc}</div>
+                </div>
+              ))}
+              {addOns.map((a, i) => (
+                <div
+                  key={a.name}
+                  className={`${styles.engCell} ${styles.addOnCell} ${
+                    i === 0 ? styles.addOnRow1 : i === 1 ? styles.addOnRow2 : styles.addOnRow3
+                  }`}
+                >
+                  <div className={styles.addOnTag}>Add-on</div>
+                  <div className={styles.engName}>{a.name}</div>
+                  <div className={styles.engDesc}>{a.desc}</div>
                 </div>
               ))}
             </div>
+
             <div className={styles.engNote}>
               Platform charges a 10% fee on all cash engagements — covering vetting, onboarding, contracting, payments, and compliance. No hidden fees.
             </div>
