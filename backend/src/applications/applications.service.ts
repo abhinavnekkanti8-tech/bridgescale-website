@@ -111,7 +111,7 @@ export class ApplicationsService {
     application: T,
     scope: 'self' | 'admin',
   ) {
-    const { cvFileUrl, ...rest } = application;
+    const { cvFileUrl: _cvFileUrl, ...rest } = application;
     return {
       ...rest,
       cvDownloadUrl: application.cvFileName

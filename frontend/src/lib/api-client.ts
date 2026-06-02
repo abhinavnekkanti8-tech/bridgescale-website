@@ -750,17 +750,17 @@ export const coreFlowApi = {
     apiFetch<EngagementCall>(`/calls/${id}/defer`, { method: 'PATCH', body: JSON.stringify({ newProposedAt, reason }) }),
   getMyStrikes: () => apiFetch<StrikeStatus>('/strikes/me'),
   getPreSowSummary: (id: string) =>
-    apiFetch<PreSowCommercialSummary>(`/core-flow/pre-sow-summaries/${id}`),
+    apiFetch<PreSowCommercialSummary>(`/pre-sow-summaries/${id}`),
 
   /** Either party (or admin) confirms the Pre-SOW Summary. */
   confirmPreSowSummary: (id: string, party: 'STARTUP' | 'OPERATOR') =>
-    apiFetch<PreSowCommercialSummary>(`/core-flow/pre-sow-summaries/${id}/confirm`, {
+    apiFetch<PreSowCommercialSummary>(`/pre-sow-summaries/${id}/confirm`, {
       method: 'PATCH',
       body: JSON.stringify({ party }),
     }),
 
   recordIntent: (data: { callId: string; party: 'STARTUP' | 'OPERATOR'; status: 'INTERESTED' | 'NOT_INTERESTED'; notes?: string }) =>
-    apiFetch(`/core-flow/engagement-intents`, { method: 'POST', body: JSON.stringify(data) }),
+    apiFetch(`/engagement-intents`, { method: 'POST', body: JSON.stringify(data) }),
 };
 
 // ── Operator Tax Profile (Phase-3 plumbing UI) ────────────────────────────
