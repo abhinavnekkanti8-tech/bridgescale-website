@@ -416,7 +416,7 @@ export class ApplicationsService {
       paymentProvider: fee.provider,
       feeAmountMinor: fee.amount,
       feeCurrency: fee.currency,
-      feeAmountUsd: this.getFeeAmount(dto.type),
+      feeAmountUsd: dto.type === ApplicationTypeDto.COMPANY ? 100 : 50,
     };
 
     // Create application with correct initial status (NOT PENDING_PAYMENT)
@@ -1642,7 +1642,8 @@ export class ApplicationsService {
 
   /**
    * Verify Razorpay payment for unlock-matching flow.
-   * Similar to verifyRazorpayPayment but calls unlockMatching instead of provisionAccount.
+   * Verify Razorpay payment for the unlock-matching flow (dashboard pay-wall).
+   * Calls unlockMatching() on success — does not provision accounts (already done at free signup).
    */
   async verifyUnlockPayment(params: {
     applicationId: string;

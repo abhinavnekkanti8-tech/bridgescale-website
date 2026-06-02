@@ -26,6 +26,7 @@ describe('ContractsService Phase 2 flows', () => {
       service: new ContractsService(
         prisma as any,
         { getModelName: jest.fn(() => 'test-model') } as any,
+        { get: jest.fn(() => 'true') } as any,
         {} as any,
         msaService as any,
       ),

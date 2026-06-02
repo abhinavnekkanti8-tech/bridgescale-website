@@ -8,6 +8,21 @@ import {
   NeedDiagnosisOutput,
   mockNeedDiagnosis,
 } from './prompts/need-diagnosis.prompt';
+import {
+  OPPORTUNITY_BRIEF_TEMPERATURE,
+  OpportunityBriefInput,
+  OpportunityBriefOutput,
+  buildOpportunityBriefSystemPrompt,
+  buildOpportunityBriefUserPrompt,
+  mockOpportunityBrief,
+} from './prompts/opportunity-brief.prompt';
+import {
+  TALENT_PRESCREEN_TEMPERATURE,
+  TalentPreScreenInput,
+  TalentPreScreenOutput,
+  TALENT_PRESCREEN_SYSTEM_PROMPT,
+  mockTalentPreScreen,
+} from './prompts/talent-prescreen.prompt';
 
 // ── Scoring output schema ────────────────────────────────────────────────────
 export interface ScoreBreakdown {
@@ -120,12 +135,24 @@ export class AiService {
   constructor(private readonly config: ConfigService) {
     const apiKey = config.get<string>('OPENAI_API_KEY', 'sk-dummy');
     this.model = config.get<string>('OPENAI_MODEL', 'gpt-4o');
-    this.isDummy = apiKey.startsWith('sk-dummy');
+    // Dummy mode: either explicit DUMMY_AI_MODE=true flag, or a placeholder API key.
+    // Set DUMMY_AI_MODE=true in .env.test (or any test/dev env) to skip live API calls.
+    const forceDummy = config.get<string>('DUMMY_AI_MODE', 'false') === 'true';
+    this.isDummy = forceDummy || apiKey.startsWith('sk-dummy');
     this.openai = new OpenAI({ apiKey });
 
     if (this.isDummy) {
-      this.logger.warn('⚠️  Using DUMMY OpenAI key — AI responses will be simulated.');
+      this.logger.warn(
+        forceDummy
+          ? '⚠️  DUMMY_AI_MODE=true — all AI responses will be simulated.'
+          : '⚠️  Using placeholder OPENAI_API_KEY — AI responses will be simulated.',
+      );
     }
+  }
+
+  /** True when running in mock/test mode (DUMMY_AI_MODE=true or placeholder API key). */
+  get isDummyMode(): boolean {
+    return this.isDummy;
   }
 
   /**
@@ -315,6 +342,112 @@ export class AiService {
     );
 
     return recommendation;
+  }
+
+  /**
+   * Generate an opportunity brief from a company application + approved diagnosis.
+   * Returns structured internal content used to scope engagements and drive matching.
+   *
+   * Mock path: DUMMY_AI_MODE=true or placeholder OPENAI_API_KEY.
+   * Live path: OpenAI JSON-mode call with the opportunity-brief prompt.
+   */
+  async generateOpportunityBrief(
+    input: OpportunityBriefInput,
+  ): Promise<OpportunityBriefOutput> {
+    if (this.isDummy) {
+      this.logger.debug('Returning mock opportunity brief (dummy mode).');
+      return mockOpportunityBrief(input);
+    }
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: this.model,
+        temperature: OPPORTUNITY_BRIEF_TEMPERATURE,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: buildOpportunityBriefSystemPrompt() },
+          { role: 'user', content: buildOpportunityBriefUserPrompt(input) },
+        ],
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) throw new Error('Empty response from OpenAI');
+
+      const parsed = JSON.parse(content) as OpportunityBriefOutput;
+      this.validateOpportunityBriefOutput(parsed);
+      return parsed;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`OpenAI opportunity brief generation failed: ${msg}`);
+      throw new InternalServerErrorException('Opportunity brief generation failed. Please try again.');
+    }
+  }
+
+  private validateOpportunityBriefOutput(output: OpportunityBriefOutput): void {
+    const required: (keyof OpportunityBriefOutput)[] = [
+      'summary', 'keyResponsibilities', 'successMetrics',
+      'timeline', 'talentProfile', 'riskFactors', 'growthPotential',
+    ];
+    for (const key of required) {
+      if (!(key in output)) throw new Error(`Missing key in opportunity brief output: ${key}`);
+    }
+    if (!Array.isArray(output.keyResponsibilities)) {
+      throw new Error('keyResponsibilities must be an array');
+    }
+  }
+
+  /**
+   * Score a talent application for pre-screen recommendation.
+   * Returns sub-scores, red flags, and probe questions for the human interviewer.
+   *
+   * Mock path: DUMMY_AI_MODE=true or placeholder OPENAI_API_KEY.
+   * Live path: OpenAI JSON-mode call with the talent-prescreen prompt.
+   */
+  async generateTalentPreScreen(
+    input: TalentPreScreenInput,
+  ): Promise<TalentPreScreenOutput> {
+    if (this.isDummy) {
+      this.logger.debug('Returning mock talent pre-screen (dummy mode).');
+      return mockTalentPreScreen(input);
+    }
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: this.model,
+        temperature: TALENT_PRESCREEN_TEMPERATURE,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: TALENT_PRESCREEN_SYSTEM_PROMPT },
+          { role: 'user', content: JSON.stringify(input) },
+        ],
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) throw new Error('Empty response from OpenAI');
+
+      const parsed = JSON.parse(content) as TalentPreScreenOutput;
+      this.validateTalentPreScreenOutput(parsed);
+      return parsed;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`OpenAI talent pre-screen generation failed: ${msg}`);
+      throw new InternalServerErrorException('Talent pre-screen generation failed. Please try again.');
+    }
+  }
+
+  private validateTalentPreScreenOutput(output: TalentPreScreenOutput): void {
+    const required: (keyof TalentPreScreenOutput)[] = [
+      'recommendation', 'completenessScore', 'consistencyScore',
+      'referenceScore', 'assessmentScore', 'redFlags',
+      'suggestedProbeQuestions', 'linkedinVerification',
+    ];
+    for (const key of required) {
+      if (!(key in output)) throw new Error(`Missing key in pre-screen output: ${key}`);
+    }
+    const validRecs = ['STRONG_PASS', 'PASS', 'CONDITIONAL', 'FAIL'];
+    if (!validRecs.includes(output.recommendation)) {
+      throw new Error(`Invalid recommendation value: ${output.recommendation}`);
+    }
   }
 
   getPromptVersion() { return READINESS_PROMPT_VERSION; }

@@ -95,9 +95,9 @@ function UnlockMatchingContent() {
               throw new Error('Payment verification failed');
             }
 
-            // Success - redirect to shortlist
+            // Success - redirect to matching page (auto-loads user's shortlist)
             setTimeout(() => {
-              window.location.href = '/startup/shortlist';
+              window.location.href = '/startup/matching';
             }, 1000);
           } catch (err: any) {
             setError(err.message || 'Payment verification failed');

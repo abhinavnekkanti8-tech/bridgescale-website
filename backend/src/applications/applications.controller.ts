@@ -6,23 +6,22 @@ import {
   Body,
   Param,
   Query,
-  Headers,
-  RawBodyRequest,
   Req,
   Res,
+  Headers,
   HttpCode,
   HttpStatus,
   UseGuards,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  RawBodyRequest,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApplicationsService } from './applications.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { CreateTalentApplicationDto } from './dto/create-talent-application.dto';
-import { VerifyRazorpayDto, DummyConfirmDto } from './dto/payment.dto';
 import { CompleteAssessmentDto } from './dto/complete-assessment.dto';
 import { CompleteReferencesDto } from './dto/complete-references.dto';
 import { UnlockMatchingRazorpayDto } from './dto/unlock-matching.dto';
@@ -147,48 +146,6 @@ export class ApplicationsController {
     if (!user) throw new BadRequestException('User not authenticated.');
     const file = await this.applicationsService.getCurrentUserCv(user.email);
     return res.download(file.absolutePath, file.downloadName);
-  }
-
-  /**
-   * POST /api/v1/applications/payment/razorpay/verify
-   * PUBLIC — Verify Razorpay payment after frontend modal success.
-   */
-  @Post('payment/razorpay/verify')
-  @HttpCode(HttpStatus.OK)
-  async verifyRazorpayPayment(@Body() dto: VerifyRazorpayDto) {
-    return this.applicationsService.verifyRazorpayPayment({
-      applicationId: dto.applicationId,
-      razorpayOrderId: dto.razorpayOrderId,
-      razorpayPaymentId: dto.razorpayPaymentId,
-      razorpaySignature: dto.razorpaySignature,
-    });
-  }
-
-  /**
-   * POST /api/v1/applications/payment/dummy-confirm
-   * PUBLIC (dev only) — Instantly confirm a PENDING_PAYMENT application.
-   * Only works when DUMMY_PAYMENT_MODE=true.
-   */
-  @Post('payment/dummy-confirm')
-  @HttpCode(HttpStatus.OK)
-  async dummyConfirmPayment(@Body() dto: DummyConfirmDto) {
-    return this.applicationsService.dummyConfirmPayment(dto.applicationId);
-  }
-
-  /**
-   * POST /api/v1/applications/payment/razorpay/webhook
-   * PUBLIC — Razorpay server-to-server webhook (payment.captured).
-   * Reads raw body for signature verification.
-   */
-  @Post('payment/razorpay/webhook')
-  @HttpCode(HttpStatus.OK)
-  async handleRazorpayWebhook(
-    @Req() req: RawBodyRequest<Request>,
-    @Headers('x-razorpay-signature') signature: string,
-    @Body() payload: any,
-  ) {
-    const rawBody = (req.rawBody ?? Buffer.alloc(0)).toString('utf-8');
-    return this.applicationsService.handleRazorpayWebhook(rawBody, signature ?? '', payload);
   }
 
   /**

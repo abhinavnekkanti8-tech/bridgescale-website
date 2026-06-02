@@ -65,7 +65,7 @@ function StartupDashboardContent() {
   const nextActions = [
     { id: 'readiness', icon: '📊', label: 'View Readiness Score', href: '/startup/profile', status: 'Pending', badgeClass: 'badge-amber' },
     { id: 'discovery', icon: '📅', label: 'Schedule Discovery Call', href: '/startup/discovery', status: 'Not started', badgeClass: 'badge-violet' },
-    { id: 'shortlist', icon: '🔍', label: 'View Operator Shortlist', href: '/startup/shortlist', status: 'Locked', badgeClass: 'badge-teal' },
+    { id: 'shortlist', icon: '🔍', label: 'View Operator Shortlist', href: '/startup/matching', status: 'Locked', badgeClass: 'badge-teal' },
     { id: 'engagements', icon: '🚀', label: 'Active Engagements', href: '/startup/engagements', status: '0 active', badgeClass: 'badge-teal' },
   ];
 

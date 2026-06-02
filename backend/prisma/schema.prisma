@@ -270,6 +270,7 @@ enum OperatorLane {
   PIPELINE_SPRINT
   BD_SPRINT
   FRACTIONAL_RETAINER
+  HYBRID_EQUITY
 }
 
 enum OperatorTier {
@@ -375,6 +376,7 @@ model OperatorProfile {
   references        Json?
   availability      String?
   bio               String?
+  openToEquity      Boolean             @default(false)   // Opt-in to HYBRID_EQUITY matching
   verification      OperatorVerification @default(PENDING)
   tier              OperatorTier         @default(UNVERIFIED)
 
@@ -449,6 +451,7 @@ enum PackageType {
   PIPELINE_SPRINT
   BD_SPRINT
   FRACTIONAL_RETAINER
+  HYBRID_EQUITY
 }
 
 model DiscoveryCall {
@@ -603,6 +606,21 @@ model StatementOfWork {
   weeklyHours       Int
   totalPriceUsd     Int
   nonCircumvention  Boolean      @default(true)
+
+  // ── Equity fields (set only when packageType = HYBRID_EQUITY) ──────────────
+  equityCashComponentUsd   Int?        // Monthly cash retainer in USD cents
+  equityType               EquityType? // FAST or DIRECT
+  equityPct                Float?      // % of company equity — DIRECT only
+  fastValueUsd             Int?        // FAST notional value in USD cents — FAST only
+  vestingSchedule          String?     // Human-readable schedule (e.g. "6-month cliff, monthly")
+  equityCliffMonths        Int?        // Cliff period in months
+  equityVestingMonths      Int?        // Total vesting duration in months
+  equityKpiMilestones      Json?       // Array of { metric, target, bonusDescription }
+  startupLegalAck          Boolean     @default(false) // Startup side equity legal acknowledgment
+  operatorLegalAck         Boolean     @default(false) // Operator side equity legal acknowledgment
+  equityReviewRequired     Boolean     @default(false) // Admin review gate (auto or manually triggered)
+  equityReviewApprovedAt   DateTime?   // Set by admin when review passes
+
   status            SowStatus    @default(DRAFT)
   currentVersion    Int          @default(1)
   promptVersion     String?
@@ -692,6 +710,9 @@ model Contract {
   contactsUnlocked    Boolean         @default(false)
   watermarked         Boolean         @default(true)
   idempotencyKey      String?         @unique
+  // Equity — set when SOW packageType = HYBRID_EQUITY
+  hasEquityComponent  Boolean         @default(false)
+  equityDocumentRef   String?         // External URL: FAST agreement or equity side-letter
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
 
@@ -700,6 +721,7 @@ model Contract {
   paymentPlan   PaymentPlan?
   paymentLedgers PaymentLedger[]
   engagement    Engagement?
+  equityGrant   EquityGrant?
 
   @@map("contracts")
 }
@@ -1482,6 +1504,19 @@ enum SowTemplateType {
   HYBRID_EQUITY
 }
 
+enum EquityType {
+  FAST    // Future Equity (FAST agreement — no cap table change until next round)
+  DIRECT  // Direct equity issuance (requires articles amendment)
+}
+
+enum EquityGrantStatus {
+  PENDING       // Contract signed; vesting not yet started
+  ACTIVE        // Vesting in progress
+  FULLY_VESTED  // All equity vested
+  LAPSED        // Engagement terminated before full vest; unvested lapses
+  ACCELERATED   // Full vest triggered early (acquisition, IPO)
+}
+
 // ── Early-Access Applications ──────────────────────────────────────
 
 enum ApplicationType {
@@ -1490,6 +1525,7 @@ enum ApplicationType {
 }
 
 enum ApplicationStatus {
+  // ── Active statuses ────────────────────────────────────────────────────
   EMAIL_VERIFICATION_PENDING
   PENDING_PAYMENT
   PAYMENT_FAILED
@@ -1521,7 +1557,7 @@ enum DataRequestStatus {
 model Application {
   id                String            @id @default(cuid())
   type              ApplicationType
-  status            ApplicationStatus @default(PENDING_PAYMENT)
+  status            ApplicationStatus @default(SUBMITTED)
 
   // Common fields
   name              String
@@ -1724,6 +1760,30 @@ model SowTemplate {
   updatedAt        DateTime        @updatedAt
 
   @@map("sow_templates")
+}
+
+// ── Equity Grants (HYBRID_EQUITY engagements) ──────────────────────
+
+model EquityGrant {
+  id               String            @id @default(cuid())
+  contractId       String            @unique
+  equityType       EquityType        @default(FAST)
+  equityPct        Float?            // % for DIRECT grants
+  fastValueUsd     Int?              // Notional FAST value in USD cents
+  vestingStartDate DateTime?         // Set when PENDING → ACTIVE
+  cliffMonths      Int               @default(6)  // Cliff before any equity vests
+  vestingMonths    Int               @default(36) // Total vesting period
+  status           EquityGrantStatus @default(PENDING)
+  vestedPct        Float             @default(0)  // 0–100; updated on each vest event
+  lastEventAt      DateTime?         // Timestamp of last status/vest change
+  notes            String?           @db.Text     // Admin notes (acceleration reason, lapse reason, etc.)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@map("equity_grants")
 }
 
 model ServiceTemplate {

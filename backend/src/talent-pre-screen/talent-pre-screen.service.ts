@@ -6,11 +6,11 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AiService } from '../ai/ai.service';
 import { MembershipRole, PreScreenRecommendation } from '@prisma/client';
 import { SessionUser } from '../common/types/session.types';
 import {
   TALENT_PRESCREEN_PROMPT_VERSION,
-  mockTalentPreScreen,
   TalentPreScreenInput,
 } from '../ai/prompts/talent-prescreen.prompt';
 
@@ -18,7 +18,10 @@ import {
 export class TalentPreScreenService {
   private readonly logger = new Logger(TalentPreScreenService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly aiService: AiService,
+  ) {}
 
   /**
    * Get a talent pre-screen by application ID.
@@ -60,8 +63,7 @@ export class TalentPreScreenService {
 
     this.logger.log(`Generating pre-screen for application ${applicationId}`);
 
-    // Calculate scores via the dedicated prescreen prompt module (mock path
-    // for now; identical contract to a future live OpenAI call).
+    // Build input and call AI (live OpenAI call or deterministic mock in dummy mode).
     const promptInput: TalentPreScreenInput = {
       yearsExperience: application.yearsExperience ?? undefined,
       currentRole: application.currentRole ?? undefined,
@@ -78,7 +80,7 @@ export class TalentPreScreenService {
       rateExpectationMax: application.rateExpectationMax ?? undefined,
       markets: application.markets ? [application.markets] : undefined,
     };
-    const scores = mockTalentPreScreen(promptInput);
+    const scores = await this.aiService.generateTalentPreScreen(promptInput);
 
     // Create the pre-screen record
     const preScreen = await this.prisma.talentPreScreen.create({
