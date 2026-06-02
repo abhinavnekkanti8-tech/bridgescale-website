@@ -352,15 +352,22 @@ npx prisma db push
 npm run seed
 ```
 
-This creates:
-- Platform Admin: `admin@platform.com` / `Admin@123!` ← **Change this password immediately!**
-- Demo Startup: `ravi@acmetech.com` / `Startup@123` ← Delete in production
-- Demo Operator: `priya@diasporasales.com` / `Operator@123` ← Delete in production
-- 5 SoW templates (Pipeline Sprint, BD Sprint, Fractional Retainer, Market Entry, Hybrid Equity)
+Production guidance:
+- Seeding is restricted to local/dev/test unless `ALLOW_NON_DEV_SEED=true`.
+- In shared or production-like environments, set explicit `ADMIN_EMAIL` and `ADMIN_PASSWORD` values before running seed.
+- Demo startup/operator accounts are skipped unless `SEED_INCLUDE_DEMO_USERS=true`.
+- Local-only defaults now use `.local` addresses and should never be relied on outside development.
+- SoW templates are seeded in every allowed environment.
 
-### Change the admin password immediately after first login:
+Recommended production seed command:
 
-Log in as `admin@platform.com` → go to Settings → change to a strong password.
+```bash
+ALLOW_NON_DEV_SEED=true \
+ADMIN_EMAIL=admin@yourdomain.com \
+ADMIN_PASSWORD='use-a-strong-unique-password' \
+SEED_INCLUDE_DEMO_USERS=false \
+npm run seed
+```
 
 ---
 
@@ -394,7 +401,8 @@ Run through this after everything is deployed:
 - [ ] Verify OpenAI API key is valid and has sufficient credits
 
 **Security**
-- [ ] Delete demo accounts (`ravi@acmetech.com`, `priya@diasporasales.com`) via the admin panel
+- [ ] Confirm `ALLOW_NON_DEV_SEED` was used intentionally and is not left enabled for routine operations
+- [ ] Confirm `SEED_INCLUDE_DEMO_USERS=false` in shared or production-like environments
 - [ ] Confirm `SESSION_SECRET` is a long random value (not the placeholder)
 - [ ] Confirm `DUMMY_PAYMENT_MODE=false`
 - [ ] Confirm `NODE_ENV=production`

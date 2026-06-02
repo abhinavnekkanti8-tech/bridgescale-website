@@ -41,7 +41,7 @@ interface Application {
   linkedInUrl?: string;
   references?: Reference[];
   cvFileName?: string;
-  cvFileUrl?: string;
+  cvDownloadUrl?: string | null;
   // Payment
   feeAmountUsd: number;
   paidAt?: string;
@@ -401,7 +401,7 @@ function AdminApplicationsContent() {
             {selectedApp.cvFileName && (
               <div className={styles.drawerSection}>
                 <div className={styles.drawerLabel}>CV / Resume</div>
-                <a href={`${API_URL}${selectedApp.cvFileUrl}`} target="_blank" rel="noopener noreferrer" className={styles.cvLink} style={{ fontSize: '0.9375rem' }}>
+                <a href={`${API_URL}${selectedApp.cvDownloadUrl}`} target="_blank" rel="noopener noreferrer" className={styles.cvLink} style={{ fontSize: '0.9375rem' }}>
                   📄 {selectedApp.cvFileName}
                 </a>
               </div>

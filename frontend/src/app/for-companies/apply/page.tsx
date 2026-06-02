@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
+import { CURRENT_NOTICE_VERSION, PRIVACY_PATH, TERMS_PATH } from '@/lib/legal';
 import styles from './apply.module.css';
 
 const INDUSTRIES = [
@@ -63,6 +64,8 @@ type FormState = {
   previousAttempts: string;
   idealOutcome90d: string;
   specificTargets: string;
+  privacyAccepted: boolean;
+  termsAccepted: boolean;
 };
 
 const INITIAL: FormState = {
@@ -73,6 +76,7 @@ const INITIAL: FormState = {
   salesMotion: '', teamStructure: '',
   hasDeck: null, hasDemo: null, hasCrm: null,
   previousAttempts: '', idealOutcome90d: '', specificTargets: '',
+  privacyAccepted: false, termsAccepted: false,
 };
 
 function optionalFilled(form: FormState): number {
@@ -108,6 +112,7 @@ export default function CompanyApplyPage() {
   const [optionalOpen, setOptionalOpen] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState('');
   const [page, setPage] = useState<PageState>({ phase: 'form' });
 
   const filled = optionalFilled(form);
@@ -151,6 +156,11 @@ export default function CompanyApplyPage() {
       return;
     }
 
+    if (!form.privacyAccepted || !form.termsAccepted) {
+      setError('Please accept the privacy notice and terms before submitting.');
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {
@@ -179,6 +189,9 @@ export default function CompanyApplyPage() {
         previousAttempts: form.previousAttempts || undefined,
         idealOutcome90d: form.idealOutcome90d || undefined,
         specificTargets: form.specificTargets || undefined,
+        privacyAccepted: form.privacyAccepted,
+        termsAccepted: form.termsAccepted,
+        noticeVersion: CURRENT_NOTICE_VERSION,
       };
 
       const res = await fetch('/api/v1/applications', {
@@ -193,11 +206,8 @@ export default function CompanyApplyPage() {
         throw new Error(msg || 'Submission failed. Please try again.');
       }
 
-      // Auto-login: account created with session data
+      setSubmittedEmail(form.email);
       setPage({ phase: 'success' });
-      setTimeout(() => {
-        window.location.href = '/startup/dashboard';
-      }, 500);
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.');
     } finally {
@@ -214,9 +224,19 @@ export default function CompanyApplyPage() {
           <h2>{page.phase === 'success' ? 'Account created' : 'Creating account…'}</h2>
           <p>
             {page.phase === 'success'
-              ? 'Your account is ready. We\'re generating your match previews and preparing your dashboard.'
+              ? 'Your application has been saved. Verify your email to activate the account and move into review.'
               : 'Please wait while we set up your account.'}
           </p>
+          {page.phase === 'success' && submittedEmail && (
+            <p>Please verify the inbox for {submittedEmail} before signing in.</p>
+          )}
+          {page.phase === 'success' && (
+            <div style={{ marginTop: '1rem' }}>
+              <Link href="/auth/login" className="btn btn-secondary">
+                Sign in later
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -455,6 +475,37 @@ export default function CompanyApplyPage() {
               )}
             </div>
 
+            <div className={styles.formSection}>
+              <div className={styles.formSectionTitle}>Privacy and consent</div>
+              <p className={styles.submitNote} style={{ marginBottom: '1rem' }}>
+                We use this information to create your account, review your application,
+                generate AI-assisted diagnosis and matching outputs, contact you about the
+                process, and operate our email, payments, hosting, and AI providers.
+              </p>
+              <label style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                <input
+                  type="checkbox"
+                  checked={form.privacyAccepted}
+                  onChange={e => set('privacyAccepted', e.target.checked)}
+                  disabled={loading}
+                />
+                <span>
+                  I have read the <Link href={PRIVACY_PATH}>Privacy Notice</Link>.
+                </span>
+              </label>
+              <label style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                <input
+                  type="checkbox"
+                  checked={form.termsAccepted}
+                  onChange={e => set('termsAccepted', e.target.checked)}
+                  disabled={loading}
+                />
+                <span>
+                  I agree to the <Link href={TERMS_PATH}>Terms of Use</Link>.
+                </span>
+              </label>
+            </div>
+
             {error && <div className={styles.errorBox}>⚠ {error}</div>}
 
             <button type="submit" className={styles.submitBtn} disabled={loading}>
@@ -462,7 +513,7 @@ export default function CompanyApplyPage() {
             </button>
 
             <p className={styles.submitNote}>
-              You&apos;ll be signed in automatically. View match previews and pay only when you&apos;re ready to unlock.
+              We&apos;ll email a verification link first. After verification, your application moves into review and matching unlock happens later from the dashboard.
             </p>
           </form>
         </div>

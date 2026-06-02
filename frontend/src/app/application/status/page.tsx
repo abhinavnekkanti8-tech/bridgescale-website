@@ -1,8 +1,9 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,125 +13,153 @@ type ApplicationData = {
   status: string;
   name: string;
   email: string;
+  companyName?: string | null;
+  currentRole?: string | null;
   createdAt: string;
   paidAt: string | null;
-  feeCurrency: string | null;
-  feeAmountMinor: number | null;
-  paymentProvider: string | null;
+  feeCurrency?: string | null;
+  feeAmountMinor?: number | null;
+  paymentProvider?: string | null;
 };
 
 const STATUS_COPY: Record<string, { title: string; body: string; color: string }> = {
+  EMAIL_VERIFICATION_PENDING: {
+    title: 'Verify your email',
+    body: 'Your application is saved, but we are waiting for email verification before the review process begins.',
+    color: '#9e7f5a',
+  },
   SUBMITTED: {
     title: 'Application received',
-    body: 'Your application has been submitted and payment confirmed. Our team will review it and generate your diagnosis within 2 business days. You\'ll receive an email with login details shortly.',
+    body: 'Your application is in review. We will update you as soon as the team finishes the next step.',
     color: '#2e7d52',
   },
-  PENDING_PAYMENT: {
-    title: 'Awaiting payment',
-    body: 'Your application is saved. Please complete payment to proceed.',
+  AWAITING_COMPLETION: {
+    title: 'Additional details needed',
+    body: 'Your application is saved, but we still need the remaining onboarding steps before review can begin.',
     color: '#9e7f5a',
   },
   DIAGNOSIS_GENERATED: {
     title: 'Diagnosis ready',
-    body: 'Your needs diagnosis has been generated. Log in to your dashboard to review it.',
+    body: 'Your diagnosis is ready for review in the platform.',
     color: '#7E93B5',
   },
   DIAGNOSIS_APPROVED: {
     title: 'Diagnosis approved',
-    body: 'You\'ve approved your diagnosis. We\'re now matching you with available talent.',
+    body: 'We are moving from diagnosis into matching.',
     color: '#2e7d52',
   },
   APPROVED: {
     title: 'Application approved',
-    body: 'Congratulations — your application has been approved. Check your email for your login link.',
+    body: 'Your application has been approved. You can continue in your dashboard.',
     color: '#2e7d52',
   },
   REJECTED: {
     title: 'Application not accepted',
-    body: 'After review, we\'re unable to accept your application at this time. You\'re welcome to reapply in the future.',
+    body: 'After review, we are unable to accept your application at this time.',
     color: '#c0392b',
   },
 };
 
-function formatFee(amount: number | null, currency: string | null): string {
-  if (!amount || !currency) return '';
-  if (currency === 'INR') return `₹${(amount / 100).toLocaleString('en-IN')}`;
-  if (currency === 'USD') return `$${(amount / 100).toFixed(0)}`;
+function formatFee(amount: number | null | undefined, currency: string | null | undefined) {
+  if (!amount || !currency) {
+    return '';
+  }
+
+  if (currency === 'INR') {
+    return `INR ${(amount / 100).toLocaleString('en-IN')}`;
+  }
+
+  if (currency === 'USD') {
+    return `$${(amount / 100).toFixed(0)}`;
+  }
+
   return `${currency} ${amount}`;
 }
 
-export default function ApplicationStatusPage() {
-  return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--color-bg, #0a0a0a)' }} />}>
-      <ApplicationStatusContent />
-    </Suspense>
-  );
-}
-
 function ApplicationStatusContent() {
-  const params = useSearchParams();
-  const id = params.get('id');
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+
   const [data, setData] = useState<ApplicationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!id) {
-      setError('No application ID provided.');
-      setLoading(false);
+    async function loadStatus() {
+      try {
+        const response = await fetch('/api/v1/applications/my-application', {
+          credentials: 'include',
+        });
+
+        if (response.status === 401) {
+          router.replace('/auth/login');
+          return;
+        }
+
+        const json = await response.json();
+        if (!response.ok) {
+          throw new Error(json?.message || 'Application not found.');
+        }
+
+        setData(json);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Failed to load application status.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (authLoading) {
       return;
     }
 
-    fetch(`/api/v1/applications/${id}/status`)
-      .then(async (res) => {
-        const json = await res.json();
-        if (!res.ok) throw new Error(json?.message || 'Application not found.');
-        setData(json);
-      })
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [id]);
+    if (!user) {
+      router.replace('/auth/login');
+      return;
+    }
 
-  const status = data ? (STATUS_COPY[data.status] ?? {
-    title: 'Status: ' + data.status.replace(/_/g, ' ').toLowerCase(),
-    body: 'Your application is being processed.',
-    color: '#9e9890',
-  }) : null;
+    loadStatus();
+  }, [authLoading, router, user]);
+
+  const status = data
+    ? STATUS_COPY[data.status] ?? {
+        title: `Status: ${data.status.replace(/_/g, ' ').toLowerCase()}`,
+        body: 'Your application is being processed.',
+        color: '#9e9890',
+      }
+    : null;
+
+  if (loading) {
+    return <div style={{ minHeight: '100vh', background: 'var(--color-bg, #0a0a0a)' }} />;
+  }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--color-bg, #0a0a0a)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontFamily: 'var(--font-body, sans-serif)',
-      padding: '40px 20px',
-    }}>
-      <div style={{
-        maxWidth: '520px',
-        width: '100%',
-        border: '1px solid var(--color-border, #2a2a2a)',
-        padding: '56px',
-      }}>
-        {loading && (
-          <div style={{ textAlign: 'center', color: 'var(--color-text-muted, #4a4a4a)' }}>
-            Loading…
-          </div>
-        )}
-
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'var(--color-bg, #0a0a0a)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: 'var(--font-body, sans-serif)',
+        padding: '40px 20px',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: '560px',
+          width: '100%',
+          border: '1px solid var(--color-border, #2a2a2a)',
+          padding: '48px',
+        }}
+      >
         {error && (
           <>
-            <div style={{ textAlign: 'center', marginBottom: '24px', color: '#c0392b', fontSize: '1.5rem' }}>✕</div>
-            <h2 style={{ fontFamily: 'var(--font-serif, serif)', fontSize: '1.4rem', color: 'var(--color-text-primary, #f5f3ef)', marginBottom: '12px', textAlign: 'center' }}>
-              Something went wrong
-            </h2>
-            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary, #6b6b6b)', textAlign: 'center', lineHeight: 1.7 }}>
-              {error}
-            </p>
-            <div style={{ textAlign: 'center', marginTop: '24px' }}>
-              <Link href="/" style={{ fontSize: '13px', color: 'var(--color-accent, #9e7f5a)', textDecoration: 'none' }}>
-                ← Return home
+            <h2 style={{ color: '#f5f3ef', marginBottom: 12 }}>Something went wrong</h2>
+            <p style={{ color: '#b4aea5', lineHeight: 1.7 }}>{error}</p>
+            <div style={{ marginTop: 24 }}>
+              <Link href="/" style={{ color: 'var(--color-accent, #9e7f5a)', textDecoration: 'none' }}>
+                Return home
               </Link>
             </div>
           </>
@@ -138,91 +167,75 @@ function ApplicationStatusContent() {
 
         {data && status && (
           <>
-            {/* Status badge */}
-            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '48px',
-                height: '48px',
-                border: `1.5px solid ${status.color}`,
-                color: status.color,
-                fontSize: '1.25rem',
-                marginBottom: '20px',
-              }}>
-                {data.status === 'REJECTED' ? '✕' : '✓'}
+            <div style={{ textAlign: 'center', marginBottom: 32 }}>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 48,
+                  height: 48,
+                  border: `1.5px solid ${status.color}`,
+                  color: status.color,
+                  marginBottom: 20,
+                }}
+              >
+                {data.status === 'REJECTED' ? 'X' : 'OK'}
               </div>
-              <h2 style={{
-                fontFamily: 'var(--font-serif, serif)',
-                fontSize: '1.5rem',
-                fontWeight: 700,
-                color: 'var(--color-text-primary, #f5f3ef)',
-                marginBottom: '12px',
-              }}>
-                {status.title}
-              </h2>
-              <p style={{
-                fontSize: '0.875rem',
-                color: 'var(--color-text-secondary, #6b6b6b)',
-                lineHeight: 1.7,
-                fontWeight: 300,
-              }}>
-                {status.body}
-              </p>
+              <h2 style={{ color: '#f5f3ef', marginBottom: 12 }}>{status.title}</h2>
+              <p style={{ color: '#b4aea5', lineHeight: 1.7 }}>{status.body}</p>
             </div>
 
-            {/* Details */}
-            <div style={{
-              border: '1px solid var(--color-border, #2a2a2a)',
-              marginBottom: '28px',
-            }}>
+            <div style={{ border: '1px solid var(--color-border, #2a2a2a)', marginBottom: 24 }}>
               {[
                 { label: 'Applicant', value: data.name },
                 { label: 'Email', value: data.email },
                 { label: 'Application type', value: data.type === 'COMPANY' ? 'Company' : 'Talent' },
-                { label: 'Reference', value: data.id, mono: true },
+                { label: data.type === 'COMPANY' ? 'Company name' : 'Current role', value: data.companyName ?? data.currentRole ?? '-' },
+                { label: 'Reference', value: data.id },
                 ...(data.paidAt ? [{ label: 'Fee paid', value: formatFee(data.feeAmountMinor, data.feeCurrency) }] : []),
-              ].map(({ label, value, mono }) => (
-                <div key={label} style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  padding: '10px 16px',
-                  borderBottom: '1px solid var(--color-border, #2a2a2a)',
-                  fontSize: '13px',
-                  gap: '16px',
-                }}>
-                  <span style={{ color: 'var(--color-text-muted, #4a4a4a)', flexShrink: 0 }}>{label}</span>
-                  <span style={{
-                    color: 'var(--color-text-secondary, #8a8a8a)',
-                    fontFamily: mono ? 'monospace' : 'inherit',
-                    fontSize: mono ? '12px' : '13px',
-                    textAlign: 'right',
-                    wordBreak: 'break-all',
-                  }}>
-                    {value}
-                  </span>
+              ].map(({ label, value }) => (
+                <div
+                  key={label}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '10px 16px',
+                    borderBottom: '1px solid var(--color-border, #2a2a2a)',
+                    gap: 16,
+                    fontSize: 13,
+                  }}
+                >
+                  <span style={{ color: '#7c756d' }}>{label}</span>
+                  <span style={{ color: '#d7d2ca', textAlign: 'right', wordBreak: 'break-word' }}>{value}</span>
                 </div>
               ))}
-              <div style={{ padding: '10px 16px', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--color-text-muted, #4a4a4a)' }}>Submitted</span>
-                <span style={{ color: 'var(--color-text-secondary, #8a8a8a)' }}>
-                  {new Date(data.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 16px', fontSize: 13 }}>
+                <span style={{ color: '#7c756d' }}>Submitted</span>
+                <span style={{ color: '#d7d2ca' }}>
+                  {new Date(data.createdAt).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
                 </span>
               </div>
             </div>
 
-            <p style={{
-              fontSize: '12px',
-              color: 'var(--color-text-muted, #4a4a4a)',
-              lineHeight: 1.6,
-              textAlign: 'center',
-            }}>
-              Check your inbox — we&apos;ll send you a login link once your application is reviewed.
-            </p>
+            {data.status === 'APPROVED' && (
+              <div style={{ textAlign: 'center' }}>
+                <Link href="/dashboard" style={{ color: 'var(--color-accent, #9e7f5a)', textDecoration: 'none' }}>
+                  Open dashboard
+                </Link>
+              </div>
+            )}
           </>
         )}
       </div>
     </div>
   );
+}
+
+export default function ApplicationStatusPage() {
+  return <ApplicationStatusContent />;
 }

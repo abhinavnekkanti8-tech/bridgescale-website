@@ -3,7 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import {
   applicationReceivedEmail,
   statusUpdateEmail,
-  magicLinkEmail,
+  emailVerificationEmail,
+  passwordResetEmail,
   diagnosisGeneratedEmail,
   diagnosisApprovedEmail,
   interviewScheduledEmail,
@@ -76,19 +77,36 @@ export class EmailService {
     await this.send(application.email, subject, html);
   }
 
-  /**
-   * Send magic-link login email.
-   */
-  async sendMagicLink(params: {
+  async sendEmailVerification(params: {
     name: string;
     email: string;
-    magicUrl: string;
+    verifyUrl: string;
     expiryMinutes?: number;
   }): Promise<void> {
-    const { subject, html } = magicLinkEmail({
+    if (this.isDummy) {
+      this.logger.log(`[DUMMY EMAIL] Verify URL: ${params.verifyUrl}`);
+    }
+    const { subject, html } = emailVerificationEmail({
       name: params.name,
-      magicUrl: params.magicUrl,
-      expiryMinutes: params.expiryMinutes ?? 30,
+      verifyUrl: params.verifyUrl,
+      expiryMinutes: params.expiryMinutes ?? 60,
+    });
+    await this.send(params.email, subject, html);
+  }
+
+  async sendPasswordReset(params: {
+    name: string;
+    email: string;
+    resetUrl: string;
+    expiryMinutes?: number;
+  }): Promise<void> {
+    if (this.isDummy) {
+      this.logger.log(`[DUMMY EMAIL] Reset URL: ${params.resetUrl}`);
+    }
+    const { subject, html } = passwordResetEmail({
+      name: params.name,
+      resetUrl: params.resetUrl,
+      expiryMinutes: params.expiryMinutes ?? 60,
     });
     await this.send(params.email, subject, html);
   }

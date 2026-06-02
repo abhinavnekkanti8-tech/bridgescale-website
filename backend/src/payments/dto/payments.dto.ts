@@ -4,7 +4,10 @@ import {
   IsEnum,
   Min,
   IsDateString,
+  IsOptional,
+  MaxLength,
 } from 'class-validator';
+import { PaymentLedgerStatus, PayoutProvider } from '@prisma/client';
 
 export enum PaymentPlanTypeDto {
   CASH_SPRINT_FEE = 'CASH_SPRINT_FEE',
@@ -42,4 +45,29 @@ export class IssueInvoiceDto {
 export class UpdateInvoiceStatusDto {
   @IsEnum(['DRAFT', 'ISSUED', 'PAID', 'OVERDUE', 'CANCELLED'])
   status: 'DRAFT' | 'ISSUED' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+}
+
+export class GenerateLedgerDto {
+  @IsString()
+  contractId: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  eorFeeAmount?: number;
+}
+
+export class UpdateLedgerReviewDto {
+  @IsEnum(PaymentLedgerStatus)
+  status: PaymentLedgerStatus;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  reviewNotes?: string;
+}
+
+export class CreatePayoutAttemptDto {
+  @IsEnum(PayoutProvider)
+  provider: PayoutProvider;
 }

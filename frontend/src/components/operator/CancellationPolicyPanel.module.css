@@ -1,0 +1,146 @@
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+}
+.header h2 {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+.sub {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-weight: 300;
+  margin: 0;
+}
+.chev {
+  font-size: 1.6rem;
+  color: var(--color-accent);
+  font-weight: 300;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.body {
+  padding: 0 24px 24px 24px;
+  border-top: 1px dashed var(--color-border);
+  padding-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.tableWrap {
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  min-width: 640px;
+}
+.table th, .table td {
+  border: 1px solid var(--color-border);
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+.table th {
+  background: var(--color-surface-alt);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.callouts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.callout {
+  background: var(--color-surface-alt);
+  padding: 14px 16px;
+  border-left: 3px solid var(--color-accent);
+}
+.calloutTitle {
+  font-family: var(--font-serif);
+  font-size: 0.92rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.callout p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+  font-weight: 300;
+  line-height: 1.55;
+}
+.footnote {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  font-weight: 300;
+  font-style: italic;
+}
+@media (max-width: 720px) {
+  .callouts { grid-template-columns: 1fr; }
+}
+
+.strikesBox {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  padding: 14px 18px;
+  border-left: 3px solid #2f6d4a;
+}
+.strikesAtRisk { border-left-color: #d8a44a; }
+.strikesPaused { border-left-color: #c63a3a; background: #fdebeb; }
+.strikesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.strikesTitle {
+  font-family: var(--font-serif);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.strikesCount {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.strikesThreshold {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+.strikesBreakdown {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.strikesGoodTag { color: #2f6d4a; font-weight: 600; }
+.strikesAtRiskTag { color: #8a5a1f; font-weight: 600; }
+.strikesPausedTag { color: #b03030; font-weight: 700; }

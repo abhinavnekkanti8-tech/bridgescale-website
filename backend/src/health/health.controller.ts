@@ -5,7 +5,8 @@ import { SessionAuthGuard } from '../common/guards/session-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { MembershipRole } from '../common/enums/role.enum';
-import { SessionUser } from '../auth/session-user.decorator';
+import { SessionUser as SessionUserDecorator } from '../auth/session-user.decorator';
+import { SessionUser as SessionUserType } from '../common/types/session.types';
 import { CreateEscalationDto, UpdateEscalationDto, CreateNudgeDto } from './dto/health.dto';
 
 interface ServiceStatus {
@@ -59,8 +60,8 @@ export class HealthController {
 
   @Get('engagements/:id/snapshots')
   @UseGuards(SessionAuthGuard, RolesGuard)
-  getSnapshots(@Param('id') id: string) {
-    return this.healthService.getAllSnapshots(id);
+  getSnapshots(@Param('id') id: string, @SessionUserDecorator() user: SessionUserType) {
+    return this.healthService.getAllSnapshots(user, id);
   }
 
   @Post('engagements/:id/recalculate')
@@ -74,14 +75,14 @@ export class HealthController {
 
   @Get('nudges')
   @UseGuards(SessionAuthGuard)
-  getMyNudges(@SessionUser() user: any) {
+  getMyNudges(@SessionUserDecorator() user: SessionUserType) {
     return this.healthService.getMyNudges(user.id);
   }
 
   @Patch('nudges/:id/read')
   @UseGuards(SessionAuthGuard)
-  markNudgeRead(@Param('id') id: string) {
-    return this.healthService.markNudgeRead(id);
+  markNudgeRead(@Param('id') id: string, @SessionUserDecorator() user: SessionUserType) {
+    return this.healthService.markNudgeRead(user, id);
   }
 
   @Post('engagements/:id/nudges')
@@ -95,8 +96,11 @@ export class HealthController {
 
   @Post('escalate')
   @UseGuards(SessionAuthGuard)
-  createEscalation(@Body() dto: CreateEscalationDto, @SessionUser() user: any) {
-    return this.healthService.createEscalation(user.id, dto);
+  createEscalation(
+    @Body() dto: CreateEscalationDto,
+    @SessionUserDecorator() user: SessionUserType,
+  ) {
+    return this.healthService.createEscalation(user, dto);
   }
 
   @Get('escalations')

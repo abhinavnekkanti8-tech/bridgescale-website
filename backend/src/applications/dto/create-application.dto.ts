@@ -324,4 +324,14 @@ export class CreateApplicationDto {
   @IsOptional()
   @IsBoolean()
   referencesSkipped?: boolean;
+
+  @IsBoolean()
+  privacyAccepted: boolean;
+
+  @IsBoolean()
+  termsAccepted: boolean;
+
+  @IsString()
+  @MaxLength(32)
+  noticeVersion: string;
 }

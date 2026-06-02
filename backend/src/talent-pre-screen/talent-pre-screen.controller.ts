@@ -12,6 +12,8 @@ import { SessionAuthGuard } from '../common/guards/session-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { MembershipRole, PreScreenRecommendation } from '@prisma/client';
+import { SessionUser as SessionUserDecorator } from '../auth/session-user.decorator';
+import { SessionUser as SessionUserType } from '../common/types/session.types';
 
 /**
  * Talent Pre-Screen Controller: API for managing talent pre-screens.
@@ -27,9 +29,12 @@ export class TalentPreScreenController {
    */
   @Get(':applicationId')
   @UseGuards(SessionAuthGuard, RolesGuard)
-  @Roles(MembershipRole.PLATFORM_ADMIN, MembershipRole.STARTUP_ADMIN)
-  async getPreScreen(@Param('applicationId') applicationId: string) {
-    return this.talentPreScreenService.getPreScreenByApplicationId(applicationId);
+  @Roles(MembershipRole.PLATFORM_ADMIN)
+  async getPreScreen(
+    @Param('applicationId') applicationId: string,
+    @SessionUserDecorator() user: SessionUserType,
+  ) {
+    return this.talentPreScreenService.getPreScreenByApplicationId(user, applicationId);
   }
 
   /**

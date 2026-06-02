@@ -2,12 +2,18 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEscalationDto, UpdateEscalationDto, CreateNudgeDto } from './dto/health.dto';
 import { AiService } from '../ai/ai.service'; // Assuming AI service can generate commentary if needed later
+import { RecordAccessService } from '../common/services/record-access.service';
+import { SessionUser } from '../common/types/session.types';
 
 @Injectable()
 export class HealthService {
   private readonly logger = new Logger(HealthService.name);
 
-  constructor(private prisma: PrismaService, private aiService: AiService) {}
+  constructor(
+    private prisma: PrismaService,
+    private aiService: AiService,
+    private readonly recordAccess: RecordAccessService,
+  ) {}
 
   // ── Engine / Recalculation ─────────────────────────────────────────────
   
@@ -97,7 +103,8 @@ export class HealthService {
     });
   }
 
-  async getAllSnapshots(engagementId: string) {
+  async getAllSnapshots(user: SessionUser, engagementId: string) {
+    await this.recordAccess.assertEngagementAccess(user, engagementId);
     return this.prisma.healthScoreSnapshot.findMany({
       where: { engagementId },
       orderBy: { createdAt: 'desc' },
@@ -127,7 +134,8 @@ export class HealthService {
     });
   }
 
-  async markNudgeRead(nudgeId: string) {
+  async markNudgeRead(user: SessionUser, nudgeId: string) {
+    await this.recordAccess.assertNudgeAccess(user, nudgeId);
     return this.prisma.systemNudge.update({
       where: { id: nudgeId },
       data: { isRead: true },
@@ -144,18 +152,19 @@ export class HealthService {
     });
   }
 
-  async createEscalation(reporterId: string, dto: CreateEscalationDto) {
+  async createEscalation(user: SessionUser, dto: CreateEscalationDto) {
+    await this.recordAccess.assertEngagementAccess(user, dto.engagementId);
     const esc = await this.prisma.escalationCase.create({
       data: {
         engagementId: dto.engagementId,
-        reporterId,
+        reporterId: user.id,
         reason: dto.reason,
       },
     });
 
     // Also update engagement status to PAUSED immediately to freeze invoicing?
     // Depending on platform policy. For MVP we'll simply log.
-    this.logger.warn(`Escalation raised on ${dto.engagementId} by ${reporterId}`);
+    this.logger.warn(`Escalation raised on ${dto.engagementId} by ${user.id}`);
 
     return esc;
   }

@@ -125,6 +125,7 @@ export class OperatorsService {
       data: {
         operatorId: orgId,
         lanes: dto.lanes,
+        roles: dto.roles ?? [],
         regions: dto.regions,
         functions: dto.functions,
         experienceTags: dto.experienceTags ?? [],
@@ -160,6 +161,93 @@ export class OperatorsService {
       where: { operatorId: orgId },
       include: { scores: { orderBy: { createdAt: 'desc' }, take: 1 } },
     });
+  }
+
+  async getReadinessGateByOrgId(orgId: string) {
+    const profile = await this.prisma.operatorProfile.findUnique({
+      where: { operatorId: orgId },
+      include: { taxProfiles: { orderBy: { createdAt: 'desc' } } },
+    });
+    if (!profile) throw new NotFoundException('Operator profile not found.');
+    return this.buildReadinessGate(profile);
+  }
+
+  async getReadinessGate(profileId: string) {
+    const profile = await this.prisma.operatorProfile.findUnique({
+      where: { id: profileId },
+      include: { taxProfiles: { orderBy: { createdAt: 'desc' } } },
+    });
+    if (!profile) throw new NotFoundException('Operator profile not found.');
+    return this.buildReadinessGate(profile);
+  }
+
+  private buildReadinessGate(profile: {
+    id: string;
+    linkedIn: string | null;
+    regions: unknown[];
+    roles: unknown[];
+    functions: string[];
+    references: unknown;
+    taxProfiles: Array<{
+      formStatus: string;
+      taxResidencyCountry: string | null;
+      payoutCountry: string | null;
+      payoutCurrency: string | null;
+      encryptedBlobRef: string | null;
+    }>;
+  }) {
+    const latestTaxProfile = profile.taxProfiles[0];
+    const hasRoleSignal = profile.roles.length > 0 || profile.functions.length > 0;
+    const hasBasicProfile = Boolean(profile.linkedIn) && profile.regions.length > 0 && hasRoleSignal;
+    const hasBasicTaxAndPayout = Boolean(
+      latestTaxProfile?.taxResidencyCountry &&
+      latestTaxProfile?.payoutCountry &&
+      latestTaxProfile?.payoutCurrency,
+    );
+    const hasFullTaxDocs = Boolean(
+      latestTaxProfile?.encryptedBlobRef &&
+      ['COLLECTED', 'UNDER_REVIEW', 'VERIFIED'].includes(latestTaxProfile.formStatus),
+    );
+    const hasValidatedDocs = latestTaxProfile?.formStatus === 'VERIFIED';
+    const hasReferences = Boolean(profile.references);
+
+    const stages = [
+      {
+        key: 'MATCHING_POOL',
+        label: 'Can enter matching pool',
+        ready: hasBasicProfile && hasBasicTaxAndPayout,
+        missing: [
+          ...(!hasBasicProfile ? ['Complete basic profile: LinkedIn, target regions, and role/function signal.'] : []),
+          ...(!hasBasicTaxAndPayout ? ['Add tax residency country, payout country, and payout currency.'] : []),
+        ],
+      },
+      {
+        key: 'MSA_READY',
+        label: 'Can proceed to MSA',
+        ready: hasBasicProfile && hasFullTaxDocs && hasReferences,
+        missing: [
+          ...(!hasBasicProfile ? ['Complete basic profile.'] : []),
+          ...(!hasFullTaxDocs ? ['Upload or collect full tax/KYC placeholder document.'] : []),
+          ...(!hasReferences ? ['Add professional references.'] : []),
+        ],
+      },
+      {
+        key: 'PAYOUT_READY',
+        label: 'Can receive payout',
+        ready: hasValidatedDocs && hasBasicTaxAndPayout,
+        missing: [
+          ...(!hasValidatedDocs ? ['Mark tax/KYC documents as verified.'] : []),
+          ...(!hasBasicTaxAndPayout ? ['Confirm payout country and payout currency.'] : []),
+        ],
+      },
+    ];
+
+    return {
+      operatorProfileId: profile.id,
+      enforcement: process.env.OPERATOR_GATE_ENFORCEMENT === 'true' ? 'ENFORCED' : 'REPORT_ONLY',
+      stages,
+      overallReady: stages.every((stage) => stage.ready),
+    };
   }
 
   async findAll() {

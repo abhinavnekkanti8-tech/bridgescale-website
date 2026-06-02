@@ -5,15 +5,27 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { existsSync } from 'fs';
+import { resolve, sep } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { RazorpayService } from '../payments/razorpay.service';
 import { AiWorkflowService } from '../ai/ai-workflow.service';
 import { CrossVerifyService } from '../ai/cross-verify.service';
 import { CreateApplicationDto, ApplicationTypeDto } from './dto/create-application.dto';
-import { ApplicationStatus, PaymentProvider, MembershipRole, OrgType, UserStatus } from '@prisma/client';
-import { randomBytes } from 'crypto';
+import { CreateTalentApplicationDto } from './dto/create-talent-application.dto';
+import {
+  ApplicationStatus,
+  MembershipRole,
+  OnboardingStage,
+  OrgType,
+  PaymentProvider,
+  UserStatus,
+} from '@prisma/client';
+import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import * as bcrypt from 'bcryptjs';
+import { AccountSecurityService } from '../account-security/account-security.service';
+import { CURRENT_NOTICE_VERSION } from '../legal/legal.constants';
 
 @Injectable()
 export class ApplicationsService {
@@ -26,6 +38,7 @@ export class ApplicationsService {
     private readonly razorpay: RazorpayService,
     private readonly aiWorkflow: AiWorkflowService,
     private readonly crossVerify: CrossVerifyService,
+    private readonly accountSecurity: AccountSecurityService,
   ) {}
 
   /**
@@ -49,6 +62,158 @@ export class ApplicationsService {
     return this.config.get<string>('DUMMY_PAYMENT_MODE', 'true') === 'true';
   }
 
+  private requireCurrentNoticeAcceptance(dto: {
+    privacyAccepted: boolean;
+    termsAccepted: boolean;
+    noticeVersion: string;
+  }) {
+    if (!dto.privacyAccepted || !dto.termsAccepted) {
+      throw new BadRequestException('You must accept the privacy notice and terms to continue.');
+    }
+
+    if (dto.noticeVersion !== CURRENT_NOTICE_VERSION) {
+      throw new BadRequestException('Your legal notice is out of date. Please refresh and try again.');
+    }
+
+    const acceptedAt = new Date();
+    return {
+      privacyAcceptedAt: acceptedAt,
+      termsAcceptedAt: acceptedAt,
+      noticeVersion: CURRENT_NOTICE_VERSION,
+    };
+  }
+
+  private normalizeStoredCvPath(filePath: string) {
+    return filePath
+      .replace(/\\/g, '/')
+      .replace(/^\/+/, '')
+      .replace(/^uploads\//, '');
+  }
+
+  private resolveCvAbsolutePath(filePath: string) {
+    const uploadsRoot = resolve(process.cwd(), 'uploads');
+    const normalized = this.normalizeStoredCvPath(filePath);
+    const absolutePath = resolve(uploadsRoot, normalized);
+    const allowedPrefix = `${uploadsRoot}${sep}`;
+
+    if (absolutePath !== uploadsRoot && !absolutePath.startsWith(allowedPrefix)) {
+      throw new BadRequestException('Invalid CV file path.');
+    }
+
+    if (!existsSync(absolutePath)) {
+      throw new NotFoundException('CV file not found.');
+    }
+
+    return absolutePath;
+  }
+
+  private sanitizeApplicationForClient<T extends { id: string; cvFileName?: string | null; cvFileUrl?: string | null }>(
+    application: T,
+    scope: 'self' | 'admin',
+  ) {
+    const { cvFileUrl: _cvFileUrl, ...rest } = application;
+    return {
+      ...rest,
+      cvDownloadUrl: application.cvFileName
+        ? scope === 'self'
+          ? '/api/v1/applications/my-application/cv'
+          : `/api/v1/applications/${application.id}/cv`
+        : null,
+    };
+  }
+
+  verifyAndParseStripeWebhook(
+    rawBody: string,
+    signatureHeader: string,
+  ): { type: string; data?: { object?: Record<string, any> } } {
+    const secret = this.config.get<string>('STRIPE_WEBHOOK_SECRET', '').trim();
+    if (!secret) {
+      throw new BadRequestException('Stripe webhook secret is not configured.');
+    }
+
+    if (!rawBody) {
+      throw new BadRequestException('Missing Stripe webhook payload.');
+    }
+
+    if (!signatureHeader) {
+      throw new BadRequestException('Missing Stripe signature.');
+    }
+
+    const parsedSignature = this.parseStripeSignature(signatureHeader);
+    if (!parsedSignature.timestamp || parsedSignature.signatures.length === 0) {
+      throw new BadRequestException('Malformed Stripe signature header.');
+    }
+
+    const timestampAgeSeconds = Math.abs(
+      Math.floor(Date.now() / 1000) - parsedSignature.timestamp,
+    );
+    if (timestampAgeSeconds > 300) {
+      throw new BadRequestException('Stripe signature timestamp is outside the allowed tolerance.');
+    }
+
+    const expectedSignature = createHmac('sha256', secret)
+      .update(`${parsedSignature.timestamp}.${rawBody}`, 'utf8')
+      .digest('hex');
+
+    const hasMatch = parsedSignature.signatures.some((candidate) =>
+      this.safeCompareSignature(candidate, expectedSignature),
+    );
+
+    if (!hasMatch) {
+      throw new BadRequestException('Invalid Stripe signature.');
+    }
+
+    try {
+      return JSON.parse(rawBody) as { type: string; data?: { object?: Record<string, any> } };
+    } catch {
+      throw new BadRequestException('Malformed Stripe webhook payload.');
+    }
+  }
+
+  private parseStripeSignature(signatureHeader: string): {
+    timestamp: number | null;
+    signatures: string[];
+  } {
+    const parts = signatureHeader
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    let timestamp: number | null = null;
+    const signatures: string[] = [];
+
+    for (const part of parts) {
+      const [key, value] = part.split('=');
+      if (!key || !value) {
+        continue;
+      }
+
+      if (key === 't') {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) {
+          timestamp = parsed;
+        }
+      }
+
+      if (key === 'v1') {
+        signatures.push(value);
+      }
+    }
+
+    return { timestamp, signatures };
+  }
+
+  private safeCompareSignature(candidate: string, expected: string): boolean {
+    const candidateBuffer = Buffer.from(candidate, 'utf8');
+    const expectedBuffer = Buffer.from(expected, 'utf8');
+
+    if (candidateBuffer.length !== expectedBuffer.length) {
+      return false;
+    }
+
+    return timingSafeEqual(candidateBuffer, expectedBuffer);
+  }
+
   /**
    * Create a new application with free signup (no payment at signup).
    * Returns session data for auto-login + application details.
@@ -62,7 +227,12 @@ export class ApplicationsService {
    * Payment (unlock matching) happens later from the dashboard via initiateUnlockPayment().
    */
   async createApplication(dto: CreateApplicationDto) {
+    if (dto.type !== ApplicationTypeDto.COMPANY) {
+      throw new BadRequestException('This endpoint only accepts company applications.');
+    }
+
     const fee = this.getFeeMinor(dto.type);
+    const email = dto.email.toLowerCase().trim();
 
     // Duplicate guard: same email within 24h (excluding REJECTED)
     const recentDuplicate = await this.prisma.application.findFirst({
@@ -78,6 +248,96 @@ export class ApplicationsService {
         'An application with this email was already submitted recently. Please check your inbox or try again later.',
       );
     }
+
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    if (existingUser) {
+      throw new BadRequestException('An account with this email already exists.');
+    }
+
+    const passwordHash = dto.password ? await bcrypt.hash(dto.password, 10) : null;
+    const legalAcceptance = this.requireCurrentNoticeAcceptance(dto);
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const org = await tx.organization.create({
+        data: {
+          name: dto.companyName ?? `${dto.name}'s Company`,
+          orgType: OrgType.STARTUP,
+          country: 'IN',
+          website: dto.companyWebsite,
+        },
+      });
+
+      const user = await tx.user.create({
+        data: {
+          name: dto.name,
+          email,
+          passwordHash,
+          onboardingStage: OnboardingStage.ONBOARDING,
+          ...legalAcceptance,
+        },
+      });
+
+      await tx.membership.create({
+        data: {
+          userId: user.id,
+          orgId: org.id,
+          membershipRole: MembershipRole.STARTUP_ADMIN,
+          status: 'ACTIVE',
+        },
+      });
+
+      const application = await tx.application.create({
+        data: {
+          type: dto.type,
+          status: ApplicationStatus.EMAIL_VERIFICATION_PENDING,
+          name: dto.name,
+          email,
+          notes: dto.notes,
+          companyName: dto.companyName,
+          companyWebsite: dto.companyWebsite,
+          companyStage: dto.companyStage,
+          needArea: dto.needArea,
+          targetMarkets: dto.targetMarkets,
+          engagementModel: dto.engagementModel,
+          budgetRange: dto.budgetRange,
+          urgency: dto.urgency,
+          salesMotion: dto.salesMotion,
+          teamStructure: dto.teamStructure,
+          hasDeck: dto.hasDeck,
+          hasDemo: dto.hasDemo,
+          hasCrm: dto.hasCrm,
+          previousAttempts: dto.previousAttempts,
+          idealOutcome90d: dto.idealOutcome90d,
+          specificTargets: dto.specificTargets,
+          paymentProvider: fee.provider,
+          feeAmountMinor: fee.amount,
+          feeCurrency: fee.currency,
+          feeAmountUsd: this.getFeeAmount(dto.type),
+          ...legalAcceptance,
+        },
+      });
+
+      return { user, application };
+    });
+
+    await this.accountSecurity.sendEmailVerification({
+      id: created.user.id,
+      name: created.user.name,
+      email: created.user.email,
+    });
+
+    this.logger.log(
+      `Company application ${created.application.id} created for ${email} — verification required`,
+    );
+
+    return {
+      applicationId: created.application.id,
+      status: created.application.status,
+      verificationRequired: true,
+      message: 'Application received. Please verify your email to continue.',
+    };
 
     // Determine status based on type and skipped steps
     const isTalent = dto.type === ApplicationTypeDto.TALENT;
@@ -138,7 +398,9 @@ export class ApplicationsService {
       // Talent — assessment & commercials
       caseStudyResponse: dto.caseStudyResponse,
       availabilityHours: dto.availabilityHours as any,
-      earliestStart: dto.earliestStart ? new Date(dto.earliestStart) : undefined,
+      earliestStart: dto.earliestStart
+        ? new Date(dto.earliestStart as string)
+        : undefined,
       rateExpectationMin: dto.rateExpectationMin,
       rateExpectationMax: dto.rateExpectationMax,
       rateCurrency: dto.rateCurrency ?? 'USD',
@@ -206,6 +468,171 @@ export class ApplicationsService {
       // Session data for auto-login
       session: sessionData,
     };
+  }
+
+  async createTalentApplication(email: string, dto: CreateTalentApplicationDto) {
+    const normalizedEmail = email.toLowerCase().trim();
+    const legalAcceptance = this.requireCurrentNoticeAcceptance(dto);
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      include: { memberships: { where: { status: 'ACTIVE' } } },
+    });
+
+    if (!user) {
+      throw new NotFoundException('No user found for this session.');
+    }
+
+    if (user.onboardingStage !== OnboardingStage.ONBOARDING) {
+      throw new BadRequestException('This talent account has already completed onboarding.');
+    }
+
+    const existingApplication = await this.prisma.application.findFirst({
+      where: {
+        email: normalizedEmail,
+        type: 'TALENT',
+        status: { not: ApplicationStatus.REJECTED },
+      },
+    });
+    if (existingApplication) {
+      throw new BadRequestException('A talent application already exists for this account.');
+    }
+
+    const assessmentSkipped = dto.assessmentSkipped ?? false;
+    const referencesSkipped = dto.referencesSkipped ?? false;
+    const initialStatus =
+      assessmentSkipped || referencesSkipped
+        ? ApplicationStatus.AWAITING_COMPLETION
+        : ApplicationStatus.SUBMITTED;
+    const talentFee = this.getFeeMinor(ApplicationTypeDto.TALENT);
+
+    const application = await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          onboardingStage: OnboardingStage.PENDING_APPROVAL,
+          ...legalAcceptance,
+        },
+      });
+
+      return tx.application.create({
+        data: {
+          type: ApplicationTypeDto.TALENT,
+          status: initialStatus,
+          name: user.name,
+          email: normalizedEmail,
+          notes: dto.notes,
+          location: dto.location,
+          talentCategory: dto.talentCategory,
+          currentRole: dto.currentRole,
+          currentEmployer: dto.currentEmployer,
+          employmentStatus: dto.employmentStatus as any,
+          yearsExperience: dto.yearsExperience,
+          seniorityLevel: dto.seniorityLevel as any,
+          seniority: dto.seniority,
+          engagementPref: dto.engagementPref,
+          markets: dto.markets,
+          dealHistory: dto.dealHistory ? (dto.dealHistory as object[]) : undefined,
+          confidenceMarkets: dto.confidenceMarkets
+            ? (dto.confidenceMarkets as object[])
+            : undefined,
+          languagesSpoken: dto.languagesSpoken ?? [],
+          linkedInUrl: dto.linkedInUrl,
+          references: dto.references ? (dto.references as object[]) : undefined,
+          caseStudyResponse: dto.caseStudyResponse,
+          availabilityHours: dto.availabilityHours as any,
+          earliestStart: dto.earliestStart ? new Date(dto.earliestStart) : undefined,
+          rateExpectationMin: dto.rateExpectationMin,
+          rateExpectationMax: dto.rateExpectationMax,
+          rateCurrency: dto.rateCurrency ?? 'USD',
+          preferredStructures: dto.preferredStructures ?? [],
+          assessmentSkipped,
+          referencesSkipped,
+          assessmentCompletedAt:
+            !assessmentSkipped && dto.caseStudyResponse ? new Date() : undefined,
+          referencesCompletedAt:
+            !referencesSkipped && (dto.references?.length ?? 0) >= 2
+              ? new Date()
+              : undefined,
+          paymentProvider: talentFee.provider,
+          feeAmountMinor: talentFee.amount,
+          feeCurrency: talentFee.currency,
+          feeAmountUsd: this.getFeeAmount(ApplicationTypeDto.TALENT),
+          ...legalAcceptance,
+        },
+      });
+    });
+
+    this.emailService
+      .sendApplicationReceived({
+        id: application.id,
+        name: application.name,
+        email: application.email,
+        type: application.type,
+      })
+      .catch((err) =>
+        this.logger.error(`Failed to send talent confirmation email: ${err.message}`),
+      );
+
+    this.runCrossVerifyForApplication(application.id).catch((err) =>
+      this.logger.error(`Cross-verify pipeline failed: ${err.message}`),
+    );
+
+    if (!assessmentSkipped && dto.caseStudyResponse) {
+      this.aiWorkflow
+        .generatePreScreenForApplication(application.id)
+        .catch((err) => this.logger.error(`Failed to trigger pre-screen: ${err.message}`));
+    }
+
+    return {
+      applicationId: application.id,
+      status: application.status,
+      provider: 'NONE',
+      dummyMode: this.isDummyMode(),
+    };
+  }
+
+  async completeCompanyVerificationIfPending(email: string) {
+    const normalizedEmail = email.toLowerCase().trim();
+    const application = await this.prisma.application.findFirst({
+      where: {
+        email: normalizedEmail,
+        type: 'COMPANY',
+        status: ApplicationStatus.EMAIL_VERIFICATION_PENDING,
+      },
+    });
+
+    if (!application) {
+      return null;
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.user.updateMany({
+        where: { email: normalizedEmail },
+        data: { onboardingStage: OnboardingStage.PENDING_APPROVAL },
+      });
+
+      return tx.application.update({
+        where: { id: application.id },
+        data: { status: ApplicationStatus.SUBMITTED },
+      });
+    });
+
+    this.emailService
+      .sendApplicationReceived({
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        type: updated.type,
+      })
+      .catch((err) =>
+        this.logger.error(`Failed to send company confirmation email: ${err.message}`),
+      );
+
+    this.triggerInternalMatching(updated.id).catch((err) =>
+      this.logger.error(`Failed to trigger internal matching: ${err.message}`),
+    );
+
+    return updated;
   }
 
   /**
@@ -428,7 +855,6 @@ export class ApplicationsService {
 
       if (existing) {
         // Account already provisioned — just refresh the magic link
-        await this.issueAndSendMagicLink(existing.id, application.name, application.email);
         return;
       }
 
@@ -450,7 +876,9 @@ export class ApplicationsService {
           data: {
             name: application.name,
             email: application.email,
-            status: UserStatus.PENDING_APPROVAL,
+            passwordHash: await bcrypt.hash(randomBytes(24).toString('hex'), 10),
+            emailVerifiedAt: new Date(),
+            onboardingStage: OnboardingStage.PENDING_APPROVAL,
           },
         });
 
@@ -459,11 +887,10 @@ export class ApplicationsService {
             userId: user.id,
             orgId: org.id,
             membershipRole,
-            status: 'PENDING',
+            status: 'ACTIVE',
           },
         });
 
-        await this.issueAndSendMagicLink(user.id, application.name, application.email);
       });
 
       this.logger.log(`Account provisioned for ${application.email} (${application.type})`);
@@ -534,7 +961,7 @@ export class ApplicationsService {
             name: application.name,
             email: application.email,
             passwordHash,
-            status: UserStatus.PENDING_APPROVAL,
+            onboardingStage: OnboardingStage.PENDING_APPROVAL,
           },
         });
 
@@ -704,22 +1131,9 @@ export class ApplicationsService {
     );
   }
 
-  /** Generate a magic-link token, persist it, and send the login email. */
+  /** @deprecated Magic-link auth has been retired in favor of email verification. */
   private async issueAndSendMagicLink(userId: string, name: string, email: string): Promise<void> {
-    const token = randomBytes(32).toString('hex');
-    const expiry = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
-
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { magicLinkToken: token, magicLinkExpiry: expiry },
-    });
-
-    const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3001');
-    const magicUrl = `${frontendUrl}/auth/magic?token=${token}`;
-
-    this.emailService
-      .sendMagicLink({ name, email, magicUrl, expiryMinutes: 30 })
-      .catch((err) => this.logger.error(`Failed to send magic link to ${email}: ${err.message}`));
+    await this.accountSecurity.sendEmailVerification({ id: userId, name, email });
   }
 
   async getApplicationStatus(id: string) {
@@ -729,14 +1143,10 @@ export class ApplicationsService {
         id: true,
         type: true,
         status: true,
-        name: true,
-        email: true,
-        feeAmountUsd: true,
-        feeCurrency: true,
-        feeAmountMinor: true,
-        paymentProvider: true,
         createdAt: true,
         paidAt: true,
+        matchingUnlocked: true,
+        matchingUnlockedAt: true,
       },
     });
 
@@ -745,10 +1155,14 @@ export class ApplicationsService {
   }
 
   async listApplications(status?: ApplicationStatus) {
-    return this.prisma.application.findMany({
+    const applications = await this.prisma.application.findMany({
       where: status ? { status } : undefined,
       orderBy: { createdAt: 'desc' },
     });
+
+    return applications.map((application) =>
+      this.sanitizeApplicationForClient(application, 'admin'),
+    );
   }
 
   async updateApplicationStatus(id: string, status: ApplicationStatus) {
@@ -769,17 +1183,82 @@ export class ApplicationsService {
     return updated;
   }
 
-  async attachCv(applicationId: string, fileName: string, fileUrl: string) {
+  private async attachCvToApplication(applicationId: string, fileName: string, filePath: string) {
     const application = await this.prisma.application.findUnique({ where: { id: applicationId } });
-    if (!application) throw new NotFoundException('Application not found.');
+    if (!application) {
+      throw new NotFoundException('Application not found.');
+    }
 
     const updated = await this.prisma.application.update({
       where: { id: applicationId },
-      data: { cvFileName: fileName, cvFileUrl: fileUrl },
+      data: {
+        cvFileName: fileName,
+        cvFileUrl: this.normalizeStoredCvPath(filePath),
+      },
     });
 
     this.logger.log(`CV attached to application ${applicationId}: ${fileName}`);
-    return { applicationId: updated.id, cvFileName: updated.cvFileName, cvFileUrl: updated.cvFileUrl };
+    return {
+      applicationId: updated.id,
+      cvFileName: updated.cvFileName,
+      cvDownloadUrl: `/api/v1/applications/${updated.id}/cv`,
+    };
+  }
+
+  async attachCvForCurrentUser(email: string, fileName: string, filePath: string) {
+    const application = await this.prisma.application.findFirst({
+      where: { email: email.toLowerCase(), type: ApplicationTypeDto.TALENT },
+      select: { id: true },
+    });
+
+    if (!application) {
+      throw new NotFoundException('No talent application found for this account.');
+    }
+
+    const updated = await this.attachCvToApplication(application.id, fileName, filePath);
+    return {
+      ...updated,
+      cvDownloadUrl: '/api/v1/applications/my-application/cv',
+    };
+  }
+
+  async getCurrentUserCv(email: string) {
+    const application = await this.prisma.application.findFirst({
+      where: { email: email.toLowerCase() },
+      select: {
+        id: true,
+        cvFileName: true,
+        cvFileUrl: true,
+      },
+    });
+
+    if (!application?.cvFileName || !application.cvFileUrl) {
+      throw new NotFoundException('No CV uploaded for this application.');
+    }
+
+    return {
+      absolutePath: this.resolveCvAbsolutePath(application.cvFileUrl),
+      downloadName: application.cvFileName,
+    };
+  }
+
+  async getApplicationCvForAdmin(applicationId: string) {
+    const application = await this.prisma.application.findUnique({
+      where: { id: applicationId },
+      select: {
+        cvFileName: true,
+        cvFileUrl: true,
+      },
+    });
+
+    if (!application?.cvFileName || !application.cvFileUrl) {
+      throw new NotFoundException('No CV uploaded for this application.');
+    }
+
+    return {
+      absolutePath: this.resolveCvAbsolutePath(application.cvFileUrl),
+      downloadName: application.cvFileName,
+    };
   }
 
   /**
@@ -813,7 +1292,10 @@ export class ApplicationsService {
       },
     });
 
-    return { ...application, startupProfile: org?.startupProfile ?? null };
+    return {
+      ...this.sanitizeApplicationForClient(application, 'self'),
+      startupProfile: org?.startupProfile ?? null,
+    };
   }
 
   /**
@@ -888,10 +1370,10 @@ export class ApplicationsService {
     const user = await this.prisma.user.findUnique({
       where: { email: application.email.toLowerCase() },
     });
-    if (user && user.status === UserStatus.PENDING_APPROVAL) {
+    if (user && user.onboardingStage === OnboardingStage.PENDING_APPROVAL) {
       await this.prisma.user.update({
         where: { id: user.id },
-        data: { status: UserStatus.ACTIVE },
+        data: { onboardingStage: OnboardingStage.ACTIVE, status: UserStatus.ACTIVE },
       });
       this.logger.log(`User ${user.email} activated after application approval.`);
     }

@@ -1,3 +1,22 @@
 node_modules/
 backend/dist/
 frontend/.next/
+
+# Local environment and machine-specific files
+.env
+.env.*
+!.env.example
+frontend/.env.local
+.claude/settings.local.json
+.claude/worktrees/
+.codex-backups/
+
+# Logs and generated build/test output
+*.log
+*.tsbuildinfo
+coverage/
+backend/coverage/
+frontend/dev-server.*.log
+
+# Office/editor temporary files
+.~lock.*#
