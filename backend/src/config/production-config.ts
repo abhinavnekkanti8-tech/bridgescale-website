@@ -1,8 +1,13 @@
 const PLACEHOLDER_SECRET_PATTERNS = [
   'changeme',
   'change-me',
+  'change_this',
+  'change-this',
+  'change this',
   'change_in_production',
   'change-in-production',
+  'in_production',
+  'in-production',
   'placeholder',
   'default',
   'dev-secret',
