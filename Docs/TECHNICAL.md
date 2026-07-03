@@ -605,7 +605,7 @@ All routes prefixed `/api/v1/`. Authenticated routes require the `platform.sid` 
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `GET` | `/health` | No | Health check |
+| `GET` | `/api/v1/health` | No | Health check (global `/api/v1` prefix applies) |
 
 ---
 
@@ -707,7 +707,7 @@ npx prisma db push --accept-data-loss
 
 ### Health check
 
-`GET /health` — returns `200 OK` with no auth required. Use for load balancer / uptime monitoring.
+`GET /api/v1/health` — returns `200 OK` with no auth required. Use for load balancer / uptime monitoring. (The global `/api/v1` prefix applies to the health route too — `/health` returns 404.)
 
 ---
 

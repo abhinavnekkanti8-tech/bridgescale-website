@@ -73,7 +73,7 @@ async function bootstrap() {
   const logger = app.get(Logger);
   logger.log(`🚀 Backend running at http://localhost:${port}/api/v1`);
   logger.log(`🔐 Auth endpoints at http://localhost:${port}/api/v1/auth`);
-  logger.log(`📡 Health check at http://localhost:${port}/health`);
+  logger.log(`📡 Health check at http://localhost:${port}/api/v1/health`);
 }
 
 bootstrap();

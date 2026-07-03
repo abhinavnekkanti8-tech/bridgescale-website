@@ -1,4 +1,4 @@
-# AG Platform — Codebase Guide
+# AG Platform (BridgeScale) — Codebase Guide
 
 ## What This Is
 A B2B fractional sales talent marketplace. Companies apply to find fractional operators; operators apply to get matched with companies. The platform runs the full lifecycle: intake → matching → contracts → engagements → closeout.
@@ -6,30 +6,36 @@ A B2B fractional sales talent marketplace. Companies apply to find fractional op
 ## Monorepo Structure
 ```
 Platform/
-├── backend/          NestJS API (TypeScript)
-├── frontend/         Next.js 14 App Router (TypeScript)
-└── TASKS_PHASE*.md   Implementation task lists
+├── backend/            NestJS API (TypeScript) — port 4000
+├── frontend/           Next.js 14 App Router (TypeScript) — port 3000
+├── Docs/               Reference docs, task lists (TASKS_PHASE*.md), ADRs
+└── docker-compose.yml  PostgreSQL 16 + Redis 7 (Redis provisioned but not yet used by code)
 ```
 
 ## Backend (`backend/`)
-- **Framework:** NestJS with Prisma ORM → PostgreSQL
+- **Framework:** NestJS 11 with Prisma ORM → PostgreSQL
 - **Entry:** `src/main.ts` → `src/app.module.ts`
-- **Auth:** Session-based (express-session), magic links. Guard: `SessionAuthGuard`
-- **API prefix:** `/api/v1/`
-- **Key modules:** applications, auth, startups, operators, matching, contracts, payments, engagements, closeout, health, diagnoses, opportunity-briefs, talent-pre-screen, interviews, approvals, analytics
-- **Payments:** Razorpay (companies, INR) + Stripe (talent, USD). Controlled by `DUMMY_PAYMENT_MODE=true` env var.
-- **AI:** Claude via `ai.service.ts` and `ai-workflow.service.ts`. Async background jobs.
+- **Auth:** Session-based (express-session, in-memory store — dev only), magic links. Guard: `SessionAuthGuard`
+- **API prefix:** `/api/v1/` (applies to ALL routes, including the health check: `GET /api/v1/health`)
+- **Key modules:** applications, auth, startups, operators, matching, contracts, payments, engagements, closeout, health, diagnoses, opportunity-briefs, talent-pre-screen, interviews, approvals, analytics, compliance, partners, admin-ops
+- **Payments:** Razorpay (companies, INR — real SDK installed) + Stripe (talent, USD — **NOT integrated yet**, see below). Controlled by `DUMMY_PAYMENT_MODE=true` env var.
+- **AI:** OpenAI `gpt-4o` via `openai` SDK in `src/ai/ai.service.ts` and `ai-workflow.service.ts`. Async background jobs. An `OPENAI_API_KEY` starting with `sk-dummy` triggers deterministic mock responses.
+
+### Stripe status (intentional)
+Stripe is deliberately dummy-only — the business relationship/integration hasn't been set up yet. There is **no `stripe` package** in `package.json`. Talent checkout "sessions" are fake IDs (`applications.service.ts`, search `TODO: Create real Stripe`), and webhook signature verification is hand-rolled. When real Stripe integration happens: install the SDK, replace the dummy session creation, and swap the manual signature check for `stripe.webhooks.constructEvent`. Note: Razorpay payment IDs are currently stored in the `stripePaymentId` column — don't assume that field is Stripe-only.
 
 ## Frontend (`frontend/`)
 - **Framework:** Next.js 14 App Router, `src/app/` directory
 - **Styling:** CSS Modules + global CSS variables (`--color-*`, `--space-*`)
-- **API calls:** Direct `fetch('/api/v1/...')` with `credentials: 'include'`
+- **API calls:** Direct `fetch('/api/v1/...')` with `credentials: 'include'` — proxied to the backend via a rewrite in `next.config.js`
+- **Route protection:** `src/middleware.ts` gates `/startup`, `/operator`, `/admin` on the session cookie (UX-level only; real authz is backend guards)
 - **Key route groups:**
   - `/for-companies/apply` + `/for-talent/apply` — public signup forms
   - `/startup/dashboard` — company user dashboard
   - `/operator/dashboard` — talent user dashboard
   - `/admin/*` — platform admin
   - `/auth/login` + `/auth/magic` — authentication
+- **Build config gotcha:** `next.config.js` sets `typescript.ignoreBuildErrors` and `eslint.ignoreDuringBuilds` — `next build` will NOT catch type errors. Always run `npm run type-check` and `npm run lint` (CI does both).
 
 ## Data Model (key models)
 - `User` — email, passwordHash, status (PENDING_APPROVAL|ACTIVE|...)
@@ -49,19 +55,17 @@ Platform/
 - Completing skipped steps: `POST /api/v1/applications/complete-assessment` and `POST /api/v1/applications/complete-references`
 - Payment comes LATER to "unlock matching": `POST /api/v1/applications/initiate-unlock`
 - Check what's left: `GET /api/v1/applications/completion-status`
-
-## Pending Work (Phase 2 partials)
-- **`BlurredMatchCard.tsx`** and **`UnlockMatchingCTA.tsx`** components not yet created in `frontend/src/components/` (Task 2.7). Startup dashboard has inline implementation but needs these proper components + match score display + price fixed to ₹8,500.
-- **`CompletionChecklist.tsx`** component not yet created (Task 2.8). Operator dashboard has inline checklist but is missing the unlock payment button.
+- The Phase 2 UI components exist: `frontend/src/components/BlurredMatchCard.tsx`, `UnlockMatchingCTA.tsx`, `CompletionChecklist.tsx`
 
 ## Environment Variables (backend)
+Full reference: `backend/.env.example` (kept accurate). Highlights:
 - `DATABASE_URL` — Postgres connection string
 - `SESSION_SECRET` — express-session secret
-- `DUMMY_PAYMENT_MODE` — `true` skips real payment (auto-confirms)
-- `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET`
-- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`
-- `ANTHROPIC_API_KEY` — for AI features
-- `FRONTEND_URL` — used in email links and Stripe redirects
+- `DUMMY_PAYMENT_MODE` — `true` skips real payment (auto-confirms). **Warning:** service defaults are inconsistent when unset (`razorpay.service.ts` defaults `true`, `contracts.service.ts` defaults `false`) — always set it explicitly.
+- `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` / `RAZORPAY_WEBHOOK_SECRET`
+- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` — dummy until Stripe is integrated
+- `OPENAI_API_KEY` / `OPENAI_MODEL` — for AI features (`sk-dummy` prefix = mock mode)
+- `FRONTEND_URL` — used in email links, payment redirects, and CORS origin
 
 ## Common Commands
 ```bash
@@ -74,6 +78,7 @@ cd backend && npx prisma studio
 cd frontend && npm run dev
 ```
 
-## Task Files
-- `TASKS_PHASE1.md` — copy/UX changes (mostly done)
-- `TASKS_PHASE2.md` — free signup flow (Tasks 2.1–2.6 done, 2.7–2.8 partial, 2.9 done)
+## Task / Planning Files
+- `Docs/TASKS_PHASE1.md`, `Docs/TASKS_PHASE2.md` — historical phase task lists (Phases 1–2 done)
+- `Docs/TECHNICAL.md` — architecture, API reference, data model
+- `Docs/PRODUCTION_READINESS_PLAN.md` — plan for closing production gaps (sessions, uploads, rate limiting, secrets hygiene, dependency upgrades)

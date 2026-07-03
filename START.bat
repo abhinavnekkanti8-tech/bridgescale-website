@@ -200,7 +200,7 @@ echo   Platform is running!
 echo.
 echo   Frontend:    http://localhost:3000
 echo   Backend API: http://localhost:4000/api/v1
-echo   Health:      http://localhost:4000/health
+echo   Health:      http://localhost:4000/api/v1/health
 echo ===================================================================
 echo.
 echo   DEMO / REVIEW ACCESS

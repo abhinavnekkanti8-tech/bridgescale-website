@@ -69,7 +69,7 @@ Double-click `START.bat` to run the above steps automatically.
 |---|---|
 | Frontend | http://localhost:3000 |
 | Backend API | http://localhost:4000/api/v1 |
-| Health check | http://localhost:4000/health |
+| Health check | http://localhost:4000/api/v1/health |
 | Prisma Studio | `npx prisma studio` (in backend/) |
 
 ---
@@ -133,10 +133,10 @@ npm run lint                # ESLint
 | Layer | Technology |
 |---|---|
 | Frontend | Next.js 14 (App Router), React 18, TypeScript, CSS Modules |
-| Backend | NestJS 10, TypeScript, Prisma ORM |
+| Backend | NestJS 11, TypeScript, Prisma ORM |
 | Database | PostgreSQL 16 |
 | Auth | express-session, bcryptjs, magic links via Resend |
-| Payments | Razorpay (INR, companies), Stripe (USD, talent) |
+| Payments | Razorpay (INR, companies), Stripe (USD, talent — dummy mode only, integration pending) |
 | AI | OpenAI gpt-4o (diagnosis, pre-screen, matching, health monitoring) |
 | Email | Resend |
 | Infrastructure | Docker Compose (local) |
