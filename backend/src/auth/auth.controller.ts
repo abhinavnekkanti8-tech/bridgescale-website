@@ -14,6 +14,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Throttle } from '@nestjs/throttler';
 import { randomBytes } from 'crypto';
 import { Request, Response } from 'express';
 import { ApplicationsService } from '../applications/applications.service';
@@ -74,12 +75,14 @@ export class AuthController {
 
   @Post('talent/signup')
   @HttpCode(HttpStatus.CREATED)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async signupTalent(@Body() dto: TalentSignupDto) {
     return this.authService.registerTalentWithPassword(dto);
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async login(
     @Body() loginDto: LoginDto,
     @Req() req: Request,
@@ -125,18 +128,21 @@ export class AuthController {
 
   @Post('verify-email/resend')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   async resendVerification(@Body() dto: ResendVerificationDto) {
     return this.authService.resendEmailVerification(dto.email);
   }
 
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.requestPasswordReset(dto.email);
   }
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto.token, dto.password);
   }

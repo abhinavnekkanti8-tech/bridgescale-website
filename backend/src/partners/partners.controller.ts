@@ -1,5 +1,6 @@
 import { Body, Controller, Headers, HttpCode, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
+import { SkipThrottle } from '@nestjs/throttler';
 import { EorPartner, MembershipRole } from '@prisma/client';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -44,27 +45,32 @@ export class PartnersController {
   }
 
   // ── Webhooks ────────────────────────────────────────────────────────────
-  // Webhooks bypass the session guard (signed by partner). They are validated
-  // inside each service via the partner SDK's signature check.
+  // Webhooks bypass the session guard (signed by partner) and the global rate
+  // limiter (partners send bursts). They are validated inside each service via
+  // the partner SDK's signature check.
 
+  @SkipThrottle()
   @Post('stripe/webhook')
   @HttpCode(200)
   stripeWebhook(@Req() req: Request, @Headers('stripe-signature') sig: string) {
     return this.stripe.handleWebhook(req.body?.toString() ?? '', sig ?? '');
   }
 
+  @SkipThrottle()
   @Post('razorpay/webhook')
   @HttpCode(200)
   razorpayWebhook(@Req() req: Request, @Headers('x-razorpay-signature') sig: string) {
     return this.razorpay.handleWebhook(req.body?.toString() ?? '', sig ?? '');
   }
 
+  @SkipThrottle()
   @Post('wise/webhook')
   @HttpCode(200)
   wiseWebhook(@Req() req: Request, @Headers('x-signature-sha256') sig: string) {
     return this.wise.handleWebhook(req.body?.toString() ?? '', sig ?? '');
   }
 
+  @SkipThrottle()
   @Post('eor/:partner/webhook')
   @HttpCode(200)
   eorWebhook(

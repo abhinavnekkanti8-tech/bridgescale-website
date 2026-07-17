@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
 import { AccessControlModule } from './common/access-control.module';
@@ -41,6 +43,18 @@ import { DemoSeedModule } from './demo-seed/demo-seed.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+
+    // ── Global rate limiting ──
+    // Default: 100 requests / minute / IP across the whole API. Auth-sensitive
+    // routes tighten this further with a per-route @Throttle() decorator.
+    // NOTE: behind a reverse proxy, enable Express "trust proxy" so req.ip
+    // reflects the real client instead of the proxy.
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60_000,
+        limit: 100,
+      },
+    ]),
 
     // ── Structured JSON logging (pino) ──
     LoggerModule.forRoot({
@@ -99,6 +113,13 @@ import { DemoSeedModule } from './demo-seed/demo-seed.module';
     DemoSeedModule,
   ],
   controllers: [AppController],
+  providers: [
+    // Apply rate limiting globally.
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}
 

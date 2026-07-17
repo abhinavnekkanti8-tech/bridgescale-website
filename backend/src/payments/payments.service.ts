@@ -4,6 +4,7 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreatePaymentPlanDto,
@@ -14,6 +15,7 @@ import {
 } from './dto/payments.dto';
 import { PayoutProviderService } from './payout-provider.service';
 import { Prisma } from '@prisma/client';
+import { verifyAndParseStripeWebhook } from '../common/utils/stripe-webhook.util';
 
 @Injectable()
 export class PaymentsService {
@@ -22,6 +24,7 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly payoutProvider: PayoutProviderService,
+    private readonly config: ConfigService,
   ) {}
 
   // ── Payment Plans ─────────────────────────────────────────────────────────
@@ -149,9 +152,19 @@ export class PaymentsService {
     return updated;
   }
 
-  // Idempotent webhook handler (mocked for MVP)
-  async handleStripeWebhook(payload: any) {
-    if (!payload || !payload.type || !payload.data?.object) return { received: true };
+  // Idempotent webhook handler. The raw body + signature are verified against
+  // STRIPE_WEBHOOK_SECRET before any state change, so forged payloads are
+  // rejected with a 400 rather than trusted.
+  async handleStripeWebhook(rawBody: string, signature: string) {
+    const payload = verifyAndParseStripeWebhook(
+      rawBody,
+      signature,
+      this.config.get<string>('STRIPE_WEBHOOK_SECRET', ''),
+    );
+
+    if (!payload || !payload.type || !payload.data?.object || !payload.id) {
+      return { received: true };
+    }
 
     const eventId = payload.id;
     const existingEvent = await this.prisma.paymentEvent.findUnique({

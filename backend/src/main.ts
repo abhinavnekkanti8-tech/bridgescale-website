@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import * as session from 'express-session';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { validateProductionConfig } from './config/production-config';
@@ -15,6 +16,10 @@ async function bootstrap() {
 
   // ── Structured logging via pino ──
   app.useLogger(app.get(Logger));
+
+  // ── Security headers (helmet) ──
+  // Sets HSTS, X-Content-Type-Options, X-Frame-Options, and related headers.
+  app.use(helmet());
 
   const config = app.get(ConfigService);
   validateProductionConfig({

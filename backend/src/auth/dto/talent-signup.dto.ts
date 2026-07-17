@@ -1,4 +1,5 @@
 import { IsBoolean, IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsStrongPassword } from '../../common/validators/strong-password.decorator';
 
 export class TalentSignupDto {
   @IsString()
@@ -9,9 +10,7 @@ export class TalentSignupDto {
   @IsEmail()
   email: string;
 
-  @IsString()
-  @MinLength(8)
-  @MaxLength(128)
+  @IsStrongPassword()
   password: string;
 
   @IsBoolean()

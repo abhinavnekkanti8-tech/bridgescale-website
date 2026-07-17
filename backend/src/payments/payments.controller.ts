@@ -5,8 +5,15 @@ import {
   Patch,
   Body,
   Param,
+  Req,
+  Headers,
+  HttpCode,
+  HttpStatus,
   UseGuards,
+  RawBodyRequest,
 } from '@nestjs/common';
+import { Request } from 'express';
+import { SkipThrottle } from '@nestjs/throttler';
 import { PaymentsService } from './payments.service';
 import {
   CreatePaymentPlanDto,
@@ -111,11 +118,20 @@ export class PaymentsController {
     return this.paymentsService.createPayoutAttempt(id, dto);
   }
 
-  /** POST /api/v1/payments/webhook — Stripe Webhook Endpoint */
+  /**
+   * POST /api/v1/payments/webhook — Stripe Webhook Endpoint.
+   * Unauthenticated by design (called by Stripe), but the raw body is verified
+   * against the Stripe signature inside the service before any state change.
+   */
   @Post('webhook')
-  handleWebhook(@Body() payload: any) {
-    // Open endpoint for external service (Stripe)
-    return this.paymentsService.handleStripeWebhook(payload);
+  @HttpCode(HttpStatus.OK)
+  @SkipThrottle()
+  handleWebhook(
+    @Req() req: RawBodyRequest<Request>,
+    @Headers('stripe-signature') signature: string,
+  ) {
+    const rawBody = (req.rawBody ?? Buffer.alloc(0)).toString('utf-8');
+    return this.paymentsService.handleStripeWebhook(rawBody, signature ?? '');
   }
 
 

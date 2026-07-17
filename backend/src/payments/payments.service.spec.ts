@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { createHmac } from 'crypto';
 import { PaymentsService } from './payments.service';
 
 describe('PaymentsService Phase 3 ledger skeleton', () => {
@@ -27,8 +28,12 @@ describe('PaymentsService Phase 3 ledger skeleton', () => {
       })),
     };
 
+    const config = {
+      get: jest.fn((_key: string, defaultValue?: string) => defaultValue),
+    };
+
     return {
-      service: new PaymentsService(prisma as any, payoutProvider as any),
+      service: new PaymentsService(prisma as any, payoutProvider as any, config as any),
       prisma,
       payoutProvider,
     };
@@ -104,6 +109,81 @@ describe('PaymentsService Phase 3 ledger skeleton', () => {
     expect(payoutProvider.planPayout).toHaveBeenCalledWith(
       expect.objectContaining({ amount: 9000, currency: 'USD' }),
     );
+  });
+});
+
+describe('PaymentsService.handleStripeWebhook signature verification', () => {
+  const SECRET = 'whsec_test_secret_value_123456';
+
+  function createService() {
+    const prisma = {
+      paymentEvent: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn(),
+      },
+      invoice: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        update: jest.fn(),
+      },
+      $transaction: jest.fn(),
+    };
+    const config = {
+      get: jest.fn((key: string, defaultValue?: string) =>
+        key === 'STRIPE_WEBHOOK_SECRET' ? SECRET : defaultValue,
+      ),
+    };
+    return {
+      service: new PaymentsService(prisma as any, {} as any, config as any),
+      prisma,
+    };
+  }
+
+  function sign(rawBody: string, timestamp = Math.floor(Date.now() / 1000)) {
+    const signature = createHmac('sha256', SECRET)
+      .update(`${timestamp}.${rawBody}`, 'utf8')
+      .digest('hex');
+    return `t=${timestamp},v1=${signature}`;
+  }
+
+  it('rejects an unsigned (forged) payload', async () => {
+    const { service, prisma } = createService();
+    const forged = JSON.stringify({
+      id: 'evt_forged',
+      type: 'invoice.paid',
+      data: { object: { id: 'in_123', amount_paid: 100000 } },
+    });
+
+    await expect(service.handleStripeWebhook(forged, '')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(prisma.invoice.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects a payload signed with the wrong secret', async () => {
+    const { service, prisma } = createService();
+    const body = JSON.stringify({ id: 'evt_1', type: 'invoice.paid', data: { object: { id: 'in_1' } } });
+    const timestamp = Math.floor(Date.now() / 1000);
+    const badSignature = createHmac('sha256', 'the_wrong_secret')
+      .update(`${timestamp}.${body}`, 'utf8')
+      .digest('hex');
+
+    await expect(
+      service.handleStripeWebhook(body, `t=${timestamp},v1=${badSignature}`),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.invoice.update).not.toHaveBeenCalled();
+  });
+
+  it('accepts a correctly-signed payload', async () => {
+    const { service } = createService();
+    const body = JSON.stringify({
+      id: 'evt_ok',
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_1' } },
+    });
+
+    await expect(service.handleStripeWebhook(body, sign(body))).resolves.toEqual({
+      received: true,
+    });
   });
 });
 

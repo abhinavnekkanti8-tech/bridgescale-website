@@ -18,6 +18,7 @@ import {
   RawBodyRequest,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { SkipThrottle } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApplicationsService } from './applications.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
@@ -206,6 +207,7 @@ export class ApplicationsController {
    */
   @Post('webhook')
   @HttpCode(HttpStatus.OK)
+  @SkipThrottle()
   async handleStripeWebhook(
     @Req() req: RawBodyRequest<Request>,
     @Headers('stripe-signature') signature: string,

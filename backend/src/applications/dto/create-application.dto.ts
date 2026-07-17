@@ -17,6 +17,7 @@ import {
   ArrayMaxSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsStrongPassword } from '../../common/validators/strong-password.decorator';
 
 export enum ApplicationTypeDto {
   COMPANY = 'COMPANY',
@@ -312,9 +313,7 @@ export class CreateApplicationDto {
   // ── Free signup flow control ────────────────────────────────────
 
   @IsOptional()
-  @IsString()
-  @MinLength(8, { message: 'Password must be at least 8 characters.' })
-  @MaxLength(100)
+  @IsStrongPassword()
   password?: string;
 
   @IsOptional()
